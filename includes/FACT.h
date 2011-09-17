@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <signal.h>
+#include <limits.h>
 
 #include <gmp.h>
 #include <dlfcn.h>
@@ -46,14 +47,16 @@
 /* Source header files. */
 #include <FACT_mpc.h>
 #include <FACT_types.h>
-#include <FACT_lexer.h>   /* Lexer functions.                */
-// #include <FACT_comp.h>    /* Bytecode compiling and parsing. */
 #include <FACT_error.h>   /* Error handling.                 */
+#include <FACT_lexer.h>   /* Lexer functions.                */
+#include <FACT_parser.h>  /* Parser of the FACT grammar.     */
+#include <FACT_comp.h>    /* Bytecode compiling and parsing. */
 #include <FACT_signals.h> /* Interrupt/signal handling.      */
 #include <FACT_alloc.h>   /* Memory allocation.              */
 #include <FACT_opcodes.h> /* Instruction listings.           */
 #include <FACT_scope.h>   /* Scope handling routines.        */
-#include <FACT_var.h>     /* Variable handling routines.     */
+#include <FACT_num.h>     /* Number handling routines.       */
+#include <FACT_var.h>     /* Variable look-ups.              */
 #include <FACT_vm.h>      /* Virtual machine functions.      */
 #include <FACT_basm.h>    /* Bytecode assembler routines.    */
 #include <FACT_BIFs.h>    /* Built In Functions.             */

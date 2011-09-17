@@ -25,8 +25,8 @@
 /* The mpc_t is used for arbitrary precision arithmetic. */
 typedef struct 
 {
-  mpz_t value;             /* Arbitray-length integer.                  */
-  unsigned long precision; /* Number of digits after the decimal point. */
+  mpz_t value;      /* Arbitray-length integer.                  */
+  size_t precision; /* Number of digits after the decimal point. */
 } __mpc_struct;
 
 typedef __mpc_struct mpc_t[1];

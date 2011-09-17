@@ -17,41 +17,38 @@
 #ifndef FACT_TYPES_H_
 #define FACT_TYPES_H_
 
-/* Data in FACT is either a variable or a scope. */
+/* Data in FACT is either a number or a scope. */
 typedef enum 
   {
-    VAR_TYPE,
+    NUM_TYPE,
     SCOPE_TYPE,
     UNSET_TYPE  /* Default type for registers. */
   } FACT_type;
 
-/* The FACT_var structure expresses variables.
- * What probably would be a much better method would be to make
- * array_up a dynamic array and eliminate next.
- */
-typedef struct FACT_var
+/* The FACT_num structure expresses real numbers. */
+typedef struct FACT_num
 {
-  bool locked;                /* Locked variables cannot be modified. */
-  mpz_t array_size;           /* Size of the current dimension.       */
+  bool locked;                /* Locked variables are immutable.      */
   mpc_t value;                /* value held by the variable.          */
   char *name;                 /* Name of the variable.                */
-  struct FACT_var **array_up; /* Points to the next dimension.        */
-} *FACT_var_t;
+  size_t array_size;          /* Size of the current dimension.       */
+  struct FACT_num **array_up; /* Points to the next dimension.        */
+} *FACT_num_t;
 
 /* The FACT_scope structure expresses scopes and functions. */ 
 typedef struct FACT_scope
 {
-  bool *marked;        /* Prevents loops in variable searches. */
-  mpz_t *array_size;   /* Size of the current dimension.       */
-  unsigned long *code; /* Location of the function's body.     */
+  bool *marked;       /* Prevents loops in variable searches. */
+  size_t *array_size; /* Size of the current dimension.       */
+  size_t *code;       /* Location of the function's body.     */
 
   char *name;            /* Declared name of the scope.              */
   const char *file_name; /* The file name when the function was set. */
 
-  FACT_var_t **var_stack;           /* Variables declared in the scope. */
+  FACT_num_t **num_stack;           /* Numbers declared in the scope.   */
   struct FACT_scope ***scope_stack; /* Scopes declared in the scope.    */
-  unsigned long *var_stack_size;
-  unsigned long *scope_stack_size;
+  size_t *num_stack_size;
+  size_t *scope_stack_size;
 
   void (*extrn_func)(void); /* Used with external libraries. */
 
@@ -70,20 +67,20 @@ typedef struct FACT_scope
 /* FACT_error describes a thrown error. */
 typedef struct FACT_error
 {
-  unsigned long line;       /* Line the error occurred.          */
+  size_t line;              /* Line the error occurred.          */
   const char *what;         /* Description of the error.         */
   struct FACT_scope *where; /* Scope where the error was thrown. */
 } FACT_error_t;
 
 /* FACT_t is the "ambigious" structure, and is type used to pass either a
- * scope or variable arbitrarily across internal functions. It's really
+ * scope or number arbitrarily across internal functions. It's really
  * annoying casting ap every time I want to use it. Perhaps use a union
  * instead.
  */
 typedef struct
 {
   FACT_type type; /* Type of the passed data.      */
-  void *ap;       /* Casted var or scope pointer.  */
+  void *ap;       /* Casted num or scope pointer.  */
 } FACT_t;
 
 #endif /* FACT_TYPES_H_ */

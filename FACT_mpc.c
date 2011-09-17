@@ -362,7 +362,7 @@ mpc_get_str (mpc_t rop)
   len = strlen (res);
   if (rop->precision)
     {
-      memmove (res + len - rop->precision, res + len - rop->precision - 1, len - 2);
+      memmove (res + len - rop->precision + 1, res + len - rop->precision, len - 2);
       res[len - rop->precision] = '.';
     }
   return res;

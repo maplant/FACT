@@ -16,8 +16,8 @@
 
 #include <FACT.h>
 
-static FACT_scope_t *make_scope_array (char *, unsigned long, unsigned long *, unsigned long);
-static FACT_scope_t get_element (FACT_scope_t, unsigned long, unsigned long *, unsigned long);
+static FACT_scope_t *make_scope_array (char *, size_t, size_t *, size_t);
+static FACT_scope_t get_element (FACT_scope_t, size_t, size_t *, size_t);
 
 FACT_scope_t
 FACT_get_local_scope (FACT_scope_t curr, char *name) /* Search for a local scope. */
@@ -48,7 +48,7 @@ FACT_get_local_scope (FACT_scope_t curr, char *name) /* Search for a local scope
 FACT_scope_t
 FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 {
-  unsigned long i;
+  size_t i;
   FACT_scope_t up;
 
   /* Check if the scope already exists. */
@@ -56,7 +56,7 @@ FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
     /* If it does, throw an error. */
     FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
 
-  if (FACT_get_local_var (curr, name) != NULL)
+  if (FACT_get_local_num (curr, name) != NULL)
     FACT_throw_error (curr, "local variable %s already exists; use \"del\" before redefining", name);
 
   /* Reallocate the scope stack and add the variable. */
@@ -94,12 +94,13 @@ FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 void
 FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous scope. */
 {
+  mpc_t elem_value;
   FACT_t push_val;
-  unsigned long i;
-  unsigned long *dim_sizes;
-  unsigned long dimensions;
+  size_t i;
+  size_t *dim_sizes;
+  size_t dimensions;
 
-  dimensions = mpc_get_ui (((FACT_var_t) Furlow_reg_val (args[0], VAR_TYPE))->value);
+  dimensions = mpc_get_ui (((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value);
 
   /* Add the local scope or anonymous. */
   push_val.ap = (anonymous
@@ -113,9 +114,13 @@ FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous scope
   dim_sizes = NULL;
   for (i = 0; i < dimensions; i++)
     {
-      dim_sizes = FACT_realloc (dim_sizes, sizeof (long *) * (i + 1));
-      dim_sizes[i] = mpc_get_ui (((FACT_var_t) Furlow_reg_val (R_POP, VAR_TYPE))->value);
-      /* Todo: as in FACT_def_var, extra checks need to be added here. */
+      dim_sizes = FACT_realloc (dim_sizes, sizeof (size_t *) * (i + 1));
+      elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
+      /* Check to make sure we aren't grossly out of range. */
+      if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
+	  || mpz_sgn (elem_value->value) < 0)
+	FACT_throw_error (CURR_THIS, "out of bounds error"); 
+      dim_sizes[i] = mpc_get_ui (elem_value);
       if (dim_sizes[i] <= 1)
 	{
 	  FACT_free (dim_sizes);
@@ -125,7 +130,7 @@ FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous scope
 
   /* Make the scope array. */
   *((FACT_scope_t) push_val.ap)->array_up = make_scope_array (((FACT_scope_t) push_val.ap)->name, dimensions, dim_sizes, 0);
-  mpz_set_ui (*((FACT_scope_t) push_val.ap)->array_size, dim_sizes[0]);
+  *((FACT_scope_t) push_val.ap)->array_size = dim_sizes[0];
   FACT_free (dim_sizes);
 
  end:
@@ -135,13 +140,14 @@ FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous scope
 void
 FACT_get_scope_elem (FACT_scope_t base, char *args)
 {
+  mpc_t elem_value;
   FACT_t push_val;
-  unsigned long i;
-  unsigned long *elems;     /* element of each dimension to access. */
-  unsigned long dimensions; /* Number of dimensions.                */
+  size_t i;
+  size_t *elems;     /* element of each dimension to access. */
+  size_t dimensions; /* Number of dimensions.                */
 
   /* Get the number of dimensions. */
-  dimensions = mpc_get_ui (((FACT_var_t) Furlow_reg_val (args[0], VAR_TYPE))->value);
+  dimensions = mpc_get_ui (((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value);
   
   /* Add the dimensions. */
   elems = NULL;
@@ -149,13 +155,13 @@ FACT_get_scope_elem (FACT_scope_t base, char *args)
   /* Keep popping the stack until we have all the dimension sizes. */ 
   for (i = 0; i < dimensions; i++)
     {
-      elems = FACT_realloc (elems, sizeof (long *) * (i + 1));
-      /* Pop the stack and get the value. */
-      elems[i] = mpc_get_ui (((FACT_var_t) Furlow_reg_val (R_POP, VAR_TYPE))->value);
-      /* Todo: add some extra checks here before converting to an unsigned
-       * long. Negative and float values will produce valid results, when
-       * they clearly should not.
-       */
+      elems = FACT_realloc (elems, sizeof (size_t *) * (i + 1));
+      elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
+      /* Check to make sure we aren't grossly out of range. */
+      if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
+	  || mpz_sgn (elem_value->value) < 0)
+	FACT_throw_error (CURR_THIS, "out of bounds error"); /* should elaborate here. */
+      elems[i] = mpc_get_ui (elem_value);
     }
 
   push_val.type = SCOPE_TYPE;
@@ -167,10 +173,10 @@ FACT_get_scope_elem (FACT_scope_t base, char *args)
 }
 
 static FACT_scope_t *
-make_scope_array (char *name, unsigned long dims, unsigned long *dim_sizes, unsigned long curr_dim)
+make_scope_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)
 {
   FACT_scope_t *root, up;
-  unsigned long i;
+  size_t i;
 
   if (curr_dim >= dims)
     return NULL;
@@ -183,7 +189,7 @@ make_scope_array (char *name, unsigned long dims, unsigned long *dim_sizes, unsi
       *root[i]->array_up = make_scope_array (name, dims, dim_sizes, curr_dim + 1);
       /* This also could be optimized. */
       if (*root[i]->array_up != NULL)
-	mpz_set_ui (*(root[i]->array_size), dim_sizes[curr_dim + 1]);
+	*(root[i]->array_size) = dim_sizes[curr_dim + 1];
 
       /* Add the up scope. */
       up = FACT_add_scope (root[i], "up");
@@ -194,19 +200,19 @@ make_scope_array (char *name, unsigned long dims, unsigned long *dim_sizes, unsi
 }
 
 static FACT_scope_t
-get_element (FACT_scope_t base, unsigned long dims, unsigned long *elems, unsigned long curr_dim)
+get_element (FACT_scope_t base, size_t dims, size_t *elems, size_t curr_dim)
 {
   if (curr_dim >= dims)
     return base;
 
-  if (mpz_cmp_ui (*base->array_size, elems[curr_dim]) <= 0)
+  if (*base->array_size <= elems[curr_dim])
     {
       FACT_free (elems);
       FACT_throw_error (CURR_THIS, "out of bounds error; expected value in [0, %lu), but value is %lu",
-			mpz_get_ui (*base->array_size), elems[curr_dim]);
+			*base->array_size, elems[curr_dim]);
     }
 
-  if (!mpz_cmp_ui (*base->array_size, 1))
+  if (*base->array_size == 1)
     {
       FACT_free (elems);
       if (curr_dim + 1 != dims)

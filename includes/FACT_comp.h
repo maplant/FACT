@@ -14,31 +14,10 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#ifndef FACT_COMP_H_
+#define FACT_COMP_H_
 
-void
-FACT_throw_error (FACT_scope_t scope, const char *fmt, ...)
-/* Set curr_err and long jump back to the error handler. */
-{
-  char *buff;
-  va_list args;
-  FACT_error_t err;
+void FACT_compile (FACT_tree_t); /* Compile a tree and load into the VM. */
 
-  /* Allocate the buffer. Make sure to free it later. */
-  buff = FACT_malloc (sizeof (char) * (MAX_ERR_LEN + 1));
+#endif /* FACT_COMP_H_ */
 
-  /* Get the formatted string. */
-  va_start (args, fmt);
-  vsnprintf (buff, MAX_ERR_LEN, fmt, args);
-  va_end (args);
-  err.what = buff;
-
-  curr_thread->curr_err = err; /* Set the error. */
-  longjmp (handle_err, 1); /* Jump back. */
-}
-
-void
-FACT_print_error (FACT_error_t err) /* Print out an error to stderr. */
-{
-  /* ... */
-}

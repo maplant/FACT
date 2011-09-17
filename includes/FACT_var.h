@@ -17,10 +17,6 @@
 #ifndef FACT_VAR_H_
 #define FACT_VAR_H_
 
-FACT_var_t FACT_get_local_var (FACT_scope_t, char *);
-FACT_var_t FACT_add_var (FACT_scope_t, char *);
-
-void FACT_def_var (char *, bool);
-void FACT_get_var_elem (FACT_var_t, char *);
+void FACT_get_var (char *); /* Search for a variable. */
 
 #endif /* FACT_VAR_H_ */

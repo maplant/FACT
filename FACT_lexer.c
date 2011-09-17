@@ -16,18 +16,20 @@
 
 #include <FACT.h>
 
-FACT_exp_t
-FACT_lex_string (char *start) /* The main lexer routine. Runs before yylex. */
+static FACT_nterm_t get_type (char *);
+
+FACT_lexed_t
+FACT_lex_string (char *start) /* The main lexer routine. */
 {
   int follow1, follow2;
-  unsigned long lines;
-  FACT_exp_t root, curr;
   char *end;
+  size_t lines;
+  FACT_lexed_t res;
 
-  root = FACT_malloc (sizeof (struct FACT_exp));
-  memset (root, 0, sizeof (struct FACT_exp));
-  curr = root;
+  end = start;
+  res.tokens = NULL;
   follow1 = follow2 = -1;
+  res.curr = lines = 0;
   
   while (*end != '\0')
     {
@@ -35,7 +37,7 @@ FACT_lex_string (char *start) /* The main lexer routine. Runs before yylex. */
       while (*end == '\t' || *end == '\n' || *end == ' ')
 	{
 	  if (*end == '\n')
-	    curr->lines++;
+	    lines++;
 	  start = ++end;
 	}
 
@@ -46,6 +48,7 @@ FACT_lex_string (char *start) /* The main lexer routine. Runs before yylex. */
       /* Check for follow up characters. */
       if (follow1 != -1)
 	{
+	  end++;
 	  if (*end == follow1 || *end == follow2)
 	    end++;
 	  goto alloc_token;
@@ -100,95 +103,125 @@ FACT_lex_string (char *start) /* The main lexer routine. Runs before yylex. */
       /* Create a new token. */
     alloc_token:
       follow1 = follow2 = -1;
+      res.tokens = FACT_realloc (res.tokens, sizeof (FACT_token_t) * (res.curr + 1));
       if ((end - start) > 0)
 	{
-	  curr->token = FACT_malloc ((end - start + 1) * sizeof (char));
-	  memcpy (curr->token, start, (end - start));
-	  curr->token[end - start] = '\0';
+	  /* Allocate the token. */
+	  res.tokens[res.curr].lexem = FACT_malloc ((end - start + 1) * sizeof (char));
+	  memcpy (res.tokens[res.curr].lexem, start, (end - start));
+	  res.tokens[res.curr].lexem[end - start] = '\0';
+	  res.tokens[res.curr].id = get_type (res.tokens[res.curr].lexem);
+	  res.tokens[res.curr].lines = lines;
+	  lines = 0;
 	  start = end;
-	  curr->right = FACT_malloc (sizeof (struct FACT_exp));
-	  memset (curr->right, 0, sizeof (struct FACT_exp));
-	  curr->right->left = curr;
-	  curr = curr->right;
+	  res.curr++;
 	}
       else
 	{
-	  curr->token = NULL;
+	  res.tokens[res.curr].id = E_END;
+	  res.tokens[res.curr].lines = 0;
 	  break;
 	}
     }
 
   /* There's like a five percent chance I managed to do this right on the
-   * first try.
+   * first try. Well aparently I got close!
    */
-  return root;
-}  
+  if (res.tokens[res.curr - 1].id != E_END)
+    {
+      /* If the last token is not E_END, make it so. */
+      res.tokens = FACT_realloc (res.tokens, sizeof (FACT_token_t) * (res.curr + 1));
+      res.tokens[res.curr].id = E_END;
+      res.tokens[res.curr].lines = 0;
+    }
 
-FACT_exp_t
-create_node (FACT_nterm_t t, FACT_exp_t l, FACT_exp_t r)
+  res.curr = 0;
+  return res;
+}
+
+static const char *tags[] =
+  {
+    "!=",
+    "%",
+    "%=",
+    "&",
+    "&&",
+    "&=",
+    "(", ")",
+    "*",
+    "*=",
+    "+",
+    "+=",
+    ",",
+    "-",
+    "-=",
+    "/",
+    "/=",
+    ":",
+    ";",
+    "<",
+    "<=",
+    "=",
+    "==",
+    ">",
+    ">=",
+    "[", "]",
+    "^",
+    "^=",
+    "@",
+    "break",
+    "catch",
+    "else",
+    "for",
+    "hold"
+    "if",
+    "num",
+    "return",
+    "scope",
+    "while",
+    "{",
+    "|",
+    "|=",
+    "||",
+    "}"
+    "", /* E_VAR        */
+    "", /* E_FUNC_CALL  */
+    "", /* E_ARRAY_ELEM */
+    "", /* E_NEG        */
+    "", /* E_END        */
+  };
+
+const char *
+FACT_get_lexem (FACT_nterm_t id)
 {
-  FACT_exp_t temp;
+  switch (id)
+    {
+    case E_VAR:
+      return "variable";
 
-  temp = FACT_malloc (sizeof (struct FACT_exp));
-  temp->left = l;
-  temp->right = r;
-  temp->id = t;
+    case E_FUNC_CALL:
+      return "function call";
 
-  return temp;
+    case E_ARRAY_ELEM:
+      return "array subsription";
+
+    case E_NEG:
+      return "negative";
+
+    case E_END:
+      return "end of statement";
+
+    default:
+      return tags[id];
+    }
 }
 
 static FACT_nterm_t
 get_type (char *token)
 {
-  static char *tags[] =
-    {
-      "!=",
-      "%",
-      "%=",
-      "&",
-      "&&",
-      "&=",
-      "(", ")",
-      "*",
-      "*=",
-      "+",
-      "+=",
-      ",",
-      "-",
-      "-=",
-      "/",
-      "/=",
-      ":",
-      ";",
-      "<",
-      "<=",
-      "=",
-      "==",
-      ">",
-      ">=",
-      "[", "]",
-      "^",
-      "^=",
-      "break",
-      "def",
-      "defunc",
-      "else",
-      "for",
-      "if",
-      "return",
-      "while",
-      "{",
-      "|",
-      "|=",
-      "||",
-      "}"
-      "", /* E_VAR      */
-      "", /* E_FUNC_DEF */
-      ""  /* E_NEG      */
-    };
-  unsigned long i;
-
-  for (i = 0; i < (sizeof (tags) / sizeof (char *)) - 3; i++)
+  size_t i;
+  
+  for (i = 0; tags[i][0] != '\0'; i++)
     {
       if (!strcmp (tags[i], token))
 	return i;

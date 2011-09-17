@@ -16,56 +16,11 @@
 
 #include <FACT.h>
 
-static struct 
-{
-  const char *token;         /* String identifier of the instruction. */
-  enum Furlow_opcode opcode; /* Integer opcode.                       */
-  const char *args;          /* Type and number of arguments taken.
-			      *  r = register (1 byte)
-			      *  a = segment address (4 bytes)
-			      *  s = string (n bytes null terminated)
-			      */
-} instructions[] =
-  {
-    { "add"  , ADD  , "rrr" },
-    { "call" , CALL , "r"   },
-    { "ceq"  , CEQ  , "rrr" },
-    { "cle"  , CLE  , "rrr" },
-    { "clt"  , CLT  , "rrr" },
-    { "cme"  , CME  , "rrr" },
-    { "cmt"  , CMT  , "rrr" },
-    { "cne"  , CNE  , "rrr" },
-    { "const", CONST, "s"   },
-    { "dec"  , DEC,   "r"   },
-    { "def_s", DEF_S, "rs"  },
-    { "def_v", DEF_V, "rs"  },
-    { "div"  , DIV  , "rrr" },
-    { "elem" , ELEM , "rr"  },
-    { "halt" , HALT , ""    },
-    { "inc"  , INC  , "r"   },
-    { "jmp"  , JMP  , "a"   },
-    { "jif"  , JIF  , "ra"  },
-    { "jit"  , JIT  , "ra"  },
-    { "mul"  , MUL  , "rrr" },
-    { "new_s", NEW_S, "r"   },
-    { "new_v", NEW_V, "r"   },
-    { "ref"  , REF  , "rr"  },
-    { "ret"  , RET  , ""    },
-    { "set_c", SET_C, "ra"  },
-    { "set_f", SET_F, "rr"  },
-    { "sprt" , SPRT , "a"   },
-    { "sto"  , STO  , "rr"  },
-    { "sub"  , SUB  , "rrr" },
-    { "this" , THIS , ""    },
-    { "use"  , USE  , "r"   },
-    { "var"  , VAR  , "s"   },
-  };
-
 void
 FACT_assembler (char *input) /* Convert BAS into bytecode. */
 {
+  size_t i, j;
   unsigned int seg_addr;
-  unsigned long i, j;
   char *instr;
   char buff[MAX_INSTRUCTION_LEN + 1];
 
@@ -176,18 +131,18 @@ FACT_assembler (char *input) /* Convert BAS into bytecode. */
 	  buff[j] = '\0';
 
 	  /* Replace this with binary search. */ 
-	  for (j = 0; j < (sizeof (instructions) / sizeof (instructions[0])); j++)
+	  for (j = 0; j < NUM_FURLOW_INSTRUCTIONS; j++)
 	    {
-	      if (!strcmp (instructions[j].token, buff))
+	      if (!strcmp (Furlow_instructions[j].token, buff))
 		break;
 	    }
-	  if (j == (sizeof (instructions) / sizeof (instructions[0])))
+	  if (j == (sizeof (Furlow_instructions) / sizeof (Furlow_instructions[0])))
 	    {
 	      fprintf (stderr, "Invalid instruction %s, defaulting to HALT.\n", buff);
 	      instr[i] = HALT;
 	    }
 	  else
-	    instr[i] = instructions[j].opcode;
+	    instr[i] = Furlow_instructions[j].opcode;
 	}
 
       while (*input != ',' && !isspace ((unsigned char) *input)

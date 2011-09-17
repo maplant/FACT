@@ -68,37 +68,36 @@ FACT_free (void *dead)
 #endif /* USE_GC */
 }
 
-FACT_var_t
-FACT_alloc_var (void) /* Allocate and initialize a var type. */
+FACT_num_t
+FACT_alloc_num (void) /* Allocate and initialize a num type. */
 {
-  FACT_var_t temp;
+  FACT_num_t temp;
 
-  temp = FACT_malloc (sizeof (struct FACT_var));
+  temp = FACT_malloc (sizeof (struct FACT_num));
 #ifndef USE_GC
   /* GC automatically sets the data it allocates to 0, so we only have to
    * memset if we aren't using it.
    */
-  memset (temp, 0, sizeof (struct FACT_var));
+  memset (temp, 0, sizeof (struct FACT_num));
 #endif /* USE_GC */
-  mpz_init (temp->array_size);
   mpc_init (temp->value);
 
   return temp;
 }
 
-FACT_var_t *
-FACT_alloc_var_array (unsigned long n)
+FACT_num_t *
+FACT_alloc_num_array (size_t n)
 {
-  FACT_var_t *temp;
+  FACT_num_t *temp;
 
   assert (n != 0);
-  temp = FACT_malloc (sizeof (FACT_var_t) * n); /* Allocate the nodes. */
+  temp = FACT_malloc (sizeof (FACT_num_t) * n); /* Allocate the nodes. */
 
   /* Initialize all the nodes. */
   do
     {
       n--;
-      temp[n] = FACT_alloc_var ();
+      temp[n] = FACT_alloc_num ();
     }
   while (n > 0);
 
@@ -113,25 +112,25 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   /* Allocate the memory. */
   temp = FACT_malloc (sizeof (struct FACT_scope));
   temp->marked = FACT_malloc (sizeof (bool));
-  temp->array_size = FACT_malloc (sizeof (mpz_t));
-  temp->code = FACT_malloc (sizeof (long));
-  temp->var_stack = FACT_malloc (sizeof (FACT_var_t *));
+  temp->array_size = FACT_malloc (sizeof (size_t));
+  temp->code = FACT_malloc (sizeof (size_t));
+  temp->num_stack = FACT_malloc (sizeof (FACT_num_t *));
   temp->scope_stack = FACT_malloc (sizeof (FACT_scope_t *));
-  temp->var_stack_size = FACT_malloc (sizeof (long));
+  temp->num_stack_size = FACT_malloc (sizeof (long));
   temp->scope_stack_size = FACT_malloc (sizeof (long));
   temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
 
   /* Initialize the memory, if we need to. */
-  mpz_init (*temp->array_size);
-  *temp->code = 0;
 #ifndef USE_GC
+  *temp->array_size = 0;
+  *temp->code = 0;
   temp->name = "Witch Woman Jenka";
   /* Did you know that this scope had a brother? */ 
   temp->file_name = NULL;
   *temp->marked = false;
-  *temp->var_stack = NULL;
+  *temp->num_stack = NULL;
   *temp->scope_stack = NULL;
-  *temp->var_stack_size = 0;
+  *temp->num_stack_size = 0;
   *temp->scope_stack_size = 0;
   temp->extrn_func = NULL;
   temp->caller = NULL;
@@ -143,12 +142,12 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
 }
 
 FACT_scope_t *
-FACT_alloc_scope_array (unsigned long n)
+FACT_alloc_scope_array (size_t n)
 {
   FACT_scope_t *temp;
 
   assert (n != 0);
-  temp = FACT_malloc (sizeof (FACT_var_t) * n); /* Allocate the nodes. */
+  temp = FACT_malloc (sizeof (FACT_scope_t) * n); /* Allocate the nodes. */
 
   /* Initialize all the nodes. */
   do

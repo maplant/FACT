@@ -14,7 +14,6 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef FACT_ALLOC_H_
 #define FACT_ALLOC_H_
 
@@ -23,10 +22,10 @@ void *FACT_malloc (size_t);
 void *FACT_realloc (void *, size_t);
 void FACT_free (void *);
 
-/* FACT type allocation functions:                                          */
-FACT_var_t FACT_alloc_var (void);                     /* Allocate a var.    */
-FACT_var_t *FACT_alloc_var_array (unsigned long);     /* Allocate n vars.   */
-FACT_scope_t FACT_alloc_scope (void);                 /* Allocate a scope.  */
-FACT_scope_t *FACT_alloc_scope_array (unsigned long); /* Allocate n scopes. */
+/* FACT type allocation functions:                                              */
+FACT_num_t FACT_alloc_num (void);              /* Allocate a number.            */
+FACT_num_t *FACT_alloc_num_array (size_t);     /* Allocate an array of numbers. */
+FACT_scope_t FACT_alloc_scope (void);          /* Allocate a scope.             */
+FACT_scope_t *FACT_alloc_scope_array (size_t); /* Allocate an array of scopes.  */
 
 #endif

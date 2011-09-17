@@ -16,14 +16,14 @@
 
 #include <FACT.h>
 
-static void pretty_print_var (FACT_var_t, unsigned long);
-static void pretty_print_scope (FACT_scope_t, unsigned long);
-static inline void format_spcs (unsigned long);
+static void pretty_print_num (FACT_num_t, size_t);
+static void pretty_print_scope (FACT_scope_t, size_t);
+static inline void format_spcs (size_t);
 
 void
 Furlow_print_state () /* Print out debug information. */
 {
-  unsigned long i;
+  size_t i;
 
   printf ("Furlow VM current state:\n"
 	  " * CURR_IP = %lu\n"
@@ -43,10 +43,10 @@ Furlow_print_state () /* Print out debug information. */
       for (i = 0; i < curr_thread->vstack_size; i++)
 	{
 	  printf ("   * (%lu): ", i);
-	  if (curr_thread->vstack[i].type == VAR_TYPE)
+	  if (curr_thread->vstack[i].type == NUM_TYPE)
 	    {
-	      printf ("[variable]:");
-	      pretty_print_var (curr_thread->vstack[i].ap, 5);
+	      printf ("[number]:");
+	      pretty_print_num (curr_thread->vstack[i].ap, 5);
 	      printf ("\n");
 	    }
 	  else
@@ -71,14 +71,16 @@ Furlow_print_registers () /* Print out the register values. */
       printf ("$%d ", i);
       switch (curr_thread->registers[i].type)
 	{
-	case VAR_TYPE:
-	  printf ("[variable]:");
-	  pretty_print_var (curr_thread->registers[i].ap, 0);
+	case NUM_TYPE:
+	  printf ("[number]:");
+	  pretty_print_num (curr_thread->registers[i].ap, 0);
+	  printf ("\n");
 	  break;
 
 	case SCOPE_TYPE:
 	  printf ("[scope]:");
 	  pretty_print_scope (curr_thread->registers[i].ap, 0);
+	  printf ("\n");
 	  break;
 
 	default:
@@ -89,19 +91,19 @@ Furlow_print_registers () /* Print out the register values. */
 }
 
 static void
-pretty_print_var (FACT_var_t val, unsigned long depth)
+pretty_print_num (FACT_num_t val, size_t depth)
 {
-  unsigned long i;
+  size_t i;
   
   if (val->array_up != NULL)
     {
       format_spcs (depth);
       printf ("[");
-      for (i = 0; mpz_cmp_ui (val->array_size, i); i++)
+      for (i = 0; i < val->array_size; i++)
 	{
 	  if (i)
 	    printf (", ");
-	  pretty_print_var (val->array_up[i], depth + 1);
+	  pretty_print_num (val->array_up[i], depth + 1);
 	}
       format_spcs (depth);
       printf ("]");
@@ -114,15 +116,15 @@ pretty_print_var (FACT_var_t val, unsigned long depth)
 }
 
 static void
-pretty_print_scope (FACT_scope_t val, unsigned long depth)
+pretty_print_scope (FACT_scope_t val, size_t depth)
 {
-  unsigned long i;
+  size_t i;
   
   if (*val->array_up != NULL)
     {
       format_spcs (depth);
       printf ("[");
-      for (i = 0; mpz_cmp_ui (*val->array_size, i); i++)
+      for (i = 0; i < *val->array_size; i++)
 	{
 	  if (i)
 	    printf (", ");
@@ -139,17 +141,17 @@ pretty_print_scope (FACT_scope_t val, unsigned long depth)
       printf ("* name = '%s'", val->name);
       format_spcs (depth);
       printf ("* code = %lu", *val->code);
-      if (*val->var_stack_size)
+      if (*val->num_stack_size)
 	{
 	  format_spcs (depth);
-	  printf ("* Variables: ");
+	  printf ("* Numbers: ");
 	  depth++;
-	  /* Print out all variables. */
-	  for (i = 0; i < *val->var_stack_size; i++)
+	  /* Print out all numbers. */
+	  for (i = 0; i < *val->num_stack_size; i++)
 	    {
 	      format_spcs (depth);
-	      printf ("- %s:", (*val->var_stack)[i]->name);
-	      pretty_print_var ((*val->var_stack)[i], depth + 1);
+	      printf ("- %s:", (*val->num_stack)[i]->name);
+	      pretty_print_num ((*val->num_stack)[i], depth + 1);
 	    }
 	}
       depth--;
@@ -159,9 +161,9 @@ pretty_print_scope (FACT_scope_t val, unsigned long depth)
 }
 
 static inline void 
-format_spcs (unsigned long n)
+format_spcs (size_t n)
 {
-  unsigned long i;
+  size_t i;
 
   printf ("\n");
   for (i = 0; i <= n; i++)

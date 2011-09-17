@@ -18,10 +18,10 @@
 
 static void *get_arg (FACT_type); 
 static void FBIF_floor ();
-static void FBIF_print_v ();
+static void FBIF_print_n ();
 static void FBIF_putchar ();
 
-#define GET_ARG_VAR() ((FACT_var_t) get_arg (VAR_TYPE))
+#define GET_ARG_NUM() ((FACT_num_t) get_arg (NUM_TYPE))
 #define GET_ARG_SCOPE() ((FACT_scope_t) get_arg (SCOPE_TYPE))
 
 void
@@ -32,8 +32,8 @@ FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
   /* Add each of the functions. */
   temp = FACT_add_scope (curr, "floor");
   temp->extrn_func = &FBIF_floor;
-  temp = FACT_add_scope (curr, "print_v");
-  temp->extrn_func = &FBIF_print_v;
+  temp = FACT_add_scope (curr, "print_n");
+  temp->extrn_func = &FBIF_print_n;
   temp = FACT_add_scope (curr, "putchar");
   temp->extrn_func = &FBIF_putchar;
 }
@@ -41,18 +41,19 @@ FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
 static void
 FBIF_putchar ()
 {
-  putchar (mpc_get_si (GET_ARG_VAR ()->value));
+  putchar (mpc_get_si (GET_ARG_NUM ()->value));
+  push_constant ("0");
 }
 
 static void
 FBIF_floor () /* Round a variable down. */
 {
   FACT_t push_val;
-  FACT_var_t res;
+  FACT_num_t res;
 
-  res = FACT_alloc_var ();
+  res = FACT_alloc_num ();
   /* Get the argument. */
-  mpc_set (res->value, GET_ARG_VAR ()->value);
+  mpc_set (res->value, GET_ARG_NUM ()->value);
 
   while (res->value->precision > 0)
     {
@@ -60,16 +61,17 @@ FBIF_floor () /* Round a variable down. */
       res->value->precision--;
     }
 
-  push_val.type = VAR_TYPE;
+  push_val.type = NUM_TYPE;
   push_val.ap = res;
 
   push_v (push_val);
 }
 
 static void
-FBIF_print_v () /* Print a variable. */
+FBIF_print_n () /* Print a number. */
 {
-  printf ("%s", mpc_get_str (GET_ARG_VAR ()->value));
+  printf ("%s\n", mpc_get_str (GET_ARG_NUM ()->value));
+  push_constant ("0");
 }
 
 static void *

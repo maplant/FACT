@@ -33,11 +33,13 @@ enum
     R_I,       /* "i" register.          */
     R_J,       /* "j" register.          */
     R_K,       /* "k" register.          */
+    R_A,       /* "A" register.          */
+    R_X,       /* "X" register.          */
   };
 
 struct cstack_t 
 {
-  unsigned long ip;  /* Instruction pointer being used. */
+  size_t ip;         /* Instruction pointer being used. */
   FACT_scope_t this; /* 'this' scope being used.        */
 };
 
@@ -47,16 +49,16 @@ struct cstack_t
  */
 typedef struct FACT_thread
 {
-  /* Virtual machine stacks:                                */
-  FACT_t *vstack;            /* Variable stack.             */
-  struct cstack_t *cstack;   /* Call stack.                 */ 
-  unsigned long vstack_size; /* Size of the variable stack. */
-  unsigned long cstack_size; /* Size of the call stack.     */
+  /* Virtual machine stacks:                              */
+  FACT_t *vstack;          /* Variable stack.             */
+  struct cstack_t *cstack; /* Call stack.                 */ 
+  size_t vstack_size;      /* Size of the variable stack. */
+  size_t cstack_size;      /* Size of the call stack.     */
 
-  /* User traps:                                                         */
-  unsigned long *traps;    /* Trap stack. Delegates user error handling. */
-  unsigned long num_traps; /* Number of traps set.                       */ 
-  FACT_error_t curr_err;   /* The last error thrown.                     */
+  /* User traps:                                                       */
+  size_t (*traps)[2];    /* Trap stack. Delegates user error handling. */
+  size_t num_traps;      /* Number of traps set.                       */ 
+  FACT_error_t curr_err; /* The last error thrown.                     */
 
   /* Virtual machine registers:                                 */
   FACT_t registers[T_REGISTERS]; /* NOT to be handled directly. */
@@ -67,7 +69,7 @@ typedef struct FACT_thread
 /* Threading and stacks:                                */
 extern FACT_thread_t threads;     /* Thread data.       */
 extern FACT_thread_t curr_thread; /* Thread being run.  */
-extern unsigned long num_threads; /* Number of threads. */
+extern size_t num_threads;        /* Number of threads. */
 
 /* Error recovery:                                   */
 extern jmp_buf handle_err; /* Handles thrown errors. */ 
@@ -78,11 +80,12 @@ extern jmp_buf recover;    /* When no traps are set. */
 #define CURR_THIS  curr_thread->cstack[curr_thread->cstack_size - 1].this
 #define CURR_IP    curr_thread->cstack[curr_thread->cstack_size - 1].ip
 
-/* Stack functions:                                                   */
-FACT_t pop_v (void);                       /* Pop the var stack.      */
-struct cstack_t pop_c (void);              /* Pop the call stack.     */
-void push_v (FACT_t);                      /* Push to the var stack.  */
-void push_c (unsigned long, FACT_scope_t); /* Push to the call stack. */
+/* Stack functions:                                                            */
+FACT_t pop_v (void);                /* Pop the var stack.                      */
+struct cstack_t pop_c (void);       /* Pop the call stack.                     */
+void push_v (FACT_t);               /* Push to the var stack.                  */
+void push_c (size_t, FACT_scope_t); /* Push to the call stack.                 */
+void push_constant (char *);        /* Push a constant value to the var stack. */
 
 /* Register functions:                                              */
 FACT_t *Furlow_register (int);         /* Access a register.        */
@@ -96,7 +99,9 @@ void Furlow_init_vm (); /* Initialize the virtual machine. */
 
 /* Code handling functions:                                                 */
 void Furlow_add_instruction (char *); /* Add an instruction to the program. */
-void Furlow_add_instructions (char **, unsigned long);
+extern inline void Furlow_lock_program ();   /* Wait for a chance and lock. */
+extern inline void Furlow_unlock_program (); /* Unlock the program.         */
+extern inline size_t Furlow_offset ();       /* Get the instruction offset. */
 
 /* Scope handling:                                                      */
 void FACT_get_either (char *); /* Search for a variable of either type. */
