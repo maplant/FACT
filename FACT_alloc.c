@@ -124,7 +124,7 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
 #ifndef USE_GC
   *temp->array_size = 0;
   *temp->code = 0;
-  temp->name = "Witch Woman Jenka";
+  temp->name = "lambda";
   /* Did you know that this scope had a brother? */ 
   temp->file_name = NULL;
   *temp->marked = false;

@@ -173,7 +173,7 @@ static const char *tags[] =
     "catch",
     "else",
     "for",
-    "hold"
+    "hold",
     "if",
     "num",
     "return",

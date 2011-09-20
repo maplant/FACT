@@ -29,8 +29,9 @@ typedef enum Furlow_opcode
     NEW_S,    /* Allocate a scope and push it to the var stack. */
     ELEM,     /* Get the element of an array.                   */
     SWAP,     /* Swap the first two elements on the var stack.  */
-    DROP,     /* Drop the first item on the stack.              */
-    PURGE,    /* Remove all items from the stack.               */
+    DROP,     /* Drop the first item on the var stack.          */
+    PURGE,    /* Remove all items from the var stack.           */
+    DUP,      /* Duplicate the first element on the var stack.  */ 
 
     /* Register manipulation.                                   */
     INC,      /* Increment a register by 1.                     */
@@ -77,8 +78,6 @@ typedef enum Furlow_opcode
     /* Error handling:                                          */
     TRAP,     /* Push to the trap stack.                        */
     END_TRAP, /* Pop the trap stack.                            */
-    ERR_D,    /* Push the description of curr_err to the stack. */
-    ERR_S,    /* Push the scope of curr_err to the stack.       */
 
     /* General:                                                 */
     HALT,     /* Halt execution.                                */
@@ -97,42 +96,46 @@ static struct
 			      */
 } Furlow_instructions[] =
   {
-    { "add"  , ADD  , "rrr" },
-    { "call" , CALL , "r"   },
-    { "ceq"  , CEQ  , "rrr" },
-    { "cle"  , CLE  , "rrr" },
-    { "clt"  , CLT  , "rrr" },
-    { "cme"  , CME  , "rrr" },
-    { "cmt"  , CMT  , "rrr" },
-    { "cne"  , CNE  , "rrr" },
-    { "const", CONST, "s"   },
-    { "dec"  , DEC,   "r"   },
-    { "def_n", DEF_N, "rs"  },
-    { "def_s", DEF_S, "rs"  },
-    { "div"  , DIV  , "rrr" },
-    { "elem" , ELEM , "rr"  },
-    { "exit" , EXIT , ""    },
-    { "halt" , HALT , ""    },
-    { "inc"  , INC  , "r"   },
-    { "jmp"  , JMP  , "a"   },
-    { "jif"  , JIF  , "ra"  },
-    { "jit"  , JIT  , "ra"  },
-    { "mul"  , MUL  , "rrr" },
-    { "neg"  , NEG  , "r"   },
-    { "new_n", NEW_N, "r"   },
-    { "new_s", NEW_S, "r"   },
-    { "purge", PURGE, ""    },
-    { "ref"  , REF  , "rr"  },
-    { "ret"  , RET  , ""    },
-    { "set_c", SET_C, "ra"  },
-    { "set_f", SET_F, "rr"  },
-    { "sprt" , SPRT , "a"   },
-    { "sto"  , STO  , "rr"  },
-    { "sub"  , SUB  , "rrr" },
-    { "swap" , SWAP , ""    },
-    { "this" , THIS , ""    },
-    { "use"  , USE  , "r"   },
-    { "var"  , VAR  , "s"   },
+    { "add"     , ADD     , "rrr" },
+    { "call"    , CALL    , "r"   },
+    { "ceq"     , CEQ     , "rrr" },
+    { "cle"     , CLE     , "rrr" },
+    { "clt"     , CLT     , "rrr" },
+    { "cme"     , CME     , "rrr" },
+    { "cmt"     , CMT     , "rrr" },
+    { "cne"     , CNE     , "rrr" },
+    { "const"   , CONST   , "s"   },
+    { "dec"     , DEC     , "r"   },
+    { "def_n"   , DEF_N   , "rs"  },
+    { "def_s"   , DEF_S   , "rs"  },
+    { "div"     , DIV     , "rrr" },
+    { "drop"    , DROP    , ""    },
+    { "dup"     , DUP     , ""    },
+    { "elem"    , ELEM    , "rr"  },
+    { "end_trap", END_TRAP, ""    },
+    { "exit"    , EXIT    , ""    },
+    { "halt"    , HALT    , ""    },
+    { "inc"     , INC     , "r"   },
+    { "jmp"     , JMP     , "a"   },
+    { "jif"     , JIF     , "ra"  },
+    { "jit"     , JIT     , "ra"  },
+    { "mul"     , MUL     , "rrr" },
+    { "neg"     , NEG     , "r"   },
+    { "new_n"   , NEW_N   , "r"   },
+    { "new_s"   , NEW_S   , "r"   },
+    { "purge"   , PURGE   , ""    },
+    { "ref"     , REF     , "rr"  },
+    { "ret"     , RET     , ""    },
+    { "set_c"   , SET_C   , "ra"  },
+    { "set_f"   , SET_F   , "rr"  },
+    { "sprt"    , SPRT    , "a"   },
+    { "sto"     , STO     , "rr"  },
+    { "sub"     , SUB     , "rrr" },
+    { "swap"    , SWAP    , ""    },
+    { "this"    , THIS    , ""    },
+    { "trap"    , TRAP    , "a"   },
+    { "use"     , USE     , "r"   },
+    { "var"     , VAR     , "s"   },
   };
 
 #define MAX_INSTRUCTION_LEN 10

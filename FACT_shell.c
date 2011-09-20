@@ -240,6 +240,7 @@ FACT_shell (void)
   FACT_t *ret_val;
   FACT_tree_t parsed;
   FACT_lexed_t tokenized;
+  struct cstack_t frame;
 
   /* Print shell info and initialize the VM. Eventually these should be moved
    * to the main function.
@@ -251,15 +252,26 @@ FACT_shell (void)
 
   curr_line = 1;
 
-  /* Set error recovery. */
-  if (setjmp (recover))
-    {
-      printf ("There was an error: %s\n", curr_thread->curr_err.what);
-      return;
-    }
-
   /* Initialize mode, true = FACT, false = BASM. */
   mode = true;
+
+  /* Set error recovery. */
+ reset_error:
+  if (setjmp (recover))
+    {
+      /* Print out the error and a stack trace. */
+      fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
+      while (curr_thread->cstack_size >= 1)
+	{
+	  frame = pop_c ();
+	  /* Add some line numbers and stuff here eventually. */
+	  fprintf (stderr, "\tat scope %s address : %lu\n", frame.this->name, frame.ip);
+	}
+      /* Push the main scope back on. */
+      push_c (frame.ip, frame.this);
+      /* Reset the error jmp_buf and continue. */
+      goto reset_error;
+    }
   
   for (;;)
     {

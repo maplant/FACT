@@ -146,7 +146,7 @@ pop_t () /* Pop the trap stack. */
   memcpy (&res, &curr_thread->traps[curr_thread->num_traps], sizeof (size_t) * 2);
   
   if (curr_thread->num_traps)
-    curr_thread->traps = FACT_realloc (curr_thread->traps, sizeof (size_t *) * curr_thread->num_traps);
+    curr_thread->traps = FACT_realloc (curr_thread->traps, sizeof (size_t [2]) * curr_thread->num_traps);
   else
     {
       FACT_free (curr_thread->traps);
@@ -172,6 +172,15 @@ push_c (size_t nip, FACT_scope_t nthis) /* Push to the call stack. */
   curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * (curr_thread->cstack_size));
   curr_thread->cstack[curr_thread->cstack_size - 1].ip = nip;
   curr_thread->cstack[curr_thread->cstack_size - 1].this = nthis;
+}
+
+void
+push_t (size_t n1, size_t n2) /* Push to the trap stack. */
+{
+  curr_thread->num_traps++;
+  curr_thread->traps = FACT_realloc (curr_thread->traps, sizeof (size_t [2]) * (curr_thread->num_traps));
+  curr_thread->traps[curr_thread->num_traps - 1][0] = n1;
+  curr_thread->traps[curr_thread->num_traps - 1][1] = n2;
 }
 
 FACT_t *
@@ -277,6 +286,10 @@ Furlow_run () /* Run the program until a HALT is reached. */
       if (curr_thread->num_traps == 0)
 	longjmp (recover, 1);
 
+      /* Destroy the unecessary stacks and set the ip. */
+      while (curr_thread->cstack_size > curr_thread->traps[curr_thread->num_traps - 1][1])
+	pop_c ();
+      
       CURR_IP = curr_thread->traps[curr_thread->num_traps - 1][0];
       goto eval; /* Go back to eval to reset the error handler. */
     }
@@ -394,6 +407,23 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	    }
 	  break;
 
+	case DUP:
+	  /* Duplicate the first item on the stack. */
+	  r1 = Furlow_register (R_TOP);
+	  if (r1->type == SCOPE_TYPE)
+	    /* To duplicate a scope we simply push it back onto the stack. */
+	    push_v (*r1);
+	  else
+	    {
+	      /* Copy the number and push it on to the stack. */
+	      n1 = FACT_alloc_num ();
+	      FACT_set_num (n1, r1->ap);
+	      res.type = NUM_TYPE;
+	      res.ap = n1;
+	      push_v (res);
+	    }
+	  break;
+	      
 	case DROP:
 	  /* Remove the first item on the variable stack. */
 	  if (curr_thread->vstack_size >= 1)
@@ -428,6 +458,11 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  /* Continue to RET. */
 	 
 	case RET:
+	  /* Close any open trap regions. */
+	  while (curr_thread->num_traps != 0
+		 && curr_thread->traps[curr_thread->num_traps][1] == curr_thread->cstack_size)
+	    pop_t ();
+	  /* Pop the call stack. */
 	  pop_c ();
 	  break;
 
@@ -438,6 +473,11 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;
 
 	case EXIT:
+	  /* Close any open trap regions. */
+	  while (curr_thread->num_traps != 0
+		 && curr_thread->traps[curr_thread->num_traps][1] == curr_thread->cstack_size)
+	    pop_t ();
+	  /* Exit the current scope. */
 	  c1 = pop_c ();
 	  CURR_IP = c1.ip;
 	  res.ap = c1.this;
@@ -574,7 +614,6 @@ Furlow_run () /* Run the program until a HALT is reached. */
 
 	case SPRT:
 	  /* Create a new thread and jump. */
-	  /* Allocate and initialize the new thread. */
 	  tnum = curr_thread - threads;
 	  threads = FACT_realloc (threads, sizeof (struct FACT_thread) * ++num_threads);
 	  curr_thread = threads + tnum;
@@ -602,8 +641,22 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  /* Create a new anonymous scope. */
 	  FACT_def_scope (progm[CURR_IP] + 1, true);
 	  break;
+
+	case TRAP:
+	  /* Set a new trap region. */
+	  push_t (get_seg_addr (progm[CURR_IP] + 1), curr_thread->cstack_size);
+	  break;
+
+	case END_TRAP:
+	  /* End a trap region. */
+	  pop_t ();
+	  break;
 	  
 	case NEW_L:
+	  /* Do nothing. */
+	  break;
+
+	case NOP:
 	  /* Do nothing. */
 	  break;
 	}
