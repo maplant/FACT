@@ -220,7 +220,7 @@ get_element (FACT_scope_t base, size_t dims, size_t *elems, size_t curr_dim)
       return base;
     }
 
-  base = *base->array_up[elems[curr_dim]];
+  base = (*base->array_up)[elems[curr_dim]];
 
   return get_element (base, dims, elems, curr_dim + 1);
 }

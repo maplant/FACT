@@ -109,6 +109,7 @@ readline () /* Read a single line of input from stdin. */
 static char *
 readstmt (const char *ps1, const char *ps2) /* Read a complete FACT statement. */
 {
+  /* To do: add support for else clauses and strings. */
   int c;
   char *res;
   size_t i;
@@ -264,11 +265,11 @@ FACT_shell (void)
       while (curr_thread->cstack_size >= 1)
 	{
 	  frame = pop_c ();
-	  /* Add some line numbers and stuff here eventually. */
+	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
 	  fprintf (stderr, "\tat scope %s address : %lu\n", frame.this->name, frame.ip);
 	}
-      /* Push the main scope back on. */
-      push_c (frame.ip, frame.this);
+      /* Push the main scope back on an move the ip two forward. */
+      push_c (frame.ip + 2, frame.this);
       /* Reset the error jmp_buf and continue. */
       goto reset_error;
     }

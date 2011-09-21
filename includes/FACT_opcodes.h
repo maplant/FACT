@@ -20,69 +20,54 @@
 /* Furlow VM bytecode instructions. */
 typedef enum Furlow_opcode 
   {
-    /* Memory management:                                       */
-    REF = 0,  /* Create a reference.                            */
-    STO,      /* Copy one var to the other.                     */
-    VAR,      /* Retrieve and push a variable to the stack.     */
-    CONST,    /* Retrieve a constant value and push it.         */
-    NEW_N,    /* Allocate a num and push it to the var stack.   */
-    NEW_S,    /* Allocate a scope and push it to the var stack. */
-    ELEM,     /* Get the element of an array.                   */
-    SWAP,     /* Swap the first two elements on the var stack.  */
-    DROP,     /* Drop the first item on the var stack.          */
-    PURGE,    /* Remove all items from the var stack.           */
-    DUP,      /* Duplicate the first element on the var stack.  */ 
-
-    /* Register manipulation.                                   */
-    INC,      /* Increment a register by 1.                     */
-    DEC,      /* Decrement a register by 1.                     */
-    
-    /* Arithmetic:                                              */
-    ADD,      /* Addition.                                      */
-    SUB,      /* Subraction.                                    */
-    MUL,      /* Multiplication.                                */
-    DIV,      /* Division.                                      */
-    MOD,      /* Modulo.                                        */
-    XOR,      /* Bitwise exclusive OR.                          */
-    IOR,      /* Bitwise inclusive OR.                          */
-    AND,      /* Bitwise AND.                                   */
-    NEG,      /* Negative.                                      */
-
-    /* Boolean operations:                                      */
-    CMT,      /* More than.                                     */
-    CME,      /* More than, equal.                              */
-    CLT,      /* Less than.                                     */
-    CLE,      /* Less than, equal.                              */
-    CEQ,      /* Equal.                                         */
-    CNE,      /* Not equal.                                     */
-
-    /* Branching and jumps:                                     */
-    JMP,      /* Unconditional jump.                            */
-    JIT,      /* Jump on true.                                  */
-    JIF,      /* Jump on false.                                 */
-    SPRT,     /* Create a new thread and unconditionally jump.  */
-
-    /* Function and scope handling:                             */
-    SET_C,    /* Set the jump address of a function.            */
-    SET_F,    /* Set the function data of a scope.              */
-    CALL,     /* Push to the call stack and jump to a function. */
-    RET,      /* Pop the call stack.                            */
-    USE,      /* Push to the call stack.                        */
-    EXIT,     /* Like ret, except the ip is left unchanged.     */
-    THIS,     /* Push the this scope to the variable stack.     */
-
-    /* Variable handling:                                       */
-    DEF_N,    /* Define a new number in the this scope.         */
-    DEF_S,    /* Define a new scope in the this scope.          */
-
-    /* Error handling:                                          */
-    TRAP,     /* Push to the trap stack.                        */
-    END_TRAP, /* Pop the trap stack.                            */
-
-    /* General:                                                 */
-    HALT,     /* Halt execution.                                */
-    NEW_L,    /* Newline; used for error messages.              */
-    NOP       /* No operator.                                   */
+    ADD = 0, /* Addition.                                      */
+    AND,     /* Bitwise AND.                                   */
+    CALL,    /* Push to the call stack and jump to a function. */
+    CEQ,     /* Equal.                                         */
+    CLE,     /* Less than, equal.                              */
+    CLT,     /* Less than.                                     */
+    CME,     /* More than, equal.                              */
+    CMT,     /* More than.                                     */
+    CNE,     /* Not equal.                                     */
+    CONST,   /* Retrieve a constant value and push it.         */
+    DEC,     /* Decrement a register by 1.                     */
+    DEF_N,   /* Define a new number in the this scope.         */
+    DEF_S,   /* Define a new scope in the this scope.          */
+    DIV,     /* Division.                                      */
+    DROP,    /* Drop the first item on the var stack.          */
+    DUP,     /* Duplicate the first element on the var stack.  */ 
+    ELEM,    /* Get the element of an array.                   */
+    EXIT,    /* Like ret, except the ip is left unchanged.     */
+    GOTO,    /* Jump to a function but do not push.            */
+    GROUP,   /* Group elements on the var stack into an array. */
+    HALT,    /* Halt execution.                                */
+    INC,     /* Increment a register by 1.                     */
+    IOR,     /* Bitwise inclusive OR.                          */
+    JMP,     /* Unconditional jump.                            */
+    JIF,     /* Jump on false.                                 */
+    JIT,     /* Jump on true.                                  */
+    MOD,     /* Modulo.                                        */
+    MUL,     /* Multiplication.                                */
+    NEG,     /* Negative.                                      */    
+    NEW_N,   /* Allocate a num and push it to the var stack.   */
+    NEW_S,   /* Allocate a scope and push it to the var stack. */
+    NOP,     /* No operator.                                   */
+    PURGE,   /* Remove all items from the var stack.           */
+    REF,     /* Create a reference.                            */
+    RET,     /* Pop the call stack.                            */
+    SET_C,   /* Set the jump address of a function.            */
+    SET_F,   /* Set the function data of a scope.              */
+    SET_N,   /* Set the name of a scope.                       */    
+    SPRT,    /* Create a new thread and unconditionally jump.  */    
+    STO,     /* Copy one var to the other.                     */
+    SUB,     /* Subraction.                                    */    
+    SWAP,    /* Swap the first two elements on the var stack.  */
+    THIS,    /* Push the this scope to the variable stack.     */
+    TRAP_B,  /* Push to the trap stack.                        */
+    TRAP_E,  /* Pop the trap stack.                            */
+    USE,     /* Push to the call stack.                        */
+    VAR,     /* Retrieve and push a variable to the stack.     */
+    XOR,     /* Bitwise exclusive OR.                          */
   } Furlow_opc_t;
 
 static struct 
@@ -112,13 +97,14 @@ static struct
     { "drop"    , DROP    , ""    },
     { "dup"     , DUP     , ""    },
     { "elem"    , ELEM    , "rr"  },
-    { "end_trap", END_TRAP, ""    },
     { "exit"    , EXIT    , ""    },
+    { "goto"    , GOTO    , "r"   },
     { "halt"    , HALT    , ""    },
     { "inc"     , INC     , "r"   },
     { "jmp"     , JMP     , "a"   },
     { "jif"     , JIF     , "ra"  },
     { "jit"     , JIT     , "ra"  },
+    { "mod"     , MOD     , "rrr" },
     { "mul"     , MUL     , "rrr" },
     { "neg"     , NEG     , "r"   },
     { "new_n"   , NEW_N   , "r"   },
@@ -128,12 +114,14 @@ static struct
     { "ret"     , RET     , ""    },
     { "set_c"   , SET_C   , "ra"  },
     { "set_f"   , SET_F   , "rr"  },
+    { "set_n"   , SET_N   , "rr"  },
     { "sprt"    , SPRT    , "a"   },
     { "sto"     , STO     , "rr"  },
     { "sub"     , SUB     , "rrr" },
     { "swap"    , SWAP    , ""    },
     { "this"    , THIS    , ""    },
-    { "trap"    , TRAP    , "a"   },
+    { "trap_b"  , TRAP_B  , "a"   },
+    { "trap_e"  , TRAP_E  , ""    },
     { "use"     , USE     , "r"   },
     { "var"     , VAR     , "s"   },
   };

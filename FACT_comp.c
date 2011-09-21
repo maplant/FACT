@@ -92,7 +92,8 @@ FACT_compile (FACT_tree_t tree)
  *    statement, in order to prevent overflow. This may require some simple changes
  *    to the parser.
  *  - Argument checking. This is important.
- *  - Break statement needs to work. How do we set the address of the jump point?
+ *  - Break statement does not work.
+ *  - Need to add line numbers for error handling. 
  */
 
 static struct inter_node *
@@ -355,8 +356,8 @@ compile_tree (FACT_tree_t curr, size_t s_count) /* Compile a tree, recursively. 
 
     case E_FUNC_CALL:
       res->node_type = GROUPING;
-      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 12);
-      res->node_val.grouping.num_children = 12;
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 13);
+      res->node_val.grouping.num_children = 13;
       /* Compile the arguments being passed. */
       res->node_val.grouping.children[0] = compile_tree (curr->children[0], 0);
       /* Create a lambda scope. */
@@ -415,11 +416,18 @@ compile_tree (FACT_tree_t curr, size_t s_count) /* Compile a tree, recursively. 
       res->node_val.grouping.children[10]->node_val.inst.args[0].arg_val.reg = R_A;
       res->node_val.grouping.children[10]->node_val.inst.args[1].arg_type = REG_VAL;
       res->node_val.grouping.children[10]->node_val.inst.args[1].arg_val.reg = R_TOP;
+      /* Change the lambda scope's name to the function being called. */
       res->node_val.grouping.children[11] = create_node ();
-      res->node_val.grouping.children[11]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[11]->node_val.inst.inst_val = CALL;
+      res->node_val.grouping.children[11]->node_val.inst.inst_val = SET_N;
       res->node_val.grouping.children[11]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[11]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[11]->node_val.inst.args[0].arg_val.reg = R_A;
+      res->node_val.grouping.children[11]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[11]->node_val.inst.args[1].arg_val.reg = R_TOP;
+      res->node_val.grouping.children[12] = create_node ();
+      res->node_val.grouping.children[12]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[12]->node_val.inst.inst_val = CALL;
+      res->node_val.grouping.children[12]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[12]->node_val.inst.args[0].arg_val.reg = R_POP;
       break;
 
     case E_FUNC_DEF:
