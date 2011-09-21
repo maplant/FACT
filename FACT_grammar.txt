@@ -1,0 +1,150 @@
+FACT_grammar.txt
+The following is FACT's formal grammar, written out and transcribed.
+Terminals are enclosed by quotation marks. C escape characters apply.
+The 'e' character stands for the empty set.
+Obviously this grammar is unfit for a recursive descent parser (it uses
+left recursion), but that is beside the point. 
+
+#################
+# BEGIN GRAMMAR:
+#################
+
+/* Lowest precedence. */
+assignment ->   lor "=" assignment
+              | lor "+=" assignment
+	      | lor "-=" assignment
+	      | lor "*=" assignment
+	      | lor "/=" assignment
+	      | lor "%=" assignment
+	      | lor
+	      ;
+
+lor ->   lor "||" land
+       | land
+       ;
+
+land ->   land "&&" equality
+        | equality 
+	;
+	
+equality ->   equality "==" comparison
+            | equality "!=" comparison
+	    | comparison
+	    ;
+	    
+comparison ->   comparison "<" E
+              | comparison ">" E
+	      | comparison "<=" E
+	      | comparison ">=" E
+	      | E
+	      ;
+	      
+E ->   E "+" T
+     | E "-" T
+     | T
+     ;
+
+T ->   T "*" A
+     | T "/" A
+     | T "%" A
+     | A
+     ;
+     
+A ->   A "(" opt_arg_list ")"
+     | A "[" assignment "]"
+     | A e
+     | I
+     ;
+
+I ->   I ":" unary
+     | unary
+     ;
+
+unary ->   "-" F
+         | "+" F
+	 | F
+	 ;
+
+F ->   "(" paren ")" 
+     | VAR
+     | STR
+     | array_dec 
+     | defin 
+     ;
+
+paren ->   func_dec
+         | "{" stmt_list "}" /* Lambda scopes. */
+	 | assignment
+	 ;
+
+opt_arg_list ->   "num" VAR arg_list
+                | "scope" VAR arg_list
+		| e
+		;
+		
+arg_list ->   "," "num" VAR arg_list
+            | "," "scope" VAR arg_list
+	    | e
+	    ;
+	    
+array_dec ->   "[" F opt_array_dec "]"
+             ;
+	     
+opt_array_dec ->   "," F opt_array_dec
+                 | e
+		 ;
+		 
+defin ->   "num" opt_array VAR
+         | "scope" opt_array VAR
+	 ;
+	 
+opt_array ->   opt_array "[" assignment "]"
+             | e
+             ;
+
+func_dec ->   assignment "@" "(" func_opt_arg_dec ")" "{" stmt_list "}"
+            ;
+
+func_opt_arg_dec ->   "scope" VAR func_arg_dec
+                    | "num" VAR func_arg_dec
+		    | e
+		    ;
+		    
+func_arg_dec ->   "," "scope" VAR func_arg_dec
+                | "," "num" VAR func_arg_dec
+		| e
+		;
+		
+
+stmt ->   "{" stmt_list "}"
+        | assignment ";"
+	| if_stmt
+	| while_loop
+	| for_loop
+	| sprout_stmt
+	| func_dec
+	| "return" assignment ";"
+	;
+	
+stmt_list ->   stmt opt_stmt_list
+             ;
+	     
+opt_stmt_list ->   stmt opt_stmt_list
+                 | e
+		 ;
+		 
+if_stmt ->   "if" "(" assignment ")" stmt else_clause
+           ;
+	   
+else_clause ->   "else" stmt
+               | e
+	       ;
+
+catch_stmt ->   "catch" stmt hold_stmt
+              ;
+
+hold_stmt ->   "hold" stmt
+             | e
+	     ;
+
+                 

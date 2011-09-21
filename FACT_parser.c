@@ -19,6 +19,7 @@
 /* Most of these functions are static as they need not be used by
  * any other file.
  * See file FACT_grammar.txt for an explanation.
+ * TODO: make ":" higher precedence than function calls. 
  */
 
 static FACT_tree_t assignment (FACT_lexed_t *);

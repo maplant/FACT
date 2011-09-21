@@ -50,13 +50,24 @@ FACT_get_local_num (FACT_scope_t curr, char *name) /* Search for a number. */
 FACT_num_t
 FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable to a scope. */
 {
+  FACT_num_t check;
   size_t i;
   
   /* Check if the variable already exists. */
+  check = FACT_get_local_num (curr, name);
   if (FACT_get_local_num (curr, name) != NULL)
-    /* It already exists, throw an error. */
-    FACT_throw_error (curr, "local variable %s already exists; use \"del\" before redefining", name);
+    {
+      /* It already exists as a number, clear and return it. */
+      mpc_set_ui (check->value, 0);
+      for (i = 0; i < check->array_size; i++)
+	free_num (check->array_up[i]);
+      FACT_free (check->array_up);
+      check->array_up = NULL;
+      check->array_size = 0;
+      return check;
+    }
 
+  /* If it's already a scope, however, just throw an error. */
   if (FACT_get_local_scope (curr, name) != NULL)
     FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
 
