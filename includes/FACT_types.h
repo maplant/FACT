@@ -42,8 +42,7 @@ typedef struct FACT_scope
   size_t *array_size; /* Size of the current dimension.       */
   size_t *code;       /* Location of the function's body.     */
 
-  char *name;            /* Declared name of the scope.              */
-  const char *file_name; /* The file name when the function was set. */
+  char *name; /* Declared name of the scope. */
 
   FACT_num_t **num_stack;           /* Numbers declared in the scope.   */
   struct FACT_scope ***scope_stack; /* Scopes declared in the scope.    */

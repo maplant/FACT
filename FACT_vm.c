@@ -244,8 +244,8 @@ math_call (char *inst, void (*mfunc)(mpc_t, mpc_t, mpc_t), int itype) /* Call a 
   assert (itype >= 0 && itype <= 3);
 
   /* Get the arguments and the destination: */
-  arg1 = (FACT_num_t) Furlow_reg_val (inst[1], NUM_TYPE);
-  arg2 = (FACT_num_t) Furlow_reg_val (inst[2], NUM_TYPE);
+  arg2 = (FACT_num_t) Furlow_reg_val (inst[1], NUM_TYPE);
+  arg1 = (FACT_num_t) Furlow_reg_val (inst[2], NUM_TYPE);
   dest = (FACT_num_t) Furlow_reg_val (inst[3], NUM_TYPE);
 
   if ((itype == 1 || itype == 2)
@@ -351,8 +351,8 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;
 
 	case CEQ:
-	  n1 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	  n2 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
 	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) == 0)
 				  ? 1
@@ -360,8 +360,8 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;	  
 	  
 	case CLE:
-	  n1 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	  n2 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
 	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) <= 0)
 				  ? 1
@@ -369,8 +369,8 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;
 	  	 
 	case CLT:
-	  n1 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	  n2 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
 	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) < 0)
 				  ? 1
@@ -378,8 +378,8 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;
 
 	case CME:
-	  n1 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	  n2 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
 	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) >= 0)
 				  ? 1
@@ -387,8 +387,8 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;
 
 	case CMT:
-	  n1 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	  n2 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
 	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) > 0)
 				  ? 1
@@ -396,8 +396,8 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;
 	  
 	case CNE:
-	  n1 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	  n2 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
 	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) != 0)
 				  ? 1
@@ -492,6 +492,15 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	case JMP:
 	  /* Unconditional jump. */
 	  CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
+	  break;
+
+	case JMP_PNT:
+	  /* Push a scope to the stack with code = to the address. */
+	  s1 = FACT_alloc_scope ();
+	  *s1->code = get_seg_addr (progm[CURR_IP] + 1);
+	  res.ap = s1;
+	  res.type = SCOPE_TYPE;
+	  push_v (res);
 	  break;
 
 	case JIF:

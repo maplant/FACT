@@ -21,11 +21,13 @@
 typedef enum
   {
     E_NE = 0,
+    E_DQ,
     E_MOD,
     E_MOD_AS,
     E_BIT_AND,
     E_AND,
     E_BIT_AND_AS,
+    E_SQ,
     E_OP_PAREN,
     E_CL_PAREN,
     E_MUL,

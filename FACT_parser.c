@@ -78,27 +78,10 @@ expect (FACT_lexed_t *set, FACT_nterm_t id) /* Expect a token. */
 
   /* Flip a bitch if res is NULL. */
   if (res == NULL)
-    {
-      switch (id)
-	{
-	case E_VAR:
-	case E_FUNC_CALL:
-	case E_NEG:
-	  fmt = "expected a %s";
-	  break;
-
-	case E_END:
-	case E_ARRAY_ELEM:
-	  fmt = "expected an %s";
-	  break;
-
-	default:
-	  fmt = "expected a `%s'";
-	  break;
-	}
-      
-      error (set, fmt, FACT_get_lexem (id)); /* Change this perhaps. */
-    }
+    /* Change this perhaps. */
+    error (set, "expected %s before %s",
+	   FACT_get_lexem (id),
+	   FACT_get_lexem (set->tokens[set->curr].id));
     
   return res;
 }
@@ -171,7 +154,8 @@ stmt (FACT_lexed_t *set)
       pn->children[0] = assignment (set);
       expect (set, E_SEMI);
     }
-  /* To do: add break and sprout. */
+  else if ((pn = accept (set, E_BREAK)) != NULL)
+    expect (set, E_SEMI);
   else
     {
       /* Just a basic expression. */
@@ -341,9 +325,19 @@ factor (FACT_lexed_t *set)
 {
   FACT_tree_t pn, en;
   
-  if ((pn = accept (set, E_OP_PAREN)))
+  if ((pn = accept (set, E_OP_PAREN)) != NULL)
     pn = paren (set);
-  else if ((pn = accept (set, E_VAR)) == NULL) /* TODO: add string support. */
+  else if ((pn = accept (set, E_DQ)) != NULL)
+    {
+      pn->children[0] = accept (set, E_VAR);
+      expect (set, E_DQ);
+    }
+  else if ((pn = accept (set, E_SQ)) != NULL)
+    {
+      pn->children[0] = accept (set, E_VAR);
+      expect (set, E_SQ);
+    }
+  else if ((pn = accept (set, E_VAR)) == NULL)
     {
       if ((pn = accept (set, E_OP_BRACK)) != NULL)
 	pn = array_dec (set);
@@ -360,30 +354,6 @@ factor (FACT_lexed_t *set)
 		     : "unexpected `%s'"), FACT_get_lexem (set->tokens[set->curr].id));
     }
 
-  /* Non-terminal opt_array is built in here. */
-  if ((en = accept (set, E_OP_PAREN)) != NULL
-      || (en = accept (set, E_OP_BRACK)) != NULL)
-    {
-      do
-	{
-	  if (en->id.id == E_OP_PAREN)
-	    {
-	      en->id.id = E_FUNC_CALL;
-	      en->children[1] = pn;
-	      en->children[0] = arg_list (set);
-	    }
-	  else
-	    {
-	      en->id.id = E_ARRAY_ELEM;
-	      en->children[1] = pn;
-	      en->children[0] = assignment (set);
-	      expect (set, E_CL_BRACK);
-	    }
-	  pn = en;
-	}
-      while ((en = accept (set, E_OP_PAREN)) != NULL
-	     || (en = accept (set, E_OP_BRACK)) != NULL);
-    }
   return pn;  
 }
 
@@ -426,11 +396,45 @@ in_scope (FACT_lexed_t *set)
 }
 
 static FACT_tree_t
-term (FACT_lexed_t *set)
+opt_pb (FACT_lexed_t *set)
 {
   FACT_tree_t ln, pn;
 
   ln = in_scope (set);
+
+  /* Non-terminal opt_array is built in here. */
+  if ((pn = accept (set, E_OP_PAREN)) != NULL
+      || (pn = accept (set, E_OP_BRACK)) != NULL)
+    {
+      do
+	{
+	  if (pn->id.id == E_OP_PAREN)
+	    {
+	      pn->id.id = E_FUNC_CALL;
+	      pn->children[1] = ln;
+	      pn->children[0] = arg_list (set);
+	    }
+	  else
+	    {
+	      pn->id.id = E_ARRAY_ELEM;
+	      pn->children[1] = ln;
+	      pn->children[0] = assignment (set);
+	      expect (set, E_CL_BRACK);
+	    }
+	  ln = pn;
+	}
+      while ((pn = accept (set, E_OP_PAREN)) != NULL
+	     || (pn = accept (set, E_OP_BRACK)) != NULL);
+    }
+  return ln;
+}
+
+static FACT_tree_t
+term (FACT_lexed_t *set)
+{
+  FACT_tree_t ln, pn;
+
+  ln = opt_pb (set);
 
   if ((pn = accept (set, E_MUL)) != NULL
       || (pn = accept (set, E_DIV)) != NULL
@@ -439,7 +443,7 @@ term (FACT_lexed_t *set)
       do
 	{
 	  pn->children[0] = ln;
-	  pn->children[1] = in_scope (set);
+	  pn->children[1] = opt_pb (set);
 	  ln = pn;
 	}
       while ((pn = accept (set, E_MUL)) != NULL

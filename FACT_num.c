@@ -131,10 +131,10 @@ FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous number 
 	  || mpz_sgn (elem_value->value) < 0)
 	FACT_throw_error (CURR_THIS, "out of bounds error"); 
       dim_sizes[i] = mpc_get_ui (elem_value);
-      if (dim_sizes[i] <= 1)
+      if (dim_sizes[i] == 0)
 	{
 	  FACT_free (dim_sizes);
-	  FACT_throw_error (CURR_THIS, "dimension size must be larger than 1");
+	  FACT_throw_error (CURR_THIS, "dimension size must be larger than 0");
 	}
     }
 
@@ -178,7 +178,8 @@ FACT_get_num_elem (FACT_num_t base, char *args)
   push_val.type = NUM_TYPE;
   push_val.ap = get_element (base, dimensions, elems, 0);
 
-  FACT_free (elems);
+  if (i > 1)
+    FACT_free (elems);
 
   push_v (push_val);
 }

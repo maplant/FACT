@@ -25,14 +25,38 @@ FACT_lex_string (char *start) /* The main lexer routine. */
   char *end;
   size_t lines;
   FACT_lexed_t res;
+  enum
+  {
+    N_STR = 0,
+    S_STR,
+    D_STR,
+  } str_follow;
 
   end = start;
   res.tokens = NULL;
   follow1 = follow2 = -1;
   res.curr = lines = 0;
+  str_follow = N_STR;
   
   while (*end != '\0')
     {
+      if (str_follow == D_STR && *end != '"')
+	{
+	  while (*end != '\0' && (*end != '"' || *(end - 1) == '\\'))
+	    end++;
+	  //	  if (*end == '"')
+	  //  end--;
+	  goto alloc_token;
+	}
+      else if (str_follow == S_STR && *end != '\'')
+	{
+	  while (*end != '\0' && (*end != '\'' || *(end - 1) == '\\'))
+	    end++;
+	  // if (*end == '\'')
+	  //  end--;
+	  goto alloc_token;
+	}
+
       /* Skip all insignificant whitespace, tally the newlines. */
       while (*end == '\t' || *end == '\n' || *end == ' ')
 	{
@@ -65,11 +89,17 @@ FACT_lex_string (char *start) /* The main lexer routine. */
       switch (*end)
 	{
 	case '\'': /* Raw string. */
-	  for (end++; *end != '\0' && (*end != '\'' || *(end - 1) == '\\'); end++);
+	  end++;
+	  str_follow = ((str_follow != S_STR)
+			? S_STR
+			: N_STR);
 	  break;
 
 	case '"':
-	  for (end++; *end != '\0' && (*end != '"' || *(end - 1) == '\\'); end++);
+	  end++;
+	  str_follow = ((str_follow != D_STR)
+			? D_STR
+			: N_STR);
 	  break;
 
 	case '&':
@@ -110,7 +140,9 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 	  res.tokens[res.curr].lexem = FACT_malloc ((end - start + 1) * sizeof (char));
 	  memcpy (res.tokens[res.curr].lexem, start, (end - start));
 	  res.tokens[res.curr].lexem[end - start] = '\0';
-	  res.tokens[res.curr].id = get_type (res.tokens[res.curr].lexem);
+	  res.tokens[res.curr].id = ((str_follow == N_STR || *start == '"' || *start == '\'')
+				     ? get_type (res.tokens[res.curr].lexem)
+				     : E_VAR);
 	  res.tokens[res.curr].lines = lines;
 	  lines = 0;
 	  start = end;
@@ -124,9 +156,6 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 	}
     }
 
-  /* There's like a five percent chance I managed to do this right on the
-   * first try. Well aparently I got close!
-   */
   if (res.tokens[res.curr - 1].id != E_END)
     {
       /* If the last token is not E_END, make it so. */
@@ -142,11 +171,13 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 static const char *tags[] =
   {
     "!=",
+    "\"",
     "%",
     "%=",
     "&",
     "&&",
     "&=",
+    "'",
     "(", ")",
     "*",
     "*=",
@@ -183,37 +214,18 @@ static const char *tags[] =
     "|",
     "|=",
     "||",
-    "}"
-    "", /* E_VAR        */
-    "", /* E_FUNC_CALL  */
-    "", /* E_ARRAY_ELEM */
-    "", /* E_NEG        */
-    "", /* E_END        */
+    "}",
+    "variable",           /* E_VAR        */
+    "function call",      /* E_FUNC_CALL  */
+    "array subscription", /* E_ARRAY_ELEM */
+    "unary `-'",          /* E_NEG        */
+    "end of statement",   /* E_END        */
   };
 
 const char *
 FACT_get_lexem (FACT_nterm_t id)
 {
-  switch (id)
-    {
-    case E_VAR:
-      return "variable";
-
-    case E_FUNC_CALL:
-      return "function call";
-
-    case E_ARRAY_ELEM:
-      return "array subsription";
-
-    case E_NEG:
-      return "negative";
-
-    case E_END:
-      return "end of statement";
-
-    default:
-      return tags[id];
-    }
+  return tags[id];
 }
 
 static FACT_nterm_t
@@ -221,11 +233,11 @@ get_type (char *token)
 {
   size_t i;
   
-  for (i = 0; tags[i][0] != '\0'; i++)
+  for (i = 0; i < E_VAR; i++)
     {
       if (!strcmp (tags[i], token))
-	return i;
+	break;
     }
   
-  return E_VAR;
+  return i;
 }

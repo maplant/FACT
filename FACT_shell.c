@@ -393,8 +393,14 @@ print_scope (FACT_scope_t val)
 
   
 /* For testing. To be replaced elsewhere. */
-main ()
+
+/*
+  main ()
 {
+#ifdef USE_GC
+  GC_init ();
+#endif
   FACT_shell ();
   return 0;
 }
+*/

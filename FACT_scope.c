@@ -49,12 +49,46 @@ FACT_scope_t
 FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 {
   size_t i;
+  char *hold_name;
+  FACT_scope_t check;
   FACT_scope_t up;
 
   /* Check if the scope already exists. */
-  if (FACT_get_local_scope (curr, name) != NULL)
-    /* If it does, throw an error. */
-    FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
+  check = FACT_get_local_scope (curr, name); 
+  if (check != NULL)
+    {
+      /* If it does, reset the scope. Do not free any data. */
+      hold_name = check->name;
+      memset (check, 0, sizeof (struct FACT_scope));
+      /* Reallocate everything. */
+      check->marked = FACT_malloc (sizeof (bool));
+      check->array_size = FACT_malloc (sizeof (size_t));
+      check->code = FACT_malloc (sizeof (size_t));
+      check->num_stack = FACT_malloc (sizeof (FACT_num_t *));
+      check->scope_stack = FACT_malloc (sizeof (FACT_scope_t *));
+      check->num_stack_size = FACT_malloc (sizeof (long));
+      check->scope_stack_size = FACT_malloc (sizeof (long));
+      check->array_up = FACT_malloc (sizeof (FACT_scope_t **));
+
+      /* Initialize the memory, if we need to. */
+#ifndef USE_GC
+      *check->array_size = 0;
+      *check->code = 0;
+      check->name = hold_name; 
+      *check->marked = false;
+      *check->num_stack = NULL;
+      *check->scope_stack = NULL;
+      *check->num_stack_size = 0;
+      *check->scope_stack_size = 0;
+      check->extrn_func = NULL;
+      check->caller = NULL;
+      *check->array_up = NULL;
+      check->variadic = NULL;
+#endif /* USE_GC */
+
+      /* return check. */
+      return check;
+    }
 
   if (FACT_get_local_num (curr, name) != NULL)
     FACT_throw_error (curr, "local variable %s already exists; use \"del\" before redefining", name);
@@ -121,10 +155,10 @@ FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous scope
 	  || mpz_sgn (elem_value->value) < 0)
 	FACT_throw_error (CURR_THIS, "out of bounds error"); 
       dim_sizes[i] = mpc_get_ui (elem_value);
-      if (dim_sizes[i] <= 1)
+      if (dim_sizes[i] == 0)
 	{
 	  FACT_free (dim_sizes);
-	  FACT_throw_error (CURR_THIS, "dimension size must be larger than 1");
+	  FACT_throw_error (CURR_THIS, "dimension size must be larger than 0");
 	}
     }
 
@@ -167,7 +201,8 @@ FACT_get_scope_elem (FACT_scope_t base, char *args)
   push_val.type = SCOPE_TYPE;
   push_val.ap = get_element (base, dimensions, elems, 0);
 
-  FACT_free (elems);
+  if (i > 1)
+    FACT_free (elems);
 
   push_v (push_val);
 }

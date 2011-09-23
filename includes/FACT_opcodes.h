@@ -44,6 +44,7 @@ typedef enum Furlow_opcode
     INC,     /* Increment a register by 1.                     */
     IOR,     /* Bitwise inclusive OR.                          */
     JMP,     /* Unconditional jump.                            */
+    JMP_PNT, /* Push a scope with an address to the var stack. */
     JIF,     /* Jump on false.                                 */
     JIT,     /* Jump on true.                                  */
     MOD,     /* Modulo.                                        */
@@ -102,6 +103,7 @@ static struct
     { "halt"    , HALT    , ""    },
     { "inc"     , INC     , "r"   },
     { "jmp"     , JMP     , "a"   },
+    { "jmp_pnt" , JMP_PNT , "a"   },
     { "jif"     , JIF     , "ra"  },
     { "jit"     , JIT     , "ra"  },
     { "mod"     , MOD     , "rrr" },

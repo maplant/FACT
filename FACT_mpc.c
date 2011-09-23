@@ -174,6 +174,7 @@ void
 mpc_div (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   mpf_t hold_op1, hold_op2, hold_res;
+  size_t i;
   unsigned long prec;
 
   mpf_init (hold_op1);
@@ -188,9 +189,9 @@ mpc_div (mpc_t rop, mpc_t op1, mpc_t op2)
     prec = default_prec;
 
   /* Set the scalar values. */
-  while ((op1->precision)-- > 0)
+  for (i = op1->precision; i > 0; i--)
     mpf_div_ui (hold_op1, hold_op1, 10);
-  while ((op2->precision)-- > 0)
+  for (i = op2->precision; i > 0; i--)
     mpf_div_ui (hold_op2, hold_op2, 10);
 
   /* Get the resulting value. */
@@ -209,6 +210,7 @@ void
 mpc_mod (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   mpf_t hold_op1, hold_op2, hold_res;
+  size_t i;
   unsigned long prec;
 
   mpf_init (hold_op1);
@@ -223,9 +225,9 @@ mpc_mod (mpc_t rop, mpc_t op1, mpc_t op2)
     prec = default_prec;
 
   /* Set the scalar values. */
-  while ((op1->precision)-- > 0)
+  for (i = op1->precision; i > 0; i--)
     mpf_div_ui (hold_op1, hold_op1, 10);
-  while ((op2->precision)-- > 0)
+  for (i = op2->precision; i > 0; i--)
     mpf_div_ui (hold_op2, hold_op2, 10);
 
   /* Get the resulting value. */
@@ -360,7 +362,7 @@ mpc_get_str (mpc_t rop)
   res = mpz_get_str (NULL, 10, rop->value);
   res = FACT_realloc (res, (strlen (res) + 2) * sizeof (char));
   len = strlen (res);
-  if (rop->precision)
+  if (rop->precision && mpz_cmp_ui (rop->value, 0))
     {
       memmove (res + len - rop->precision + 1, res + len - rop->precision, len - 2);
       res[len - rop->precision] = '.';

@@ -125,8 +125,6 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   *temp->array_size = 0;
   *temp->code = 0;
   temp->name = "lambda";
-  /* Did you know that this scope had a brother? */ 
-  temp->file_name = NULL;
   *temp->marked = false;
   *temp->num_stack = NULL;
   *temp->scope_stack = NULL;

@@ -20,6 +20,7 @@ static void *get_arg (FACT_type);
 static void FBIF_floor ();
 static void FBIF_print_n ();
 static void FBIF_putchar ();
+static void FBIF_size ();
 
 #define GET_ARG_NUM() ((FACT_num_t) get_arg (NUM_TYPE))
 #define GET_ARG_SCOPE() ((FACT_scope_t) get_arg (SCOPE_TYPE))
@@ -36,6 +37,8 @@ FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
   temp->extrn_func = &FBIF_print_n;
   temp = FACT_add_scope (curr, "putchar");
   temp->extrn_func = &FBIF_putchar;
+  temp = FACT_add_scope (curr, "size");
+  temp->extrn_func = &FBIF_size;
 }
 
 static void
@@ -72,6 +75,21 @@ FBIF_print_n () /* Print a number. */
 {
   printf ("%s\n", mpc_get_str (GET_ARG_NUM ()->value));
   push_constant ("0");
+}
+
+static void
+FBIF_size () /* Return the size of an array. */
+{
+  FACT_t push_val;
+  FACT_num_t res;
+
+  res = FACT_alloc_num ();
+  mpc_set_ui (res->value, GET_ARG_NUM ()->array_size);
+
+  push_val.type = NUM_TYPE;
+  push_val.ap = res;
+
+  push_v (push_val);
 }
 
 static void *

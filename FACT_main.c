@@ -69,7 +69,7 @@ main (int argc, char **argv)
 #ifdef USE_GC 
   /* Start the garbage collector */
   GC_INIT ();
-  GC_set_warn_proc (&GC_ignore_warnings);
+  //  GC_set_warn_proc (&GC_ignore_warnings);
 
   /* Set the GMP memory allocation functions to the GC
    * allocation functions.
@@ -266,12 +266,16 @@ main (int argc, char **argv)
   for (i = 0; i < q_size; i++)
     {
       /* ... */
+      /*
       if (res.type == ERROR_TYPE)
 	FACT_print_error (res.error);
+      */
     }
 
   /* Start the shell, if it's desired. */
   /* ... */
+  if (shell_on)
+    FACT_shell ();
   
  exit:
   /* Clean up and exit. */
