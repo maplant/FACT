@@ -1,6 +1,6 @@
 CC = gcc
 LIBS = -lgmp -lgc
-PROG = Furlow
+PROG = FACT
 CFLAGS = -c -g3 -I$(INCLUDE_DIR) # -Wall
 LDFLAGS = -rdynamic
 INCLUDE_DIR = ./includes

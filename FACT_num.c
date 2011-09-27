@@ -21,77 +21,60 @@ static FACT_num_t copy_num (FACT_num_t);
 static void free_num (FACT_num_t);
 
 FACT_num_t
-FACT_get_local_num (FACT_scope_t curr, char *name) /* Search for a number. */
-{
-  int res;
-  FACT_num_t *low, *mid, *high;
-
-  low = *curr->num_stack;
-  high = low + *curr->num_stack_size;
-
-  while (low < high)
-    {
-      mid = low + ((high - low) >> 1);
-      res = strcmp (name, (*mid)->name);
-
-      if (res < 0)
-	high = mid;
-      else if (res > 0)
-	low = mid + 1;
-      else
-	return *mid;
-    }
-
-  /* No number variable was found. */
-  return NULL;
-}
-
-FACT_num_t
 FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable to a scope. */
 {
-  FACT_num_t check;
   size_t i;
+  FACT_t *check;
   
   /* Check if the variable already exists. */
-  check = FACT_get_local_num (curr, name);
-  if (FACT_get_local_num (curr, name) != NULL)
+  check = FACT_get_local (curr, name);
+  
+  if (check != NULL) /* The variable already exists. */
     {
-      /* It already exists as a number, clear and return it. */
-      mpc_set_ui (check->value, 0);
-      for (i = 0; i < check->array_size; i++)
-	free_num (check->array_up[i]);
-      FACT_free (check->array_up);
-      check->array_up = NULL;
-      check->array_size = 0;
-      return check;
+      if (check->type == NUM_TYPE)
+	{
+	  /* It already exists as a number, clear and return it. */
+	  FACT_num_t temp;
+
+	  temp = check->ap;
+	  mpc_set_ui (temp->value, 0);
+
+	  for (i = 0; i < temp->array_size; i++)
+	    free_num (temp->array_up[i]);
+
+	  FACT_free (temp->array_up);
+	  temp->array_up = NULL;
+	  temp->array_size = 0;
+	  return temp;
+	}
+      else /* If it's already a scope, however, just throw an error. */
+	FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
     }
 
-  /* If it's already a scope, however, just throw an error. */
-  if (FACT_get_local_scope (curr, name) != NULL)
-    FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
+  /* Reallocate the var table and add the variable. */
+  *curr->var_table = FACT_realloc (*curr->var_table, sizeof (FACT_t) * (*curr->num_vars + 1));
+  //  (*curr->var_table)[*curr->num_vars] = FACT_malloc (sizeof (FACT_t));
+  (*curr->var_table)[*curr->num_vars].ap = FACT_alloc_num ();
+  (*curr->var_table)[*curr->num_vars].type = NUM_TYPE;
+  ((FACT_num_t) (*curr->var_table)[*curr->num_vars].ap)->name = name;
 
-  /* Reallocate the var stack and add the variable. */
-  *curr->num_stack = FACT_realloc (*curr->num_stack, sizeof (FACT_num_t **) * (*curr->num_stack_size + 1));
-  (*curr->num_stack)[*curr->num_stack_size] = FACT_alloc_num ();
-  (*curr->num_stack)[*curr->num_stack_size]->name = name;
-
-  /* Move the var back to the correct place. */
-  for (i = (*curr->num_stack_size)++; i > 0; i--)
+  /* Move the var its correct alphanumerical position. */
+  for (i = (*curr->num_vars)++; i > 0; i--)
     {
-      if (strcmp ((*curr->num_stack)[i - 1]->name, name) > 0)
+      if (strcmp (FACT_var_name ((*curr->var_table)[i - 1]), name) > 0)
 	{
 	  /* Swap the elements. */
-	  FACT_num_t hold;
+	  FACT_t hold;
 	  
-	  hold = (*curr->num_stack)[i - 1];
-	  (*curr->num_stack)[i - 1] = (*curr->num_stack)[i];
-	  (*curr->num_stack)[i] = hold;
+	  hold = (*curr->var_table)[i - 1];
+	  (*curr->var_table)[i - 1] = (*curr->var_table)[i];
+	  (*curr->var_table)[i] = hold;
 	}
       else
 	break;
     }
 
-  return (*curr->num_stack)[i];
+  return (*curr->var_table)[i].ap;
 }
 
 void

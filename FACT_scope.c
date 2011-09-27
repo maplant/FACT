@@ -19,95 +19,72 @@
 static FACT_scope_t *make_scope_array (char *, size_t, size_t *, size_t);
 
 FACT_scope_t
-FACT_get_local_scope (FACT_scope_t curr, char *name) /* Search for a local scope. */
-{
-  int res;
-  FACT_scope_t *low, *mid, *high;
-
-  low = *curr->scope_stack;
-  high = low + *curr->scope_stack_size;
-
-  while (low < high)
-    {
-      mid = low + ((high - low) >> 1);
-      res = strcmp (name, (*mid)->name);
-
-      if (res < 0)
-	high = mid;
-      else if (res > 0)
-	low = mid + 1;
-      else
-	return *mid;
-    }
-
-  /* No scope was found. */
-  return NULL;
-}
-
-FACT_scope_t
 FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 {
   size_t i;
   char *hold_name;
-  FACT_scope_t check;
+  FACT_t *check;
   FACT_scope_t up;
 
   /* Check if the scope already exists. */
-  check = FACT_get_local_scope (curr, name); 
-  if (check != NULL)
+  check = FACT_get_local (curr, name);
+  
+  if (check != NULL) /* It already exists. */
     {
-      /* If it does, reset the scope. Do not free any data. */
-      hold_name = check->name;
-      memset (check, 0, sizeof (struct FACT_scope));
-      /* Reallocate everything. */
-      check->marked = FACT_malloc (sizeof (bool));
-      check->array_size = FACT_malloc (sizeof (size_t));
-      check->code = FACT_malloc (sizeof (size_t));
-      check->num_stack = FACT_malloc (sizeof (FACT_num_t *));
-      check->scope_stack = FACT_malloc (sizeof (FACT_scope_t *));
-      check->num_stack_size = FACT_malloc (sizeof (long));
-      check->scope_stack_size = FACT_malloc (sizeof (long));
-      check->array_up = FACT_malloc (sizeof (FACT_scope_t **));
+      if (check->type == SCOPE_TYPE)
+	{	  
+	  /* If it does, reset the scope. Do not free any data. */
+	  FACT_scope_t temp;
+	  temp = check->ap;
+
+	  hold_name = temp->name;
+	  memset (check, 0, sizeof (struct FACT_scope));
+
+	  /* Reallocate everything. */
+	  temp->marked = FACT_malloc (sizeof (bool));
+	  temp->array_size = FACT_malloc (sizeof (size_t));
+	  temp->code = FACT_malloc (sizeof (size_t));
+	  temp->var_table = FACT_malloc (sizeof (FACT_t *));
+	  temp->num_vars = FACT_malloc (sizeof (size_t));
+	  temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
 
       /* Initialize the memory, if we need to. */
 #ifndef USE_GC
-      *check->array_size = 0;
-      *check->code = 0;
-      check->name = hold_name; 
-      *check->marked = false;
-      *check->num_stack = NULL;
-      *check->scope_stack = NULL;
-      *check->num_stack_size = 0;
-      *check->scope_stack_size = 0;
-      check->extrn_func = NULL;
-      check->caller = NULL;
-      *check->array_up = NULL;
-      check->variadic = NULL;
+	  *temp->array_size = 0;
+	  *temp->code = 0;
+	  temp->name = hold_name; 
+	  *temp->marked = false;
+	  *temp->var_table = NULL;
+	  *temp->num_vars = 0;
+	  temp->extrn_func = NULL;
+	  temp->caller = NULL;
+	  *temp->array_up = NULL;
+	  temp->variadic = NULL;
 #endif /* USE_GC */
 
-      /* return check. */
-      return check;
+	  return temp;
+	}
+      else /* It's already a number. Through an error. */ 
+	FACT_throw_error (curr, "local variable %s already exists; use \"del\" before redefining", name);
     }
 
-  if (FACT_get_local_num (curr, name) != NULL)
-    FACT_throw_error (curr, "local variable %s already exists; use \"del\" before redefining", name);
+  /* Reallocate the var table and add the variable. */
+  *curr->var_table = FACT_realloc (*curr->var_table, sizeof (FACT_t) * (*curr->num_vars + 1));
+  (*curr->var_table)[*curr->num_vars].ap = FACT_alloc_scope ();
+  (*curr->var_table)[*curr->num_vars].type = SCOPE_TYPE;
+  ((FACT_scope_t) (*curr->var_table)[*curr->num_vars].ap)->name = name;
 
-  /* Reallocate the scope stack and add the variable. */
-  *curr->scope_stack = FACT_realloc (*curr->scope_stack, sizeof (FACT_scope_t **) * (*curr->scope_stack_size + 1));
-  (*curr->scope_stack)[*curr->scope_stack_size] = FACT_alloc_scope ();
-  (*curr->scope_stack)[*curr->scope_stack_size]->name = name;
-
-  /* Move the var back to the correct place. */
-  for (i = (*curr->scope_stack_size)++; i > 0; i--)
+  /* Move the var to its correct alphanumerical position. */
+  for (i = (*curr->num_vars)++; i > 0; i--)
     {
-      if (strcmp ((*curr->scope_stack)[i - 1]->name, name) > 0)
+      if (strcmp (FACT_var_name ((*curr->var_table)[i - 1]), name) > 0)
 	{
 	  /* Swap the elements. */
-	  FACT_scope_t hold;
+	  FACT_t hold;
 	  
-	  hold = (*curr->scope_stack)[i - 1];
-	  (*curr->scope_stack)[i - 1] = (*curr->scope_stack)[i];
-	  (*curr->scope_stack)[i] = hold;
+	  hold = (*curr->var_table)[i - 1];
+	  (*curr->var_table)[i - 1] = (*curr->var_table)[i];
+	  (*curr->var_table)[i] = hold;
 	}
       else
 	break;
@@ -116,12 +93,12 @@ FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
   /* Add the "up" scope here, unless we are already in the process of doing so. */
   if (strcmp (name, "up"))
     {
-      up = FACT_add_scope ((*curr->scope_stack)[i], "up");
+      up = FACT_add_scope ((*curr->var_table)[i].ap, "up");
       memcpy (up, curr, sizeof (struct FACT_scope));
       up->name = "up";
     }
 
-  return (*curr->scope_stack)[i];
+  return (*curr->var_table)[i].ap;
 }
 
 void

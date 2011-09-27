@@ -25,6 +25,17 @@ typedef enum
     UNSET_TYPE  /* Default type for registers. */
   } FACT_type;
 
+/* FACT_t is the "ambigious" structure, and is type used to pass either a
+ * scope or number arbitrarily across internal functions. It's really
+ * annoying casting ap every time I want to use it. Perhaps use a union
+ * instead.
+ */
+typedef struct
+{
+  FACT_type type; /* Type of the passed data.      */
+  void *ap;       /* Casted num or scope pointer.  */
+} FACT_t;
+
 /* The FACT_num structure expresses real numbers. */
 typedef struct FACT_num
 {
@@ -44,10 +55,8 @@ typedef struct FACT_scope
 
   char *name; /* Declared name of the scope. */
 
-  FACT_num_t **num_stack;           /* Numbers declared in the scope.   */
-  struct FACT_scope ***scope_stack; /* Scopes declared in the scope.    */
-  size_t *num_stack_size;
-  size_t *scope_stack_size;
+  FACT_t **var_table; /* Variables declared in the scope. */
+  size_t *num_vars;   /* Number of variables.             */
 
   void (*extrn_func)(void); /* Used with external libraries. */
 
@@ -70,16 +79,5 @@ typedef struct FACT_error
   const char *what;         /* Description of the error.         */
   struct FACT_scope *where; /* Scope where the error was thrown. */
 } FACT_error_t;
-
-/* FACT_t is the "ambigious" structure, and is type used to pass either a
- * scope or number arbitrarily across internal functions. It's really
- * annoying casting ap every time I want to use it. Perhaps use a union
- * instead.
- */
-typedef struct
-{
-  FACT_type type; /* Type of the passed data.      */
-  void *ap;       /* Casted num or scope pointer.  */
-} FACT_t;
 
 #endif /* FACT_TYPES_H_ */

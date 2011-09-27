@@ -114,10 +114,8 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   temp->marked = FACT_malloc (sizeof (bool));
   temp->array_size = FACT_malloc (sizeof (size_t));
   temp->code = FACT_malloc (sizeof (size_t));
-  temp->num_stack = FACT_malloc (sizeof (FACT_num_t *));
-  temp->scope_stack = FACT_malloc (sizeof (FACT_scope_t *));
-  temp->num_stack_size = FACT_malloc (sizeof (size_t));
-  temp->scope_stack_size = FACT_malloc (sizeof (size_t));
+  temp->var_table = FACT_malloc (sizeof (FACT_t *));
+  temp->num_vars = FACT_malloc (sizeof (size_t));
   temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
   temp->name = "lambda";
   
@@ -126,10 +124,8 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   *temp->array_size = 0;
   *temp->code = 0;
   *temp->marked = false;
-  *temp->num_stack = NULL;
-  *temp->scope_stack = NULL;
-  *temp->num_stack_size = 0;
-  *temp->scope_stack_size = 0;
+  *temp->var_table = NULL;
+  *temp->num_vars = 0;
   temp->extrn_func = NULL;
   temp->caller = NULL;
   *temp->array_up = NULL;

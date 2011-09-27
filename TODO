@@ -1,6 +1,6 @@
 Need to add:
- + Addition of arrays.
+ + Addition of anonymous arrays.
  + Comparison of arrays.
  + Comparison of scopes.
  + Running files. 
- 
+ + Caching for constant values. 

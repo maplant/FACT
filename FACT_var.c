@@ -16,58 +16,66 @@
 
 #include <FACT.h>
 
-static FACT_t get_var_noerror (FACT_scope_t, char *);
-
-void
-FACT_get_var (char *name) /* Search all relevent scopes for a variable. */
+FACT_t *
+FACT_get_local (FACT_scope_t env, char *name) /* Search for a variable. */
 {
-  FACT_t res;
+  int res;
+  FACT_t *low, *mid, *high;
 
-  /* Search for the variable. */
-  res = get_var_noerror (CURR_THIS, name);
+  low = *env->var_table;
+  high = low + *env->num_vars;
 
-  /* If it doesn't exist, throw an error. Otherwise, push it to the var
-   * stack.
-   */
-  if (res.ap == NULL)
-    FACT_throw_error (CURR_THIS, "undefined variable: %s", name);
+  while (low < high)
+    {
+      mid = low + ((high - low) >> 1);
+      res = strcmp (name, FACT_var_name (*mid));
 
-  push_v (res);
+      if (res < 0)
+	high = mid;
+      else if (res > 0)
+	low = mid + 1;
+      else
+	return mid;
+    }
+
+  /* No variable was found. */
+  return NULL;
 }
 
-static FACT_t
-get_var_noerror (FACT_scope_t curr, char *name) /* Search for a var, but don't throw an error. */
+void
+FACT_get_var (char *name) /* Search all relevent scopes for a variable and push it to the stack. */
 {
-  FACT_t res;
-  
-  /* If the scope doesn't exist or is marked. */ 
-  if (curr == NULL || *curr->marked)
-    {
-      res.ap = NULL;
-      return res;
-    }
+  FACT_t *res;
+  FACT_scope_t env = CURR_THIS;
 
-  /* Mark the scope. */
-  *curr->marked = true;
-  res.ap = NULL;
-
-  /* Search for the variable, if there are any in the scope. */
-  if (*curr->num_stack_size)
-    res.ap = FACT_get_local_num (curr, name);
-  if (res.ap != NULL)
-    res.type = NUM_TYPE;
-  else
+  /* Currently we do not mark the scopes. This should be done in the future
+   * in order to prevent infinite lookup loops.
+   */
+  for (;;)
     {
-      res.ap = FACT_get_local_scope (curr, name);
-      if (res.ap != NULL)
-	res.type = SCOPE_TYPE;
+      /* Search for the variable. */
+      res = FACT_get_local (env, name);
+
+      if (res == NULL) /* No such variable exists in this scope. */
+	{
+	  /* Go up one scope. */
+	  res = FACT_get_local (env, "up");
+
+	  /* If there is no up scope, or if it is invalid. */
+	  if (res == NULL || res->type != SCOPE_TYPE)
+	    goto error;
+	  
+	  env = res->ap;
+	}
       else
-	/* If the var isn't local, search the next scope up. */
-	res = get_var_noerror (FACT_get_local_scope (curr, "up"), name);
+	{
+	  /* Push the variable. */
+	  push_v (*res);
+	  return; /* Exit. */
+	}
     }
 
-  /* Unmark the scope. */
-  *curr->marked = false;
-
-  return res;
+ error:
+  /* If the variable doesn't exist, throw an error. */
+  FACT_throw_error (CURR_THIS, "undefined variable: %s", name);
 }

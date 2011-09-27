@@ -149,12 +149,12 @@ pretty_print_scope (FACT_scope_t val, size_t depth)
       printf ("* name = '%s'", val->name);
       format_spcs (depth);
       printf ("* code = %lu", *val->code);
+      /*
       if (*val->num_stack_size)
 	{
 	  format_spcs (depth);
 	  printf ("* Numbers: ");
 	  depth++;
-	  /* Print out all numbers. */
 	  for (i = 0; i < *val->num_stack_size; i++)
 	    {
 	      format_spcs (depth);
@@ -162,6 +162,7 @@ pretty_print_scope (FACT_scope_t val, size_t depth)
 	      pretty_print_num ((*val->num_stack)[i], depth + 1);
 	    }
 	}
+      */
       depth--;
       format_spcs (depth);
       printf ("}");
