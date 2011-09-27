@@ -17,7 +17,6 @@
 #include <FACT.h>
 
 static FACT_num_t *make_num_array (char *, size_t, size_t *, size_t);
-static FACT_num_t get_element (FACT_num_t, size_t, size_t *, size_t);
 static FACT_num_t copy_num (FACT_num_t);
 static void free_num (FACT_num_t);
 
@@ -32,7 +31,7 @@ FACT_get_local_num (FACT_scope_t curr, char *name) /* Search for a number. */
 
   while (low < high)
     {
-      mid = low + (high - low) / 2;
+      mid = low + ((high - low) >> 1);
       res = strcmp (name, (*mid)->name);
 
       if (res < 0)
@@ -153,33 +152,19 @@ FACT_get_num_elem (FACT_num_t base, char *args)
 {
   mpc_t elem_value;
   FACT_t push_val;
-  size_t i;
-  size_t *elems;     /* element of each dimension to access. */
-  size_t dimensions; /* Number of dimensions.                */
 
-  /* Get the number of dimensions. */
-  dimensions = mpc_get_ui (((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value);
-  
-  /* Add the dimensions. */
-  elems = NULL;
-  
-  /* Keep popping the stack until we have all the dimension sizes. */ 
-  for (i = 0; i < dimensions; i++)
-    {
-      elems = FACT_realloc (elems, sizeof (size_t *) * (i + 1));
-      elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
-      /* Check to make sure we aren't grossly out of range. */
-      if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
-	  || mpz_sgn (elem_value->value) < 0)
-	FACT_throw_error (CURR_THIS, "out of bounds error"); /* should elaborate here. */
-      elems[i] = mpc_get_ui (elem_value); 
-    }
+  /* Get the element index. */
+  elem_value[0] = *((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value;
 
+  /* Check to make sure we aren't out of bounds. */
+  if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
+      || mpz_sgn (elem_value->value) < 0
+      || base->array_size <= mpc_get_ui (elem_value))
+    FACT_throw_error (CURR_THIS, "out of bounds error"); /* should elaborate here. */
+
+  /* Get the element and push it to the stack. */
+  push_val.ap = base->array_up[mpc_get_ui (elem_value)];
   push_val.type = NUM_TYPE;
-  push_val.ap = get_element (base, dimensions, elems, 0);
-
-  if (i > 1)
-    FACT_free (elems);
 
   push_v (push_val);
 }
@@ -230,35 +215,6 @@ make_num_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)
     }
 
   return root;
-}
-
-static FACT_num_t
-get_element (FACT_num_t base, size_t dims, size_t *elems, size_t curr_dim)
-{
-  size_t hold;
-  
-  if (curr_dim >= dims)
-    return base;
-
-  if (base->array_size <= elems[curr_dim])
-    {
-      hold = elems[curr_dim];
-      FACT_free (elems);
-      FACT_throw_error (CURR_THIS, "out of bounds error; expected value in [0, %lu), but value is %lu",
-			base->array_size, hold);
-    }
-
-  if (base->array_size == 1)
-    {
-      FACT_free (elems);
-      if (curr_dim + 1 != dims)
-	FACT_throw_error (CURR_THIS, "out of bounds error; unexpected dimensions");
-      return base;
-    }
-
-  base = base->array_up[elems[curr_dim]];
-
-  return get_element (base, dims, elems, curr_dim + 1);
 }
       
 static FACT_num_t

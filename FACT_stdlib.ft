@@ -1,0 +1,6 @@
+scope
+print @ (num str)
+{
+  for (num i; i < size (str); i += 1)
+    putchar (str[i]);
+}

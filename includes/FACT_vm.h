@@ -53,7 +53,9 @@ typedef struct FACT_thread
   FACT_t *vstack;          /* Variable stack.             */
   struct cstack_t *cstack; /* Call stack.                 */ 
   size_t vstack_size;      /* Size of the variable stack. */
+  size_t vstack_max;
   size_t cstack_size;      /* Size of the call stack.     */
+  size_t cstack_max;
 
   /* User traps:                                                       */
   size_t (*traps)[2];    /* Trap stack. Delegates user error handling. */
@@ -99,9 +101,9 @@ void Furlow_init_vm (); /* Initialize the virtual machine. */
 
 /* Code handling functions:                                                 */
 void Furlow_add_instruction (char *); /* Add an instruction to the program. */
-extern inline void Furlow_lock_program ();   /* Wait for a chance and lock. */
-extern inline void Furlow_unlock_program (); /* Unlock the program.         */
-extern inline size_t Furlow_offset ();       /* Get the instruction offset. */
+inline void Furlow_lock_program ();   /* Wait for a chance and lock.        */
+inline void Furlow_unlock_program (); /* Unlock the program.                */
+inline size_t Furlow_offset ();       /* Get the instruction offset.        */
 
 /* Scope handling:                                                      */
 void FACT_get_either (char *); /* Search for a variable of either type. */

@@ -95,14 +95,18 @@ pop_v () /* Pop the variable stack. */
   curr_thread->vstack_size--;
   res.ap = curr_thread->vstack[curr_thread->vstack_size].ap;
   res.type = curr_thread->vstack[curr_thread->vstack_size].type;
-  
+  curr_thread->vstack[curr_thread->vstack_size].ap = NULL;
+  curr_thread->vstack[curr_thread->vstack_size].type = UNSET_TYPE;
+
+  /*
   if (curr_thread->vstack_size)
-     curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * curr_thread->vstack_size);
+    curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * curr_thread->vstack_size);
   else
     {
       FACT_free (curr_thread->vstack);
       curr_thread->vstack = NULL;
     }
+  */
   
   return res;
 }
@@ -116,18 +120,26 @@ pop_c () /* Pop the current call stack. */
   if (curr_thread->cstack == NULL)
     FACT_throw_error (CURR_THIS, "illegal POP on empty call stack.");
 #endif /* SAFE */
+
+  /* if (curr_thread->cstack_size == 1)
+     FACT_throw_error (CURR_THIS, "cannot POP main scope.");
+  */
   
   curr_thread->cstack_size--;
   memcpy (&res, &curr_thread->cstack[curr_thread->cstack_size], sizeof (struct cstack_t));
-  
+  curr_thread->cstack[curr_thread->cstack_size].this = NULL;
+  curr_thread->cstack[curr_thread->cstack_size].ip = 0;
+
+  /*
   if (curr_thread->cstack_size)
-    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * curr_thread->cstack_size);
+    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * curr_thread->cstack_size);
   else
     {
       FACT_free (curr_thread->cstack);
       curr_thread->cstack = NULL;
     }
-  
+  */
+
   return res;
 }
 
@@ -159,8 +171,18 @@ pop_t () /* Pop the trap stack. */
 void
 push_v (FACT_t n) /* Push to the variable stack. */
 {
+  size_t alloc_size;
+  
   curr_thread->vstack_size++;
-  curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_size));
+  if (curr_thread->vstack_size >= curr_thread->vstack_max)
+    {
+      if (curr_thread->vstack_max == 0)
+	curr_thread->vstack_max = 1;
+      else
+	curr_thread->vstack_max <<= 1; /* Sqaure the size of the var stack. */
+      curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_max));
+    }
+  // curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_size));
   curr_thread->vstack[curr_thread->vstack_size - 1].type = n.type;
   curr_thread->vstack[curr_thread->vstack_size - 1].ap = n.ap;
 }
@@ -169,7 +191,13 @@ void
 push_c (size_t nip, FACT_scope_t nthis) /* Push to the call stack. */
 {
   curr_thread->cstack_size++;
-  curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * (curr_thread->cstack_size));
+  if (curr_thread->cstack_size >= curr_thread->cstack_max)
+    {
+      /* Sqaure the size of the call stack. The call stack will never be NULL. */
+      curr_thread->cstack_max <<= 1;
+      curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * (curr_thread->cstack_max));
+    }
+  //  curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * (curr_thread->cstack_size));
   curr_thread->cstack[curr_thread->cstack_size - 1].ip = nip;
   curr_thread->cstack[curr_thread->cstack_size - 1].this = nthis;
 }
@@ -517,6 +545,13 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	    CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
 	  break;
 
+	case LAMBDA:
+	  /* Push a lambda scope to the stack. */
+	  res.ap = FACT_alloc_scope ();
+	  res.type = SCOPE_TYPE;
+	  push_v (res);
+	  break;
+
 	case MOD:
 	  math_call (progm[CURR_IP], &mpc_mod, 2);
 	  break;
@@ -596,6 +631,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  threads = FACT_realloc (threads, sizeof (struct FACT_thread) * ++num_threads);
 	  curr_thread = threads + tnum;
 	  threads[num_threads - 1].cstack_size++;
+	  threads[num_threads - 1].cstack_max++;
 	  threads[num_threads - 1].cstack = FACT_malloc (sizeof (struct cstack_t));
 
 	  /* Set the 'this' scope and ip of the thread and jump. */
@@ -729,6 +765,7 @@ Furlow_init_vm () /* Create the main scope and thread. */
   memset (threads, 0, sizeof (struct FACT_thread));
   num_threads = 1;
   threads->cstack_size++;
+  threads->cstack_max++;
   threads->cstack = FACT_malloc (sizeof (struct cstack_t));
   CURR_THIS = FACT_alloc_scope ();
   CURR_THIS->name = "main";

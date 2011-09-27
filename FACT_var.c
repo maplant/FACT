@@ -49,9 +49,11 @@ get_var_noerror (FACT_scope_t curr, char *name) /* Search for a var, but don't t
 
   /* Mark the scope. */
   *curr->marked = true;
+  res.ap = NULL;
 
-  /* Search for the variable. */
-  res.ap = FACT_get_local_num (curr, name);
+  /* Search for the variable, if there are any in the scope. */
+  if (*curr->num_stack_size)
+    res.ap = FACT_get_local_num (curr, name);
   if (res.ap != NULL)
     res.type = NUM_TYPE;
   else

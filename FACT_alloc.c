@@ -16,7 +16,7 @@
 
 #include <FACT.h>
 
-void *
+inline void *
 FACT_malloc (size_t alloc_size)
 {
   void *temp;
@@ -37,7 +37,7 @@ FACT_malloc (size_t alloc_size)
   return temp;
 }
 
-void *
+inline void *
 FACT_realloc (void *old, size_t new_size)
 {
   void *temp;
@@ -58,16 +58,16 @@ FACT_realloc (void *old, size_t new_size)
   return temp;
 }
 
-void
-FACT_free (void *dead)
+inline void
+FACT_free (void *p)
 {
 #ifdef USE_GC
-  GC_free (dead);
+  GC_free (p);
 #else
-  free (dead);
+  free (p);
 #endif /* USE_GC */
 }
-
+ 
 FACT_num_t
 FACT_alloc_num (void) /* Allocate and initialize a num type. */
 {
@@ -116,15 +116,15 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   temp->code = FACT_malloc (sizeof (size_t));
   temp->num_stack = FACT_malloc (sizeof (FACT_num_t *));
   temp->scope_stack = FACT_malloc (sizeof (FACT_scope_t *));
-  temp->num_stack_size = FACT_malloc (sizeof (long));
-  temp->scope_stack_size = FACT_malloc (sizeof (long));
+  temp->num_stack_size = FACT_malloc (sizeof (size_t));
+  temp->scope_stack_size = FACT_malloc (sizeof (size_t));
   temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
-
+  temp->name = "lambda";
+  
   /* Initialize the memory, if we need to. */
 #ifndef USE_GC
   *temp->array_size = 0;
   *temp->code = 0;
-  temp->name = "lambda";
   *temp->marked = false;
   *temp->num_stack = NULL;
   *temp->scope_stack = NULL;

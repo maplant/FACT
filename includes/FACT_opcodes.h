@@ -47,6 +47,7 @@ typedef enum Furlow_opcode
     JMP_PNT, /* Push a scope with an address to the var stack. */
     JIF,     /* Jump on false.                                 */
     JIT,     /* Jump on true.                                  */
+    LAMBDA,  /* Push a lambda scope to the stack.              */
     MOD,     /* Modulo.                                        */
     MUL,     /* Multiplication.                                */
     NEG,     /* Negative.                                      */    
@@ -106,6 +107,7 @@ static struct
     { "jmp_pnt" , JMP_PNT , "a"   },
     { "jif"     , JIF     , "ra"  },
     { "jit"     , JIT     , "ra"  },
+    { "lambda"  , LAMBDA  , ""    },
     { "mod"     , MOD     , "rrr" },
     { "mul"     , MUL     , "rrr" },
     { "neg"     , NEG     , "r"   },

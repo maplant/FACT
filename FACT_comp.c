@@ -137,6 +137,8 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
       res->node_type = INSTRUCTION;
       if (!strcmp (curr->id.lexem, "this"))
 	res->node_val.inst.inst_val = THIS;
+      else if (!strcmp (curr->id.lexem, "lambda"))
+	res->node_val.inst.inst_val = LAMBDA;
       else
 	{
 	  res->node_val.inst.inst_val = ((is_num (curr->id.lexem))
@@ -366,22 +368,17 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
       
     case E_ARRAY_ELEM:
       res->node_type = GROUPING;
-      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 4);
-      res->node_val.grouping.num_children = 4;
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 3);
+      res->node_val.grouping.num_children = 3;
       res->node_val.grouping.children[0] = compile_tree (curr->children[0], 0, 0);
-      res->node_val.grouping.children[1] = create_node ();
-      res->node_val.grouping.children[1]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[1]->node_val.inst.inst_val = CONST;
-      res->node_val.grouping.children[1]->node_val.inst.args[0].arg_type = LABEL;
-      res->node_val.grouping.children[1]->node_val.inst.args[0].arg_val.label = "1";
-      res->node_val.grouping.children[2] = compile_tree (curr->children[1], 0, 0);
-      res->node_val.grouping.children[3] = create_node ();
-      res->node_val.grouping.children[3]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[3]->node_val.inst.inst_val = ELEM;
-      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.reg = R_POP;
-      res->node_val.grouping.children[3]->node_val.inst.args[1].arg_type = REG_VAL;
-      res->node_val.grouping.children[3]->node_val.inst.args[1].arg_val.reg = R_POP;
+      res->node_val.grouping.children[1] = compile_tree (curr->children[1], 0, 0);
+      res->node_val.grouping.children[2] = create_node ();
+      res->node_val.grouping.children[2]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[2]->node_val.inst.inst_val = ELEM;
+      res->node_val.grouping.children[2]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[2]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[2]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[2]->node_val.inst.args[1].arg_val.reg = R_POP;
       break;
 
     case E_IN:
@@ -405,78 +402,78 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
 
     case E_FUNC_CALL:
       res->node_type = GROUPING;
-      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 13);
-      res->node_val.grouping.num_children = 13;
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 12);
+      res->node_val.grouping.num_children = 12;
+
       /* Compile the arguments being passed. */
       res->node_val.grouping.children[0] = compile_tree (curr->children[0], 0, 0);
+
       /* Create a lambda scope. */
       res->node_val.grouping.children[1] = create_node ();
       res->node_val.grouping.children[1]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[1]->node_val.inst.inst_val = CONST;
-      res->node_val.grouping.children[1]->node_val.inst.args[0].arg_type = LABEL;
-      res->node_val.grouping.children[1]->node_val.inst.args[0].arg_val.label = "0";
-      res->node_val.grouping.children[2] = create_node ();
-      res->node_val.grouping.children[2]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[2]->node_val.inst.inst_val = NEW_S;
-      res->node_val.grouping.children[2]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[2]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[1]->node_val.inst.inst_val = LAMBDA;
+
       /* Compile the function being called. */
-      res->node_val.grouping.children[3] = compile_tree (curr->children[1], 0, 0);
+      res->node_val.grouping.children[2] = compile_tree (curr->children[1], 0, 0);
+
       /* Set the up variable of the lambda scope to it. */
+      res->node_val.grouping.children[3] = create_node ();
+      res->node_val.grouping.children[3]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[3]->node_val.inst.inst_val = REF;
+      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[3]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[3]->node_val.inst.args[1].arg_val.reg = R_A;
+
+      /* Briefly enter the scope to do so. */
       res->node_val.grouping.children[4] = create_node ();
       res->node_val.grouping.children[4]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[4]->node_val.inst.inst_val = REF;
+      res->node_val.grouping.children[4]->node_val.inst.inst_val = USE;
       res->node_val.grouping.children[4]->node_val.inst.args[0].arg_type = REG_VAL;
       res->node_val.grouping.children[4]->node_val.inst.args[0].arg_val.reg = R_POP;
-      res->node_val.grouping.children[4]->node_val.inst.args[1].arg_type = REG_VAL;
-      res->node_val.grouping.children[4]->node_val.inst.args[1].arg_val.reg = R_A;
-      /* Briefly enter the scope to do so. */
       res->node_val.grouping.children[5] = create_node ();
       res->node_val.grouping.children[5]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[5]->node_val.inst.inst_val = USE;
-      res->node_val.grouping.children[5]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[5]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[5]->node_val.inst.inst_val = CONST;
+      res->node_val.grouping.children[5]->node_val.inst.args[0].arg_type = LABEL;
+      res->node_val.grouping.children[5]->node_val.inst.args[0].arg_val.label = "0";
       res->node_val.grouping.children[6] = create_node ();
       res->node_val.grouping.children[6]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[6]->node_val.inst.inst_val = CONST;
-      res->node_val.grouping.children[6]->node_val.inst.args[0].arg_type = LABEL;
-      res->node_val.grouping.children[6]->node_val.inst.args[0].arg_val.label = "0";
+      res->node_val.grouping.children[6]->node_val.inst.inst_val = DEF_S;
+      res->node_val.grouping.children[6]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[6]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[6]->node_val.inst.args[1].arg_type = LABEL;
+      res->node_val.grouping.children[6]->node_val.inst.args[1].arg_val.label = "up";
       res->node_val.grouping.children[7] = create_node ();
       res->node_val.grouping.children[7]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[7]->node_val.inst.inst_val = DEF_S;
+      res->node_val.grouping.children[7]->node_val.inst.inst_val = STO;
       res->node_val.grouping.children[7]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[7]->node_val.inst.args[0].arg_val.reg = R_POP;
-      res->node_val.grouping.children[7]->node_val.inst.args[1].arg_type = LABEL;
-      res->node_val.grouping.children[7]->node_val.inst.args[1].arg_val.label = "up";
+      res->node_val.grouping.children[7]->node_val.inst.args[0].arg_val.reg = R_A;
+      res->node_val.grouping.children[7]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[7]->node_val.inst.args[1].arg_val.reg = R_POP;
       res->node_val.grouping.children[8] = create_node ();
       res->node_val.grouping.children[8]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[8]->node_val.inst.inst_val = STO;
-      res->node_val.grouping.children[8]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[8]->node_val.inst.args[0].arg_val.reg = R_A;
-      res->node_val.grouping.children[8]->node_val.inst.args[1].arg_type = REG_VAL;
-      res->node_val.grouping.children[8]->node_val.inst.args[1].arg_val.reg = R_POP;
-      res->node_val.grouping.children[9] = create_node ();
-      res->node_val.grouping.children[9]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[9]->node_val.inst.inst_val = EXIT;
+      res->node_val.grouping.children[8]->node_val.inst.inst_val = EXIT;
+
       /* Set the lambda scope's code address and call it. */
+      res->node_val.grouping.children[9] = create_node ();
+      res->node_val.grouping.children[9]->node_val.inst.inst_val = SET_F;
+      res->node_val.grouping.children[9]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[9]->node_val.inst.args[0].arg_val.reg = R_A;
+      res->node_val.grouping.children[9]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[9]->node_val.inst.args[1].arg_val.reg = R_TOP;
+
+      /* Change the lambda scope's name to the function being called. */
       res->node_val.grouping.children[10] = create_node ();
-      res->node_val.grouping.children[10]->node_val.inst.inst_val = SET_F;
+      res->node_val.grouping.children[10]->node_val.inst.inst_val = SET_N;
       res->node_val.grouping.children[10]->node_val.inst.args[0].arg_type = REG_VAL;
       res->node_val.grouping.children[10]->node_val.inst.args[0].arg_val.reg = R_A;
       res->node_val.grouping.children[10]->node_val.inst.args[1].arg_type = REG_VAL;
       res->node_val.grouping.children[10]->node_val.inst.args[1].arg_val.reg = R_TOP;
-      /* Change the lambda scope's name to the function being called. */
       res->node_val.grouping.children[11] = create_node ();
-      res->node_val.grouping.children[11]->node_val.inst.inst_val = SET_N;
+      res->node_val.grouping.children[11]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[11]->node_val.inst.inst_val = CALL;
       res->node_val.grouping.children[11]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[11]->node_val.inst.args[0].arg_val.reg = R_A;
-      res->node_val.grouping.children[11]->node_val.inst.args[1].arg_type = REG_VAL;
-      res->node_val.grouping.children[11]->node_val.inst.args[1].arg_val.reg = R_TOP;
-      res->node_val.grouping.children[12] = create_node ();
-      res->node_val.grouping.children[12]->node_type = INSTRUCTION;
-      res->node_val.grouping.children[12]->node_val.inst.inst_val = CALL;
-      res->node_val.grouping.children[12]->node_val.inst.args[0].arg_type = REG_VAL;
-      res->node_val.grouping.children[12]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[11]->node_val.inst.args[0].arg_val.reg = R_POP;
       break;
 
     case E_FUNC_DEF:
@@ -866,6 +863,7 @@ strlen_dq (char *str) /* Get the length of a string and return it as a string of
       if (str[i] == '\\'
 	  && (str[i + 1] == 'r'
 	      || str[i + 1] == 'n'
+	      || str[i + 1] == 't'
 	      || str[i + 1] == '\\'))
 	i++;
 
@@ -934,7 +932,11 @@ compile_str_dq (char *str, size_t *i) /* Compile a string. */
 	  break;
 
 	case 'r': /* Carraige return. */
-	  new = '\n';
+	  new = '\r';
+	  break;
+
+	case 't': /* Tab. */
+	  new = '\t';
 	  break;
 	}
     }
@@ -950,42 +952,37 @@ compile_str_dq (char *str, size_t *i) /* Compile a string. */
   
   res = create_node ();
   res->node_type = GROUPING;
-  res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 7);
-  res->node_val.grouping.num_children = 7;
+  res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
+  res->node_val.grouping.num_children = 6;
   res->node_val.grouping.children[0] = create_node ();
   res->node_val.grouping.children[0]->node_type = INSTRUCTION;
   res->node_val.grouping.children[0]->node_val.inst.inst_val = DUP;
   res->node_val.grouping.children[1] = create_node ();
-  res->node_val.grouping.children[1]->node_type = INSTRUCTION;
-  res->node_val.grouping.children[1]->node_val.inst.inst_val = CONST;
-  res->node_val.grouping.children[1]->node_val.inst.args[0].arg_type = LABEL;
-  res->node_val.grouping.children[1]->node_val.inst.args[0].arg_val.label = "1";
+  res->node_val.grouping.children[1]->node_val.inst.inst_val = ELEM;
+  res->node_val.grouping.children[1]->node_val.inst.args[0].arg_type = REG_VAL;
+  res->node_val.grouping.children[1]->node_val.inst.args[0].arg_val.reg = R_A;
+  res->node_val.grouping.children[1]->node_val.inst.args[1].arg_type = REG_VAL;
+  res->node_val.grouping.children[1]->node_val.inst.args[1].arg_val.reg = R_POP;
   res->node_val.grouping.children[2] = create_node ();
-  res->node_val.grouping.children[2]->node_val.inst.inst_val = ELEM;
-  res->node_val.grouping.children[2]->node_val.inst.args[0].arg_type = REG_VAL;
-  res->node_val.grouping.children[2]->node_val.inst.args[0].arg_val.reg = R_A;
-  res->node_val.grouping.children[2]->node_val.inst.args[1].arg_type = REG_VAL;
-  res->node_val.grouping.children[2]->node_val.inst.args[1].arg_val.reg = R_POP;
+  res->node_val.grouping.children[2]->node_type = INSTRUCTION;
+  res->node_val.grouping.children[2]->node_val.inst.inst_val = CONST;
+  res->node_val.grouping.children[2]->node_val.inst.args[0].arg_type = LABEL;
+  res->node_val.grouping.children[2]->node_val.inst.args[0].arg_val.label = c_val;
   res->node_val.grouping.children[3] = create_node ();
   res->node_val.grouping.children[3]->node_type = INSTRUCTION;
-  res->node_val.grouping.children[3]->node_val.inst.inst_val = CONST;
-  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = LABEL;
-  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.label = c_val;
+  res->node_val.grouping.children[3]->node_val.inst.inst_val = STO;
+  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = REG_VAL;
+  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.reg = R_POP;
+  res->node_val.grouping.children[3]->node_val.inst.args[1].arg_type = REG_VAL;
+  res->node_val.grouping.children[3]->node_val.inst.args[1].arg_val.reg = R_POP;
   res->node_val.grouping.children[4] = create_node ();
   res->node_val.grouping.children[4]->node_type = INSTRUCTION;
-  res->node_val.grouping.children[4]->node_val.inst.inst_val = STO;
+  res->node_val.grouping.children[4]->node_val.inst.inst_val = INC;
   res->node_val.grouping.children[4]->node_val.inst.args[0].arg_type = REG_VAL;
-  res->node_val.grouping.children[4]->node_val.inst.args[0].arg_val.reg = R_POP;
-  res->node_val.grouping.children[4]->node_val.inst.args[1].arg_type = REG_VAL;
-  res->node_val.grouping.children[4]->node_val.inst.args[1].arg_val.reg = R_POP;
-  res->node_val.grouping.children[5] = create_node ();
-  res->node_val.grouping.children[5]->node_type = INSTRUCTION;
-  res->node_val.grouping.children[5]->node_val.inst.inst_val = INC;
-  res->node_val.grouping.children[5]->node_val.inst.args[0].arg_type = REG_VAL;
-  res->node_val.grouping.children[5]->node_val.inst.args[0].arg_val.reg = R_TOP;
+  res->node_val.grouping.children[4]->node_val.inst.args[0].arg_val.reg = R_TOP;
   /* Increase the index one and compile the next character. */
   ++*i;
-  res->node_val.grouping.children[6] = compile_str_dq (str, i);
+  res->node_val.grouping.children[5] = compile_str_dq (str, i);
 
   return res;
 } 
@@ -1014,31 +1011,32 @@ begin_temp_scope (void) /* Create a temporary scope with the up variable set. */
   res->node_val.grouping.children[1]->node_val.inst.args[0].arg_val.reg = R_POP;
   res->node_val.grouping.children[1]->node_val.inst.args[1].arg_type = REG_VAL;
   res->node_val.grouping.children[1]->node_val.inst.args[1].arg_val.reg = R_A;
+
   /* Create an anonymous scope: 
-   *  const,%0
-   *  new_s,$top
+   *  lambda
    */
   res->node_val.grouping.children[2] = create_node ();
   res->node_val.grouping.children[2]->node_type = INSTRUCTION;
-  res->node_val.grouping.children[2]->node_val.inst.inst_val = CONST;
-  res->node_val.grouping.children[2]->node_val.inst.args[0].arg_type = LABEL;
-  res->node_val.grouping.children[2]->node_val.inst.args[0].arg_val.label = "0";
-  res->node_val.grouping.children[3] = create_node ();
-  res->node_val.grouping.children[3]->node_type = INSTRUCTION;
-  res->node_val.grouping.children[3]->node_val.inst.inst_val = NEW_S;
-  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = REG_VAL;
-  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.reg = R_TOP;
+  res->node_val.grouping.children[2]->node_val.inst.inst_val = LAMBDA;
+  
   /* Push the scope to the call stack:
    *  use,$pop
    */
-  res->node_val.grouping.children[4] = create_node ();
-  res->node_val.grouping.children[4]->node_type = INSTRUCTION;
-  res->node_val.grouping.children[4]->node_val.inst.inst_val = USE;
-  res->node_val.grouping.children[4]->node_val.inst.args[0].arg_type = REG_VAL;
-  res->node_val.grouping.children[4]->node_val.inst.args[0].arg_val.reg = R_POP;
+  res->node_val.grouping.children[3] = create_node ();
+  res->node_val.grouping.children[3]->node_type = INSTRUCTION;
+  res->node_val.grouping.children[3]->node_val.inst.inst_val = USE;
+  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = REG_VAL;
+  res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.reg = R_POP;
+
   /* Create an "up" variable for the scope:
+   *  const,%0
    *  def_s,$pop,%up
    */
+  res->node_val.grouping.children[4] = create_node ();
+  res->node_val.grouping.children[4]->node_type = INSTRUCTION;
+  res->node_val.grouping.children[4]->node_val.inst.inst_val = CONST;
+  res->node_val.grouping.children[4]->node_val.inst.args[0].arg_type = LABEL;
+  res->node_val.grouping.children[4]->node_val.inst.args[0].arg_val.label = "0";
   res->node_val.grouping.children[5] = create_node ();
   res->node_val.grouping.children[5]->node_type = INSTRUCTION;
   res->node_val.grouping.children[5]->node_val.inst.inst_val = DEF_S;
@@ -1046,6 +1044,7 @@ begin_temp_scope (void) /* Create a temporary scope with the up variable set. */
   res->node_val.grouping.children[5]->node_val.inst.args[0].arg_val.reg = R_POP;
   res->node_val.grouping.children[5]->node_val.inst.args[1].arg_type = LABEL;
   res->node_val.grouping.children[5]->node_val.inst.args[1].arg_val.label = "up";
+
   /* Set the "up" variable to the A register:
    *  sto,$A,$pop
    */
