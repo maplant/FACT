@@ -17,12 +17,42 @@
 #include <FACT.h>
 
 void
-FACT_run_file (const char *file_name)
+FACT_load_file (const char *file_name) /* Load a file into the VM. */
 {
+  int c;
   FILE *fp;
+  char *file;
+  size_t i;
+  FACT_tree_t parsed;
+  FACT_lexed_t tokenized;
 
+  /* Allocate the entire file into memory. */ 
   fp = fopen (file_name, "r"); /* Open the file for reading. */
   assert (fp != NULL);
 
-  /* ... */
+  for (file = NULL, i = 0; (c = getc (fp)) != EOF; i++)
+    {
+      if (c == '\0') /* Put some more bounds here. */
+	i--;
+      else
+	{
+	  file = FACT_realloc (file, (i + 2));
+	  file[i] = c;
+	}
+    }
+
+  if (file != NULL)
+    {
+      /* NUL terminator. */
+      file[i] = '\0';
+      
+      /* Tokenize, parse, compile and load. */
+      tokenized = FACT_lex_string (file);
+      tokenized.line = 1;
+      parsed = FACT_parse (tokenized, file_name);
+      if (parsed != NULL)
+	FACT_compile (parsed, file_name);
+    }
+
+  fclose (fp);
 }

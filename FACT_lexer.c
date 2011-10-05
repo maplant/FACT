@@ -44,16 +44,12 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 	{
 	  while (*end != '\0' && (*end != '"' || *(end - 1) == '\\'))
 	    end++;
-	  //	  if (*end == '"')
-	  //  end--;
 	  goto alloc_token;
 	}
       else if (str_follow == S_STR && *end != '\'')
 	{
 	  while (*end != '\0' && (*end != '\'' || *(end - 1) == '\\'))
 	    end++;
-	  // if (*end == '\'')
-	  //  end--;
 	  goto alloc_token;
 	}
 

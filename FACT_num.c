@@ -53,7 +53,6 @@ FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable to a scope
 
   /* Reallocate the var table and add the variable. */
   *curr->var_table = FACT_realloc (*curr->var_table, sizeof (FACT_t) * (*curr->num_vars + 1));
-  //  (*curr->var_table)[*curr->num_vars] = FACT_malloc (sizeof (FACT_t));
   (*curr->var_table)[*curr->num_vars].ap = FACT_alloc_num ();
   (*curr->var_table)[*curr->num_vars].type = NUM_TYPE;
   ((FACT_num_t) (*curr->var_table)[*curr->num_vars].ap)->name = name;

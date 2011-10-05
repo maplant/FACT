@@ -247,14 +247,9 @@ FACT_shell (void)
    * to the main function.
    */
   printf ("Furlow VM version %s\n", FACT_VERSION);
-  Furlow_init_vm ();
-  FACT_init_interrupt ();
-  FACT_add_BIFs (CURR_THIS);
 
   curr_line = 1;
-
-  /* Initialize mode, true = FACT, false = BASM. */
-  mode = true;
+  mode = true;  /* True = FACT, false = BASM. */
 
   /* Set error recovery. */
  reset_error:
@@ -266,7 +261,7 @@ FACT_shell (void)
 	{
 	  frame = pop_c ();
 	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
-	  fprintf (stderr, "\tat scope %s address : %lu\n", frame.this->name, frame.ip);
+	  fprintf (stderr, "\tat scope %s (%s:%lu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
 	}
       /* Push the main scope back on an move the ip two forward. */
       push_c (frame.ip + 2, frame.this);
@@ -321,10 +316,10 @@ FACT_shell (void)
 	  for (i = 0; tokenized.tokens[i].id != E_END; i++)
 	    curr_line += tokenized.tokens[i].lines;
 	  
-	  parsed = FACT_parse (tokenized);
+	  parsed = FACT_parse (tokenized, "<stdin>");
 	  if (parsed == NULL) /* There was an error parsing, skip. */
 	    continue;
-	  FACT_compile (parsed);
+	  FACT_compile (parsed, "<stdin>");
 	}
       else
 	/* Assemble the code. */
@@ -390,17 +385,3 @@ print_scope (FACT_scope_t val)
   else
     printf (" { name = '%s' , code = %lu }", val->name, *val->code);
 }
-
-  
-/* For testing. To be replaced elsewhere. */
-
-/*
-  main ()
-{
-#ifdef USE_GC
-  GC_init ();
-#endif
-  FACT_shell ();
-  return 0;
-}
-*/

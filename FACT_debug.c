@@ -16,14 +16,6 @@
 
 #include <FACT.h>
 
-/* Structure to map files and line numbers to instructions. */
-struct file_map
-{
-  const char *file_name;
-  size_t lines;
-  size_t *line_map;
-} *debug_maps;
-
 static void pretty_print_num (FACT_num_t, size_t);
 static void pretty_print_scope (FACT_scope_t, size_t);
 static inline void format_spcs (size_t);

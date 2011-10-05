@@ -97,16 +97,6 @@ pop_v () /* Pop the variable stack. */
   res.type = curr_thread->vstack[curr_thread->vstack_size].type;
   curr_thread->vstack[curr_thread->vstack_size].ap = NULL;
   curr_thread->vstack[curr_thread->vstack_size].type = UNSET_TYPE;
-
-  /*
-  if (curr_thread->vstack_size)
-    curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * curr_thread->vstack_size);
-  else
-    {
-      FACT_free (curr_thread->vstack);
-      curr_thread->vstack = NULL;
-    }
-  */
   
   return res;
 }
@@ -121,24 +111,10 @@ pop_c () /* Pop the current call stack. */
     FACT_throw_error (CURR_THIS, "illegal POP on empty call stack.");
 #endif /* SAFE */
 
-  /* if (curr_thread->cstack_size == 1)
-     FACT_throw_error (CURR_THIS, "cannot POP main scope.");
-  */
-  
   curr_thread->cstack_size--;
   memcpy (&res, &curr_thread->cstack[curr_thread->cstack_size], sizeof (struct cstack_t));
   curr_thread->cstack[curr_thread->cstack_size].this = NULL;
   curr_thread->cstack[curr_thread->cstack_size].ip = 0;
-
-  /*
-  if (curr_thread->cstack_size)
-    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * curr_thread->cstack_size);
-  else
-    {
-      FACT_free (curr_thread->cstack);
-      curr_thread->cstack = NULL;
-    }
-  */
 
   return res;
 }
@@ -182,7 +158,7 @@ push_v (FACT_t n) /* Push to the variable stack. */
 	curr_thread->vstack_max <<= 1; /* Sqaure the size of the var stack. */
       curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_max));
     }
-  // curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_size));
+
   curr_thread->vstack[curr_thread->vstack_size - 1].type = n.type;
   curr_thread->vstack[curr_thread->vstack_size - 1].ap = n.ap;
 }
@@ -197,7 +173,7 @@ push_c (size_t nip, FACT_scope_t nthis) /* Push to the call stack. */
       curr_thread->cstack_max <<= 1;
       curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * (curr_thread->cstack_max));
     }
-  //  curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * (curr_thread->cstack_size));
+
   curr_thread->cstack[curr_thread->cstack_size - 1].ip = nip;
   curr_thread->cstack[curr_thread->cstack_size - 1].this = nthis;
 }

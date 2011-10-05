@@ -52,6 +52,7 @@
 #include <FACT_parser.h>  /* Parser of the FACT grammar.     */
 #include <FACT_comp.h>    /* Bytecode compiling and parsing. */
 #include <FACT_signals.h> /* Interrupt/signal handling.      */
+#include <FACT_file.h>    /* File interface.                 */
 #include <FACT_alloc.h>   /* Memory allocation.              */
 #include <FACT_opcodes.h> /* Instruction listings.           */
 #include <FACT_scope.h>   /* Scope handling routines.        */

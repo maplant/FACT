@@ -19,7 +19,6 @@
 /* Most of these functions are static as they need not be used by
  * any other file.
  * See file FACT_grammar.txt for an explanation.
- * TODO: make ":" higher precedence than function calls. 
  */
 
 static FACT_tree_t assignment (FACT_lexed_t *);
@@ -60,8 +59,9 @@ accept (FACT_lexed_t *set, FACT_nterm_t id) /* Accept a token. */
       /* Move over one token, unless we're at E_END. */
       if (id != E_END)
 	{
-	  set->curr++;
 	  set->line += set->tokens[set->curr].lines;
+	  res->line = set->line;
+	  set->curr++;
 	}
       return res;
     }
@@ -78,11 +78,14 @@ expect (FACT_lexed_t *set, FACT_nterm_t id) /* Expect a token. */
 
   /* Flip a bitch if res is NULL. */
   if (res == NULL)
-    /* Change this perhaps. */
-    error (set, "expected %s before %s",
-	   FACT_get_lexem (id),
-	   FACT_get_lexem (set->tokens[set->curr].id));
-    
+    {
+      set->line += set->tokens[set->curr].lines;
+      /* Change this perhaps. */
+      error (set, "expected %s before %s",
+	     FACT_get_lexem (id),
+	     FACT_get_lexem (set->tokens[set->curr].id));
+    }
+  
   return res;
 }
 
@@ -589,14 +592,13 @@ assignment (FACT_lexed_t *set)
 }
 
 FACT_tree_t 
-FACT_parse (FACT_lexed_t tokens)
+FACT_parse (FACT_lexed_t tokens, const char *file_name)
 {
   if (setjmp (tokens.handle_err))
-    {
+    { 
       /* There was an error, handle it. */
-      fprintf (stderr, "!: Parsing error (<file name>:%lu)> %s.\n", tokens.line, tokens.err);
+      fprintf (stderr, "   !: Parsing error %s:%lu: %s.\n", file_name, tokens.line, tokens.err);
       return NULL; /* Leave it up to the GC to free. */
     }
-
-  return stmt (&tokens);
+  return stmt_list (&tokens);
 }

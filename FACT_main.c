@@ -48,6 +48,7 @@ main (int argc, char **argv)
   unsigned long q_size;
   char *stdlib_path;
   char **file_queue; /* List of files to be run. */
+  struct cstack_t frame;
 
   struct
   {
@@ -78,11 +79,11 @@ main (int argc, char **argv)
 			   &gmp_realloc_wrapper,
 			   &gmp_free_wrapper);
 #endif /* USE_GC */
-  
-  /* Start the main thread */
-  /* ... */
 
-  /* Allocate and set the main scope. */
+  /* Initialize the virtual machine. */
+  Furlow_init_vm ();
+  FACT_init_interrupt ();
+  FACT_add_BIFs (CURR_THIS);
 
   q_size = 0;
   file_queue = NULL;
@@ -254,6 +255,21 @@ main (int argc, char **argv)
 	}
     }
 
+  /* Set the error handler before running any files. */
+  if (setjmp (recover))
+    {
+      /* Print out the error and a stack trace. */
+      fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
+      while (curr_thread->cstack_size >= 1)
+	{
+	  frame = pop_c ();
+	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
+	  fprintf (stderr, "\tat scope %s (%s:%lu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
+	}
+      /* Exit unsuccessully. */
+      exit (1);
+    }
+  
   /* Run the standard library, if it's desired. */
   if (load_stdlib)
     {
@@ -265,7 +281,7 @@ main (int argc, char **argv)
   /* Go through every file in the queue and run them. */
   for (i = 0; i < q_size; i++)
     {
-      /* ... */
+      FACT_load_file (file_queue[i]);
       /*
       if (res.type == ERROR_TYPE)
 	FACT_print_error (res.error);
@@ -276,6 +292,8 @@ main (int argc, char **argv)
   /* ... */
   if (shell_on)
     FACT_shell ();
+  else
+    Furlow_run ();
   
  exit:
   /* Clean up and exit. */

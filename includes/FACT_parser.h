@@ -19,12 +19,13 @@
 
 typedef struct FACT_tree
 {
+  size_t line;                   /* Line token is on.                              */
   FACT_token_t id;               /* Token of the current node.                     */
   struct FACT_tree *next;        /* Used by stmt_list.                             */
   struct FACT_tree *children[4]; /* Each node can have a maximum of four children. */
 } *FACT_tree_t;
 
 /* Add more functions to handle errors. */
-FACT_tree_t FACT_parse (FACT_lexed_t); /* Parse a set of tokens. Thread safe. */
+FACT_tree_t FACT_parse (FACT_lexed_t, const char *); /* Parse a set of tokens. Thread safe. */
 
 #endif /* FACT_PARSER_H_ */

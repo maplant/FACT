@@ -17,7 +17,7 @@
 #ifndef FACT_COMP_H_
 #define FACT_COMP_H_
 
-void FACT_compile (FACT_tree_t); /* Compile a tree and load into the VM. */
+void FACT_compile (FACT_tree_t, const char *); /* Compile a tree and load into the VM. */
 
 #endif /* FACT_COMP_H_ */
 

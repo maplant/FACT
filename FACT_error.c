@@ -16,6 +16,79 @@
 
 #include <FACT.h>
 
+/* Structure to map instruction address to files and line numbers. */
+static size_t num_maps = 0;
+struct map
+{
+  size_t line;
+  const char *file_name;
+} *addr_map = NULL;
+const struct map NO_MAP =
+  {
+    .line = 0,        /* Line cannot be 0 in any other context. */
+    .file_name = NULL /* Same goes for file_name.               */
+  };
+
+int
+FACT_add_line (const char *file, size_t line, size_t addr) /* Map an address to line number and file name. */ 
+{
+  size_t i;
+  
+  /* If the addr was already mapped, re-map it. */
+  if (addr < num_maps)
+    {
+      addr_map[addr].line = line;
+      addr_map[addr].file_name = file;
+      return -1; /* return -1 on re-map. */
+    }
+
+  /* Allocate or Reallocate the addr_map. */
+  if (num_maps == 0)
+    {
+      addr_map = FACT_malloc (sizeof (struct map) * (addr + 1));
+      num_maps = 1;
+    }
+  else
+    addr_map = FACT_realloc (addr_map, sizeof (struct map) * (addr + 1));
+
+  /* Set the new mapping. */
+  addr_map[addr].line = line;
+  addr_map[addr].file_name = file;
+  
+  /* Set all the maps in no man's land to NO_MAP. */
+  for (i = num_maps; i < addr; i++)
+    addr_map[i] = NO_MAP;
+
+  num_maps = addr + 1;
+  return 0; /* Return 0 on success. */
+}
+
+size_t
+FACT_get_line (size_t addr) /* Get a line number from an address. */
+{
+  if (addr >= num_maps)
+    return 0; /* Return 0 on error. */
+
+  while (addr_map[addr].line == 0 && addr > 0)
+    addr--;
+
+  return addr_map[addr].line;
+}
+
+const char *
+FACT_get_file (size_t addr) /* Get a file name from an address. */
+{
+  if (addr >= num_maps)
+    return NULL; /* Return NULL on error. */
+
+  while (addr_map[addr].line == 0 && addr < num_maps)
+    addr++;
+
+  return (addr >= num_maps
+	  ? NULL
+	  : addr_map[addr].file_name);
+}
+
 void
 FACT_throw_error (FACT_scope_t scope, const char *fmt, ...)
 /* Set curr_err and long jump back to the error handler. */

@@ -19,6 +19,11 @@
 
 #define MAX_ERR_LEN 100 /* Maximum number of characters in an error string. */
 
+/* Error line handling: */
+int FACT_add_line (const char *file_name, size_t line, size_t addr);
+size_t FACT_get_line (size_t addr);
+const char *FACT_get_file (size_t addr);
+
 /* Error handling:                                                          */
 void FACT_throw_error (FACT_scope_t, const char *, ...); /* Throw an error. */
 void FACT_print_error (FACT_error_t);                    /* Print an error. */

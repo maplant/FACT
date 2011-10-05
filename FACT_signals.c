@@ -20,6 +20,8 @@ void
 FACT_handle_interrupt (int sig) /* Handle a signal. */
 {
   FACT_throw_error (CURR_THIS, "Caught signal %d", sig);
+  /* Just set the interrupt to exit. */
+  signal (SIGINT, exit);
 }
 
 void
