@@ -281,7 +281,8 @@ main (int argc, char **argv)
   /* Go through every file in the queue and run them. */
   for (i = 0; i < q_size; i++)
     {
-      FACT_load_file (file_queue[i]);
+      if (FACT_load_file (file_queue[i]) == -1)
+	goto exit; /* There was an error. */
       /*
       if (res.type == ERROR_TYPE)
 	FACT_print_error (res.error);

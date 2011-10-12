@@ -25,4 +25,6 @@ void FACT_get_num_elem (FACT_num_t, char *);
 
 void FACT_set_num (FACT_num_t, FACT_num_t);
 
+void FACT_append_num (FACT_num_t, FACT_num_t);
+
 #endif /* FACT_NUM_H_ */

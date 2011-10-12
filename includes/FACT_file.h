@@ -17,6 +17,6 @@
 #ifndef FACT_FILE_H_
 #define FACT_FILE_H_
 
-void FACT_load_file (const char *); /* Compile a file and load it into the VM. */
+int FACT_load_file (const char *); /* Compile a file and load it into the VM. */
 
 #endif /* FACT_FILE_H_ */

@@ -26,6 +26,6 @@ typedef struct FACT_tree
 } *FACT_tree_t;
 
 /* Add more functions to handle errors. */
-FACT_tree_t FACT_parse (FACT_lexed_t, const char *); /* Parse a set of tokens. Thread safe. */
+FACT_tree_t FACT_parse (FACT_lexed_t *); /* Parse a set of tokens. Thread safe. */
 
 #endif /* FACT_PARSER_H_ */

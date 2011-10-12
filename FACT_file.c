@@ -16,7 +16,7 @@
 
 #include <FACT.h>
 
-void
+int
 FACT_load_file (const char *file_name) /* Load a file into the VM. */
 {
   int c;
@@ -34,6 +34,11 @@ FACT_load_file (const char *file_name) /* Load a file into the VM. */
     {
       if (c == '\0') /* Put some more bounds here. */
 	i--;
+      else if (c == '#') /* Skip over a comment. */
+	{
+	  while ((c = getc (fp)) != EOF && c != '\n')
+	    ;
+	}
       else
 	{
 	  file = FACT_realloc (file, (i + 2));
@@ -49,10 +54,18 @@ FACT_load_file (const char *file_name) /* Load a file into the VM. */
       /* Tokenize, parse, compile and load. */
       tokenized = FACT_lex_string (file);
       tokenized.line = 1;
-      parsed = FACT_parse (tokenized, file_name);
-      if (parsed != NULL)
-	FACT_compile (parsed, file_name);
+      
+      if (setjmp (tokenized.handle_err))
+	{
+	  /* There was a parsing error, print it and return fail. */
+	  printf ("=> Parsing error (%s:%zu): %s.\n", file_name, tokenized.line, tokenized.err);
+	  return -1;
+	}
+      
+      parsed = FACT_parse (&tokenized);
+      FACT_compile (parsed, file_name);
     }
-
+  
   fclose (fp);
+  return 0;
 }

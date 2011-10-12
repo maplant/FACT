@@ -107,10 +107,10 @@ readline () /* Read a single line of input from stdin. */
 }
 
 static char *
-readstmt (const char *ps1, const char *ps2) /* Read a complete FACT statement. */
+readstmt (int prompt_offset, const char *ps2) /* Read a complete FACT statement. */
 {
   /* To do: add support for else clauses and strings. */
-  int c;
+  int c, j;
   char *res;
   size_t i;
   size_t hold_nl;
@@ -120,9 +120,6 @@ readstmt (const char *ps1, const char *ps2) /* Read a complete FACT statement. *
   p_count = b_count = c_count = 0;
   hold_nl = 0;
 
-  /* Display the initial prompt: */
-  printf ("%s ", ps1);
-  
   /* Read a statement. */
   for (i = 0; (c = getchar ()) != EOF; i++)
     {
@@ -186,8 +183,12 @@ readstmt (const char *ps1, const char *ps2) /* Read a complete FACT statement. *
 	case '\n':
 	  hold_nl++;
 	  if (i != 0)
-	    /* There are incompletions, print out the second prompt. */
-	    printf ("%s ", ps2);
+	    {
+	      /* There are incompletions, print out the second prompt. */
+	      for (j = 0; j < prompt_offset; j++)
+		putchar (' ');
+	      printf ("%s ", ps2);
+	    }
 	  i--;
 	  continue; /* Skip allocation. */
 
@@ -213,12 +214,18 @@ readstmt (const char *ps1, const char *ps2) /* Read a complete FACT statement. *
     }
 
  end:
-
-  /* Push all unused newlines back. */
-  while (hold_nl > 0)
+  if (i > 0)
     {
-      ungetc ('\n', stdin);
-      hold_nl--;
+      /* Hold the last character. */
+      c = res[i - 1];
+      while (hold_nl > 0)
+	{
+	  res = FACT_realloc (res, sizeof (char) * (i + 1));
+	  res[i - 1] = '\n';
+	  hold_nl--;
+	  i++;
+	}
+      res[i - 1] = c;
     }
   
   if (res != NULL)
@@ -236,6 +243,7 @@ FACT_shell (void)
 {
   bool mode;
   char *input;
+  int spaces;
   size_t i;
   size_t curr_line;
   FACT_t *ret_val;
@@ -248,18 +256,24 @@ FACT_shell (void)
    */
   printf ("Furlow VM version %s\n", FACT_VERSION);
 
+  spaces = 1;
   curr_line = 1;
   mode = true;  /* True = FACT, false = BASM. */
+  input = NULL;
 
   /* Set error recovery. */
  reset_error:
   if (setjmp (recover))
     {
       /* Print out the error and a stack trace. */
-      fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
+      for (i = 0; i < spaces; i++)
+	fputc ('=', stderr);
+      fprintf (stderr, "> Caught unhandled error: %s\n", curr_thread->curr_err.what);
       while (curr_thread->cstack_size >= 1)
 	{
 	  frame = pop_c ();
+	  for (i = 0; i < spaces; i++)
+	    fputc (' ', stderr);
 	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
 	  fprintf (stderr, "\tat scope %s (%s:%lu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
 	}
@@ -272,8 +286,10 @@ FACT_shell (void)
   for (;;)
     {
       if (mode) /* FACT mode. */
-	input = readstmt ("FACT:",
-			  "    |");
+	{
+	  spaces = printf ("(%zu)> ", curr_line + (input == NULL ? 0 : 1)) - 2;
+	  input = readstmt (spaces, "|");
+	}
       else /* Shell mode. */
 	{
 	  /* Print the prompt: */
@@ -315,10 +331,18 @@ FACT_shell (void)
 	  /* Go through every token and get to the correct line. */
 	  for (i = 0; tokenized.tokens[i].id != E_END; i++)
 	    curr_line += tokenized.tokens[i].lines;
+
+	  if (setjmp (tokenized.handle_err))
+	    {
+	      /* There was a parsing error, print it and skip. */
+	      for (i = 0; i < spaces; i++)
+		putchar ('=');
+	      printf ("> Parsing error (%s:%zu): %s.\n", "<stdin>", tokenized.line, tokenized.err);
+	      continue;
+	    }
 	  
-	  parsed = FACT_parse (tokenized, "<stdin>");
-	  if (parsed == NULL) /* There was an error parsing, skip. */
-	    continue;
+	  parsed = FACT_parse (&tokenized);
+	  /* There was no error, continue to compilation. */
 	  FACT_compile (parsed, "<stdin>");
 	}
       else
@@ -334,7 +358,9 @@ FACT_shell (void)
 	  ret_val = Furlow_register (R_X);
 	  if (ret_val->type != UNSET_TYPE)
 	    {
-	      printf ("    $");
+	      for (i = 0; i < spaces; i++)
+		putchar ('=');
+	      printf ("> ");
 	      if (ret_val->type == NUM_TYPE)
 		print_num ((FACT_num_t) ret_val->ap);
 	      else

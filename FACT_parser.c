@@ -237,6 +237,7 @@ func_dec (FACT_lexed_t *set)
   return pn;
 }
 
+/*
 static FACT_tree_t
 array_dec (FACT_lexed_t *set)
 {
@@ -257,7 +258,7 @@ array_dec (FACT_lexed_t *set)
 
   expect (set, E_CL_BRACK);
   return ln;
-}
+  } */
 
 static FACT_tree_t
 def_scalar (FACT_lexed_t *set)
@@ -340,11 +341,25 @@ factor (FACT_lexed_t *set)
       pn->children[0] = accept (set, E_VAR);
       expect (set, E_SQ);
     }
+  else if ((pn = accept (set, E_OP_BRACK)) != NULL) /* Anonymous array. */
+    {
+      pn->children[0] = assignment (set);
+      en = pn;
+      while ((en->children[1] = accept (set, E_COMMA)) != NULL)
+	{
+	  en = en->children[1];
+	  en->children[0] = assignment (set);
+	}
+      expect (set, E_CL_BRACK);
+    }
   else if ((pn = accept (set, E_VAR)) == NULL)
     {
+      /*
       if ((pn = accept (set, E_OP_BRACK)) != NULL)
 	pn = array_dec (set);
-      else if ((pn = accept (set, E_NUM_DEF)) != NULL
+      else
+      */
+      if ((pn = accept (set, E_NUM_DEF)) != NULL
 	       || (pn = accept (set, E_SCOPE_DEF)) != NULL)
 	{
 	  pn->children[0] = def_scalar (set);
@@ -592,13 +607,7 @@ assignment (FACT_lexed_t *set)
 }
 
 FACT_tree_t 
-FACT_parse (FACT_lexed_t tokens, const char *file_name)
+FACT_parse (FACT_lexed_t *tokens) /* Just an alias for stmt_list. */
 {
-  if (setjmp (tokens.handle_err))
-    { 
-      /* There was an error, handle it. */
-      fprintf (stderr, "   !: Parsing error %s:%lu: %s.\n", file_name, tokens.line, tokens.err);
-      return NULL; /* Leave it up to the GC to free. */
-    }
-  return stmt_list (&tokens);
+  return stmt_list (tokens);
 }

@@ -22,6 +22,7 @@ typedef enum Furlow_opcode
   {
     ADD = 0, /* Addition.                                      */
     AND,     /* Bitwise AND.                                   */
+    APPEND,  /* Append a variable to another.                  */
     CALL,    /* Push to the call stack and jump to a function. */
     CEQ,     /* Equal.                                         */
     CLE,     /* Less than, equal.                              */
@@ -84,6 +85,7 @@ static struct
 } Furlow_instructions[] =
   {
     { "add"     , ADD     , "rrr" },
+    { "append"  , APPEND  , "rr"  },
     { "call"    , CALL    , "r"   },
     { "ceq"     , CEQ     , "rrr" },
     { "cle"     , CLE     , "rrr" },

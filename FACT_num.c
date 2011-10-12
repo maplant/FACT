@@ -175,6 +175,44 @@ FACT_set_num (FACT_num_t rop, FACT_num_t op)
   for (i = 0; i < rop->array_size; i++)
     rop->array_up[i] = copy_num (op->array_up[i]);
 }
+
+void
+FACT_append_num (FACT_num_t op1, FACT_num_t op2)
+{
+  size_t offset;
+  
+  /* Move the op1 to an array if it isn't one already. */
+  if (op1->array_size == 0)
+    {
+      op1->array_size = 1;
+      op1->array_up = FACT_alloc_num_array (1);
+      mpc_set (op1->array_up[0]->value, op1->value);
+      mpc_set_ui (op1->value, 0);
+    }
+
+  offset = op1->array_size;
+  op1->array_size++;
+  op1->array_up = FACT_realloc (op1->array_up, sizeof (FACT_num_t) * op1->array_size);
+
+  op1->array_up[offset] = FACT_alloc_num ();
+  FACT_set_num (op1->array_up[offset], op2);
+
+  /*
+  if (op2->array_size == 0)
+    {
+      op1->array_up[offset] = FACT_alloc_num ();
+      mpc_set (op1->array_up[offset]->value, op2->value);
+    }
+  else
+    {
+      for (i = 0; i < op2->array_size; i++)
+	{
+	  op1->array_up[offset + i] = FACT_alloc_num ();
+	  FACT_set_num (op1->array_up[offset + i], op2->array_up[i]);
+	}
+    }
+  */
+}
   
 static FACT_num_t *
 make_num_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)

@@ -61,6 +61,7 @@ static char *strlen_dq (char *);
 static struct inter_node *create_node ();
 static struct inter_node *compile_tree (FACT_tree_t, size_t, size_t);
 static struct inter_node *compile_args (FACT_tree_t);
+static struct inter_node *compile_array_dec (FACT_tree_t);
 static struct inter_node *compile_str_dq (char *, size_t *);
 
 static struct inter_node *begin_temp_scope ();
@@ -373,6 +374,55 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
       res->node_val.grouping.children[2]->node_val.inst.args[0].arg_val.reg = R_POP;
       res->node_val.grouping.children[2]->node_val.inst.args[1].arg_type = REG_VAL;
       res->node_val.grouping.children[2]->node_val.inst.args[1].arg_val.reg = R_POP;
+      break;
+
+    case E_OP_BRACK:
+      res->node_type = GROUPING;
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 9);
+      res->node_val.grouping.num_children = 9;
+      res->node_val.grouping.children[0] = create_node ();
+      res->node_val.grouping.children[0]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[0]->node_val.inst.inst_val = CONST;
+      res->node_val.grouping.children[0]->node_val.inst.args[0].arg_type = LABEL;
+      res->node_val.grouping.children[0]->node_val.inst.args[0].arg_val.label = "1";
+      res->node_val.grouping.children[1] = create_node ();
+      res->node_val.grouping.children[1]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[1]->node_val.inst.inst_val = CONST;
+      res->node_val.grouping.children[1]->node_val.inst.args[0].arg_type = LABEL;
+      res->node_val.grouping.children[1]->node_val.inst.args[0].arg_val.label = "1";
+      res->node_val.grouping.children[2] = create_node ();
+      res->node_val.grouping.children[2]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[2]->node_val.inst.inst_val = NEW_N;
+      res->node_val.grouping.children[2]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[2]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[3] = create_node ();
+      res->node_val.grouping.children[3]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[3]->node_val.inst.inst_val = REF;
+      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.reg = R_TOP;
+      res->node_val.grouping.children[3]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[3]->node_val.inst.args[1].arg_val.reg = R_A; 
+      res->node_val.grouping.children[4] = create_node ();
+      res->node_val.grouping.children[4]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[4]->node_val.inst.inst_val = CONST;
+      res->node_val.grouping.children[4]->node_val.inst.args[0].arg_type = LABEL;
+      res->node_val.grouping.children[4]->node_val.inst.args[0].arg_val.label = "0";
+      res->node_val.grouping.children[5] = create_node ();
+      res->node_val.grouping.children[5]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[5]->node_val.inst.inst_val = ELEM;
+      res->node_val.grouping.children[5]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[5]->node_val.inst.args[0].arg_val.reg = R_A;
+      res->node_val.grouping.children[5]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[5]->node_val.inst.args[1].arg_val.reg = R_POP; 
+      res->node_val.grouping.children[6] = compile_tree (curr->children[0], 0, 0);
+      res->node_val.grouping.children[7] = create_node ();
+      res->node_val.grouping.children[7]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[7]->node_val.inst.inst_val = STO;
+      res->node_val.grouping.children[7]->node_val.inst.args[0].arg_type = REG_VAL;
+      res->node_val.grouping.children[7]->node_val.inst.args[0].arg_val.reg = R_POP;
+      res->node_val.grouping.children[7]->node_val.inst.args[1].arg_type = REG_VAL;
+      res->node_val.grouping.children[7]->node_val.inst.args[1].arg_val.reg = R_POP;
+      res->node_val.grouping.children[8] = compile_array_dec (curr->children[1]);
       break;
 
     case E_IN:
@@ -984,7 +1034,32 @@ compile_str_dq (char *str, size_t *i) /* Compile a string. */
 
   return res;
 } 
-      
+
+static struct inter_node *
+compile_array_dec (FACT_tree_t curr)
+{
+  struct inter_node *res;
+  
+  if (curr == NULL)
+    return NULL;
+
+  res = create_node ();
+  res->node_type = GROUPING;
+  res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 3);
+  res->node_val.grouping.num_children = 3;
+  res->node_val.grouping.children[0] = compile_tree (curr->children[0], 0, 0);
+  res->node_val.grouping.children[1] = create_node ();
+  res->node_val.grouping.children[1]->node_type = INSTRUCTION;
+  res->node_val.grouping.children[1]->node_val.inst.inst_val = APPEND;
+  res->node_val.grouping.children[1]->node_val.inst.args[0].arg_type = REG_VAL;
+  res->node_val.grouping.children[1]->node_val.inst.args[0].arg_val.reg = R_POP;
+  res->node_val.grouping.children[1]->node_val.inst.args[1].arg_type = REG_VAL;
+  res->node_val.grouping.children[1]->node_val.inst.args[1].arg_val.reg = R_TOP;
+  res->node_val.grouping.children[2] = compile_array_dec (curr->children[1]);
+
+  return res;
+}
+  
 static struct inter_node *
 begin_temp_scope (void) /* Create a temporary scope with the up variable set. */
 {

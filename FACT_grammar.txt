@@ -83,10 +83,10 @@ arg_list ->   "," "num" VAR arg_list
 	    | e
 	    ;
 	    
-array_dec ->   "[" F opt_array_dec "]"
+array_dec ->   "[" assignment opt_array_dec "]"
              ;
 	     
-opt_array_dec ->   "," F opt_array_dec
+opt_array_dec ->   "," assignment opt_array_dec
                  | e
 		 ;
 		 

@@ -337,6 +337,13 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  math_call (progm[CURR_IP], &mpc_and, 3);
 	  break;
 
+	case APPEND:
+	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+
+	  FACT_append_num (n1, n2);
+	  break;
+
 	case CALL:
 	  s1 = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
 	  push_c (*s1->code - 1, s1);

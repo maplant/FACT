@@ -1,0 +1,5 @@
+FACT (Functions Are Classes Too): A functional/imperative programming language.
+
+FACT is a functional programming language with many imperative aspects. For example, unlike in most functional
+programming languages, variables in FACT can change state. The only data type available for creating records
+are first-class environments (a.k.a. scopes). 
