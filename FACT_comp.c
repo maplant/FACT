@@ -584,6 +584,32 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
       res->node_val.grouping.children[4 + i * 2]->node_val.inst.inst_val = RET;      
       break;
 
+    case E_GIVE:
+      /* Make sure that s_count != 0, so that we know we are in a scope that can return. */
+      assert (s_count != 0); /* Throw a compilation error here. */
+      res->node_type = GROUPING;
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * (2 + (s_count - 1) * 2));
+      res->node_val.grouping.num_children = (2 + (s_count - 1) * 2);
+      res->node_val.grouping.children[0] = compile_tree (curr->children[0], 0, 0);
+      
+      /* Exit out of all the lambda scopes we need to before returning. */
+      for (i = 0; i < s_count - 1; i++)
+	{
+	  /* Exit */
+	  res->node_val.grouping.children[1 + i * 2] = create_node ();
+	  res->node_val.grouping.children[1 + i * 2]->node_type = INSTRUCTION;
+	  res->node_val.grouping.children[1 + i * 2]->node_val.inst.inst_val = EXIT;
+
+	  /* Drop */
+	  res->node_val.grouping.children[2 + i * 2] = create_node ();
+	  res->node_val.grouping.children[2 + i * 2]->node_type = INSTRUCTION;
+	  res->node_val.grouping.children[2 + i * 2]->node_val.inst.inst_val = DROP;
+	}
+      res->node_val.grouping.children[1 + i * 2] = create_node ();
+      res->node_val.grouping.children[1 + i * 2]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[1 + i * 2]->node_val.inst.inst_val = RET;      
+      break;
+
     case E_BREAK:
       /* l_count != 0 for breaks. */
       assert (l_count != 0);

@@ -47,6 +47,8 @@ typedef enum Furlow_opcode
     JMP,     /* Unconditional jump.                            */
     JMP_PNT, /* Push a scope with an address to the var stack. */
     JIF,     /* Jump on false.                                 */
+    JIN,     /* Jump on type `number'.                         */
+    JIS,     /* Jump on type `scope'.                          */
     JIT,     /* Jump on true.                                  */
     LAMBDA,  /* Push a lambda scope to the stack.              */
     MOD,     /* Modulo.                                        */

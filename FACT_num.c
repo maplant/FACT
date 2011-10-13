@@ -176,6 +176,43 @@ FACT_set_num (FACT_num_t rop, FACT_num_t op)
     rop->array_up[i] = copy_num (op->array_up[i]);
 }
 
+int
+FACT_compare_num (FACT_num_t op1, FACT_num_t op2) /* Return -1 if op1 is < op2, 0 if they are equal, and 1 if op1 is greater. */
+{
+  size_t i, min_size;
+  int res;
+  
+  if (op1->array_size == 0)
+    {
+      if (op2->array_size != 0)
+	return -1;
+
+      res = mpc_cmp (op1->value, op2->value);
+      return res;
+    }
+  else
+    {
+      if (op2->array_size == 0)
+	return 1;
+
+      min_size = (op1->array_size > op2->array_size ? op2->array_size : op1->array_size);
+      for (i = 0; i < min_size; i++)
+	{
+	  res = FACT_compare_num (op1->array_up[i], op2->array_up[i]);
+	  if (res != 0)
+	    return res;
+	}
+
+      /* Now just go by whichever is the bigger array, or return 0. */
+      if (op1->array_size > op2->array_size)
+	return 1;
+      else if (op1->array_size < op2->array_size)
+	return -1;
+      else
+	return 0;
+    }
+}     
+
 void
 FACT_append_num (FACT_num_t op1, FACT_num_t op2)
 {
@@ -198,6 +235,8 @@ FACT_append_num (FACT_num_t op1, FACT_num_t op2)
   FACT_set_num (op1->array_up[offset], op2);
 
   /*
+   * Todo: clone this function and add the following:
+   *
   if (op2->array_size == 0)
     {
       op1->array_up[offset] = FACT_alloc_num ();

@@ -360,7 +360,7 @@ FACT_shell (void)
 	    {
 	      for (i = 0; i < spaces; i++)
 		putchar ('=');
-	      printf ("> ");
+	      printf (">");
 	      if (ret_val->type == NUM_TYPE)
 		print_num ((FACT_num_t) ret_val->ap);
 	      else

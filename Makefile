@@ -1,7 +1,7 @@
 CC = gcc
 LIBS = -lgmp -lgc
 PROG = FACT
-CFLAGS = -c -g3 -I$(INCLUDE_DIR) # -Wall
+CFLAGS = -c -g3 -O -I$(INCLUDE_DIR) 
 LDFLAGS = -rdynamic 
 INCLUDE_DIR = ./includes
 SRCS =	FACT_alloc.c FACT_shell.c FACT_basm.c FACT_vm.c  FACT_mpc.c    \

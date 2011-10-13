@@ -65,7 +65,7 @@ signed long int mpc_get_si (mpc_t);
 char *mpc_get_str (mpc_t);
 
 /* Simple unsigned long power of 10 function written is assembly. */   
-static inline unsigned int
+static unsigned int
 pow_10 (unsigned int n)
 {
   /* TODO: if I'm going to write this in asm, I might as well 

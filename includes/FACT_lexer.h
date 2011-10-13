@@ -56,6 +56,7 @@ typedef enum
     E_CATCH,
     E_ELSE,
     E_FOR,
+    E_GIVE,
     E_HOLD,
     E_IF,
     E_NUM_DEF,

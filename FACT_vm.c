@@ -365,7 +365,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
 	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) == 0)
+	  mpc_set_ui (n3->value, ((FACT_compare_num (n1, n2) == 0)
 				  ? 1
 				  : 0));
 	  break;	  
@@ -374,7 +374,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
 	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) <= 0)
+	  mpc_set_ui (n3->value, ((FACT_compare_num (n1, n2) <= 0)
 				  ? 1
 				  : 0));
 	  break;
@@ -383,7 +383,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
 	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) < 0)
+	  mpc_set_ui (n3->value, ((FACT_compare_num (n1, n2) < 0)
 				  ? 1
 				  : 0));
 	  break;
@@ -392,7 +392,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
 	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) >= 0)
+	  mpc_set_ui (n3->value, ((FACT_compare_num (n1, n2) >= 0)
 				  ? 1
 				  : 0));
 	  break;
@@ -401,7 +401,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
 	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) > 0)
+	  mpc_set_ui (n3->value, ((FACT_compare_num (n1, n2) > 0)
 				  ? 1
 				  : 0));
 	  break;
@@ -410,7 +410,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
 	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
 	  n3 = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	  mpc_set_ui (n3->value, ((mpc_cmp (n1->value, n2->value) != 0)
+	  mpc_set_ui (n3->value, ((FACT_compare_num (n1, n2) != 0)
 				  ? 1
 				  : 0));
 	  break;
@@ -519,6 +519,20 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  res.ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
 	  if (!mpc_cmp_ui (((FACT_num_t) res.ap)->value, 0))
 	    CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+	  break;
+
+	case JIN:
+	  /* Jump on type `number'. */
+	  r1 = Furlow_register (progm[CURR_IP][1]);
+	  if (r1->type == NUM_TYPE)
+	    CURR_IP = get_seg_addr (progm[CURR_IP] - 2) - 1;
+	  break;
+
+	case JIS:
+	  /* Jump on type `scope'. */
+	  r1 = Furlow_register (progm[CURR_IP][1]);
+	  if (r1->type == SCOPE_TYPE)
+	    CURR_IP = get_seg_addr (progm[CURR_IP] - 2) - 1;
 	  break;
 	  
 	case JIT:

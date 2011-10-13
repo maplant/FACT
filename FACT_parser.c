@@ -157,6 +157,11 @@ stmt (FACT_lexed_t *set)
       pn->children[0] = assignment (set);
       expect (set, E_SEMI);
     }
+  else if ((pn = accept (set, E_GIVE)) != NULL)
+    {
+      pn->children[0] = assignment (set);
+      expect (set, E_SEMI);
+    }
   else if ((pn = accept (set, E_BREAK)) != NULL)
     expect (set, E_SEMI);
   else
