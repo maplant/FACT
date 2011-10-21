@@ -26,23 +26,23 @@ Furlow_print_state () /* Print out debug information. */
   size_t i;
 
   printf ("Furlow VM current state:\n"
-	  " * CURR_IP = %lu\n"
-	  " * Thread # = %lu\n"
-	  " * call stack size = %lu\n"
+	  " * CURR_IP = %zu\n"
+	  " * Thread # = %zu\n"
+	  " * call stack size = %zu\n"
 	  " * call stack contents:\n",
 	  CURR_IP, curr_thread - threads, curr_thread->cstack_size);
 
   for (i = 0; i < curr_thread->cstack_size; i++)
-    printf ("   * (%lu): Name = %s, ip = %lu\n", i, curr_thread->cstack[i].this->name, curr_thread->cstack[i].ip);
+    printf ("   * (%zu): Name = %s, ip = %zu\n", i, curr_thread->cstack[i].this->name, curr_thread->cstack[i].ip);
 
   if (curr_thread->vstack_size)
     {
-      printf (" * var stack size = %lu\n", curr_thread->vstack_size);
+      printf (" * var stack size = %zu\n", curr_thread->vstack_size);
       printf (" * var stack contents:\n");
   
       for (i = 0; i < curr_thread->vstack_size; i++)
 	{
-	  printf ("   * (%lu): ", i);
+	  printf ("   * (%zu): ", i);
 	  if (curr_thread->vstack[i].type == NUM_TYPE)
 	    {
 	      printf ("[number]:");
@@ -140,7 +140,7 @@ pretty_print_scope (FACT_scope_t val, size_t depth)
       format_spcs (++depth);
       printf ("* name = '%s'", val->name);
       format_spcs (depth);
-      printf ("* code = %lu", *val->code);
+      printf ("* code = %zu", *val->code);
       /*
       if (*val->num_stack_size)
 	{

@@ -38,21 +38,22 @@ FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 	  temp = check->ap;
 
 	  hold_name = temp->name;
-	  memset (check, 0, sizeof (struct FACT_scope));
+	  memset (check->ap, 0, sizeof (struct FACT_scope));
 
 	  /* Reallocate everything. */
-	  temp->marked = FACT_malloc (sizeof (bool));
-	  temp->array_size = FACT_malloc (sizeof (size_t));
-	  temp->code = FACT_malloc (sizeof (size_t));
+	  temp->marked = FACT_malloc_atomic (sizeof (bool));
+	  temp->array_size = FACT_malloc_atomic (sizeof (size_t));
+	  temp->code = FACT_malloc_atomic (sizeof (size_t));
 	  temp->var_table = FACT_malloc (sizeof (FACT_t *));
-	  temp->num_vars = FACT_malloc (sizeof (size_t));
+	  temp->num_vars = FACT_malloc_atomic (sizeof (size_t));
 	  temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
 
-      /* Initialize the memory, if we need to. */
+	  temp->name = hold_name;
+	  
+	  /* Initialize the memory, if we need to. */
 #ifndef USE_GC
 	  *temp->array_size = 0;
 	  *temp->code = 0;
-	  temp->name = hold_name; 
 	  *temp->marked = false;
 	  *temp->var_table = NULL;
 	  *temp->num_vars = 0;
@@ -61,6 +62,14 @@ FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 	  *temp->array_up = NULL;
 	  temp->variadic = NULL;
 #endif /* USE_GC */
+
+	  /* Add the "up" scope here, unless we are already in the process of doing so. */
+	  if (strcmp (name, "up"))
+	    {
+	      up = FACT_add_scope (temp, "up");
+	      memcpy (up, curr, sizeof (struct FACT_scope));
+	      up->name = "up";
+	    }
 
 	  return temp;
 	}
@@ -170,6 +179,30 @@ FACT_get_scope_elem (FACT_scope_t base, char *args)
   push_val.type = SCOPE_TYPE;
 
   push_v (push_val);
+}
+
+
+void
+FACT_append_scope (FACT_scope_t op1, FACT_scope_t op2)
+{
+  size_t offset;
+  
+  /* Move the op1 to an array if it isn't one already. */
+  if (*op1->array_size == 0)
+    {
+      *op1->array_size = 1;
+      *op1->array_up = FACT_alloc_scope_array (1);
+      memcpy ((*op1->array_up)[0], op1, sizeof (struct FACT_scope));
+      (*op1->array_up)[0]->array_size = 0;
+      (*op1->array_up)[0]->array_up = NULL;
+    }
+
+  offset = *op1->array_size;
+  ++*op1->array_size;
+  *op1->array_up = FACT_realloc (*op1->array_up, sizeof (FACT_scope_t) * *op1->array_size);
+
+  (*op1->array_up)[offset] = FACT_alloc_scope ();
+  memcpy ((*op1->array_up)[offset], op2, sizeof (struct FACT_scope));
 }
 
 static FACT_scope_t *

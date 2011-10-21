@@ -81,7 +81,7 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 	  goto alloc_token;
 	}
       
-      /* Operators. */
+      /* Operators and other things. */
       switch (*end)
 	{
 	case '\'': /* Raw string. */
@@ -121,6 +121,16 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 	  follow1 = '=';
 	  continue;
 
+	case '#':
+	  /* Skip until a newline or nul terminator is reached. */
+	  for (end++; *end != '\n' && *end != '\0'; end++);
+	  /*
+	  if (*end == '\n')
+	    end++;
+	  */
+	  start = end;
+	  continue;
+	  
 	default:
 	  end++;
 	  break;
@@ -133,7 +143,7 @@ FACT_lex_string (char *start) /* The main lexer routine. */
       if ((end - start) > 0)
 	{
 	  /* Allocate the token. */
-	  res.tokens[res.curr].lexem = FACT_malloc ((end - start + 1) * sizeof (char));
+	  res.tokens[res.curr].lexem = FACT_malloc_atomic ((end - start + 1) * sizeof (char));
 	  memcpy (res.tokens[res.curr].lexem, start, (end - start));
 	  res.tokens[res.curr].lexem[end - start] = '\0';
 	  res.tokens[res.curr].id = ((str_follow == N_STR || *start == '"' || *start == '\'')

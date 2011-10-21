@@ -37,6 +37,26 @@ FACT_malloc (size_t alloc_size)
   return temp;
 }
 
+#if (defined USE_GC && defined USE_ATOMIC)
+inline void *
+FACT_malloc_atomic (size_t alloc_size)
+{
+  void *temp;
+
+  temp = GC_malloc_atomic (alloc_size);
+
+  /* Check for NULL pointer. */
+  if (temp == NULL)
+    {
+      fprintf (stderr, "Failed to allocate block of size %d, aborting.\n", alloc_size);
+      abort ();
+    }
+
+  memset (temp, 0, alloc_size);
+  return temp;
+}
+#endif /* USE_GC */
+
 inline void *
 FACT_realloc (void *old, size_t new_size)
 {
@@ -111,11 +131,11 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
 
   /* Allocate the memory. */
   temp = FACT_malloc (sizeof (struct FACT_scope));
-  temp->marked = FACT_malloc (sizeof (bool));
-  temp->array_size = FACT_malloc (sizeof (size_t));
-  temp->code = FACT_malloc (sizeof (size_t));
+  temp->marked = FACT_malloc_atomic (sizeof (bool));
+  temp->array_size = FACT_malloc_atomic (sizeof (size_t));
+  temp->code = FACT_malloc_atomic (sizeof (size_t));
   temp->var_table = FACT_malloc (sizeof (FACT_t *));
-  temp->num_vars = FACT_malloc (sizeof (size_t));
+  temp->num_vars = FACT_malloc_atomic (sizeof (size_t));
   temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
   temp->name = "lambda";
   
@@ -124,8 +144,8 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   *temp->array_size = 0;
   *temp->code = 0;
   *temp->marked = false;
-  *temp->var_table = NULL;
   *temp->num_vars = 0;
+  *temp->var_table = NULL;
   temp->extrn_func = NULL;
   temp->caller = NULL;
   *temp->array_up = NULL;

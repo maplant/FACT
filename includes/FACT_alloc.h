@@ -19,6 +19,11 @@
 
 /* Functions used to allocate memory, they either wrap libc or GC malloc. */
 inline void *FACT_malloc (size_t);
+#if (defined USE_GC && defined USE_ATOMIC) 
+inline void *FACT_malloc_atomic (size_t);
+#else
+# define FACT_malloc_atomic FACT_malloc
+#endif /* USE_GC && USE_ATOMIC */
 inline void *FACT_realloc (void *, size_t);
 inline void FACT_free (void *);
 

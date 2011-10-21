@@ -264,7 +264,7 @@ main (int argc, char **argv)
 	{
 	  frame = pop_c ();
 	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
-	  fprintf (stderr, "\tat scope %s (%s:%lu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
+	  fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
 	}
       /* Exit unsuccessully. */
       exit (1);

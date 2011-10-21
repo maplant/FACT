@@ -65,6 +65,18 @@ typedef struct FACT_thread
   /* Virtual machine registers:                                 */
   FACT_t registers[T_REGISTERS]; /* NOT to be handled directly. */
 
+  /* Threading data: */
+  enum T_FLAG
+    {
+      /* These flags specify how the scheduler should deal with the
+       * thread.
+       */
+      T_RUN = 0, /* Run the thread if able.                */
+      T_DEAD,    /* Delete the thread at some point.       */
+      T_IGNORE,  /* Skip over the thread, try again later. */
+      T_HANDLE,  /* Throw an error for the thread.         */
+    } run_flag;
+
   /* TODO: Add a message queue for ITC. */
 } *FACT_thread_t;
 

@@ -359,11 +359,13 @@ mpc_get_str (mpc_t rop)
   int len;
   char *res;
 
-  res = mpz_get_str (NULL, 10, rop->value);
-  res = FACT_realloc (res, (strlen (res) + 2) * sizeof (char));
-  len = strlen (res);
+  res = FACT_malloc_atomic (mpz_sizeinbase (rop->value, 10) + 2);
+  mpz_get_str (res, 10, rop->value);
+
   if (rop->precision && mpz_cmp_ui (rop->value, 0))
     {
+      res = FACT_realloc (res, (strlen (res) + 2) * sizeof (char));
+      len = strlen (res);
       memmove (res + len - rop->precision + 1, res + len - rop->precision, len - 2);
       res[len - rop->precision] = '.';
     }

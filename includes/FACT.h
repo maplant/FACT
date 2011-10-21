@@ -20,6 +20,7 @@
 #define SAFE                 /* Use extra caution.               */
 #define DEBUG                /* Print extra debug info.          */
 #define USE_GC               /* Use the BDW garbage collector.   */
+#define USE_ATOMIC           /* Improves speed a small amount.   */
 // #define VM_DEBUG             /* Print out extra debug data.      */
 #define FACT_VERSION "0.0.0" /* Furlow VM version number.        */
 

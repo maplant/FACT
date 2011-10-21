@@ -34,11 +34,6 @@ FACT_load_file (const char *file_name) /* Load a file into the VM. */
     {
       if (c == '\0') /* Put some more bounds here. */
 	i--;
-      else if (c == '#') /* Skip over a comment. */
-	{
-	  while ((c = getc (fp)) != EOF && c != '\n')
-	    ;
-	}
       else
 	{
 	  file = FACT_realloc (file, (i + 2));

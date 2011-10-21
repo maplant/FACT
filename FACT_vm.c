@@ -131,7 +131,7 @@ pop_t () /* Pop the trap stack. */
 
   res = FACT_malloc (sizeof (size_t) * 2);
   curr_thread->num_traps--;
-  memcpy (&res, &curr_thread->traps[curr_thread->num_traps], sizeof (size_t) * 2);
+  memcpy (res, curr_thread->traps[curr_thread->num_traps], sizeof (size_t [2]));
   
   if (curr_thread->num_traps)
     curr_thread->traps = FACT_realloc (curr_thread->traps, sizeof (size_t [2]) * curr_thread->num_traps);
@@ -278,7 +278,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
   FACT_thread_t next;
   struct cstack_t c1;
     
-  curr_thread = threads; /* I'm not thinking this all the way through. */
+  curr_thread = threads; /* I'm not thinking this through all the way. */
   
  eval:
   /* Set the error handler. */
@@ -295,17 +295,29 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	pop_c ();
       
       CURR_IP = curr_thread->traps[curr_thread->num_traps - 1][0];
+      curr_thread->run_flag = T_RUN;
       goto eval; /* Go back to eval to reset the error handler. */
     }
 
   for (;; curr_thread++)
     {
+      bool recheck = false;
+      
       /* Run the scheduler to find the next live thread. */
       if (curr_thread - threads >= num_threads)
-	curr_thread = threads;
-      if (progm[CURR_IP][0] == HALT)
 	{
-	  /* The thread is dead, find a live one or exit. */
+	  curr_thread = threads;
+	  recheck = false;
+	}
+      
+      if (progm[CURR_IP][0] == HALT
+	  || curr_thread->run_flag == T_IGNORE
+	  || curr_thread->run_flag == T_DEAD)
+	{
+	  if (curr_thread->run_flag == T_IGNORE)
+	    recheck = true; /* Check this thread again later. */
+	  
+	  /* The thread is unrunnable, find a live one or exit. */
 	  for (next = curr_thread + 1;; next++)
 	    {
 	      if (next - threads >= num_threads)
@@ -313,13 +325,17 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	      if (next == curr_thread) /* There were no live threads. */
 		{
 		  curr_thread = threads;
-		  return;
+		  if (!recheck)
+		    return;
 		}
 	      if (progm[IP_OF (next)][0] != HALT)
 		break;
 	    }
 	  curr_thread = next;
 	}
+
+      if (curr_thread->run_flag == T_HANDLE) /* Handle a thread's errors. */
+	longjmp (handle_err, 1); /* Jump back. */
 
       /* Execute the next instruction. 
        * Eventually I should put these in alphabetical order. Better yet,
@@ -338,10 +354,21 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  break;
 
 	case APPEND:
-	  n2 = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	  n1 = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-
-	  FACT_append_num (n1, n2);
+	  res = *Furlow_register (progm[CURR_IP][1]);
+	  r2 = &res;
+	  r1 = Furlow_register (progm[CURR_IP][2]);
+	  if (r1->type == NUM_TYPE)
+	    {
+	      if (r2->type == SCOPE_TYPE)
+		FACT_throw_error (CURR_THIS, "cannot append a scope to a number");
+	      FACT_append_num (r1->ap, r2->ap);
+	    }
+	  else
+	    {
+	      if (r2->type == NUM_TYPE)
+		FACT_throw_error (CURR_THIS, "cannot append a number to a scope");
+	      FACT_append_scope (r1->ap, r2->ap);
+	    }
 	  break;
 
 	case CALL:
@@ -525,14 +552,14 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  /* Jump on type `number'. */
 	  r1 = Furlow_register (progm[CURR_IP][1]);
 	  if (r1->type == NUM_TYPE)
-	    CURR_IP = get_seg_addr (progm[CURR_IP] - 2) - 1;
+	    CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
 	  break;
 
 	case JIS:
 	  /* Jump on type `scope'. */
 	  r1 = Furlow_register (progm[CURR_IP][1]);
 	  if (r1->type == SCOPE_TYPE)
-	    CURR_IP = get_seg_addr (progm[CURR_IP] - 2) - 1;
+	    CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
 	  break;
 	  
 	case JIT:

@@ -115,14 +115,19 @@ readstmt (int prompt_offset, const char *ps2) /* Read a complete FACT statement.
   size_t i;
   size_t hold_nl;
   size_t p_count, b_count, c_count;
+  bool in_comment;
 
   res = NULL;
   p_count = b_count = c_count = 0;
   hold_nl = 0;
+  in_comment = false;
 
   /* Read a statement. */
   for (i = 0; (c = getchar ()) != EOF; i++)
     {
+      if (in_comment && c != '\n')
+	goto alloc_char;
+      
       switch (c)
 	{
 	case '(':
@@ -169,18 +174,13 @@ readstmt (int prompt_offset, const char *ps2) /* Read a complete FACT statement.
 	      goto end;
 	    }
 	  break;
- 
-	case '#':
-	  /* Comment. Ignore the rest of the line. */
-	  while ((c = getchar ()) != EOF && c != '\n')
-	    ; /* Do nothing. */
-	  if (c == EOF)
-	    goto end;
-	  else
-	    ungetc (c, stdin);
-	  break;
 
+	case '#':
+	  in_comment = true;
+	  break;
+ 
 	case '\n':
+	  in_comment = false;
 	  hold_nl++;
 	  if (i != 0)
 	    {
@@ -208,7 +208,8 @@ readstmt (int prompt_offset, const char *ps2) /* Read a complete FACT statement.
 	  hold_nl--;
 	  i++;
 	}
-      
+
+    alloc_char:
       res = FACT_realloc (res, sizeof (char) * (i + 1));
       res[i] = c;
     }
@@ -275,7 +276,7 @@ FACT_shell (void)
 	  for (i = 0; i < spaces; i++)
 	    fputc (' ', stderr);
 	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
-	  fprintf (stderr, "\tat scope %s (%s:%lu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
+	  fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
 	}
       /* Push the main scope back on an move the ip two forward. */
       push_c (frame.ip + 2, frame.this);
@@ -293,7 +294,7 @@ FACT_shell (void)
       else /* Shell mode. */
 	{
 	  /* Print the prompt: */
-	  printf ("BAS %lu> ", CURR_IP);
+	  printf ("BAS %zu> ", CURR_IP);
 	  input = readline ();
 	}
 
@@ -409,5 +410,5 @@ print_scope (FACT_scope_t val)
       printf (" ]");
     }
   else
-    printf (" { name = '%s' , code = %lu }", val->name, *val->code);
+    printf (" { name = '%s' , code = %zu }", val->name, *val->code);
 }
