@@ -376,6 +376,15 @@ factor (FACT_lexed_t *set)
 		     ? "unexpected %s"
 		     : "unexpected `%s'"), FACT_get_lexem (set->tokens[set->curr].id));
     }
+  else
+    {
+      if ((en = accept (set, E_LOCAL_CHECK)) != NULL
+	  || (en = accept (set, E_GLOBAL_CHECK)) != NULL)
+	{
+	  en->children[0] = pn;
+	  pn = en;
+	}
+    }
 
   return pn;  
 }

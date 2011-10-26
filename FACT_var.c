@@ -42,16 +42,13 @@ FACT_get_local (FACT_scope_t env, char *name) /* Search for a variable. */
   return NULL;
 }
 
-void
-FACT_get_var (char *name) /* Search all relevent scopes for a variable and push it to the stack. */
+FACT_t *
+FACT_get_global (FACT_scope_t env, char *name)
 {
   FACT_t *res;
-  FACT_scope_t env = CURR_THIS;
 
-  /* Currently we do not mark the scopes. This should be done in the future
-   * in order to prevent infinite lookup loops.
-   */
-  for (;;)
+  /* We assume that the env is not NULL. */
+  if (!*env->marked) /* Make sure that env isn't marked */
     {
       /* Search for the variable. */
       res = FACT_get_local (env, name);
@@ -61,21 +58,30 @@ FACT_get_var (char *name) /* Search all relevent scopes for a variable and push 
 	  /* Go up one scope. */
 	  res = FACT_get_local (env, "up");
 
-	  /* If there is no up scope, or if it is invalid. */
+	  /* If the up scope does not exist or is invalid, return NULL. */
 	  if (res == NULL || res->type != SCOPE_TYPE)
-	    goto error;
-	  
-	  env = res->ap;
-	}
-      else
-	{
-	  /* Push the variable. */
-	  push_v (*res);
-	  return; /* Exit. */
-	}
-    }
+	    return NULL;
 
- error:
-  /* If the variable doesn't exist, throw an error. */
-  FACT_throw_error (CURR_THIS, "undefined variable: %s", name);
+	  /* Mark the current environment and search the next scope up. */
+	  *env->marked = true;
+	  res = FACT_get_global (res->ap, name);
+	  /* Unmark the scope and return. */
+	  *env->marked = false;
+	}
+      return res;
+    }
+  return NULL;
+}
+
+void
+FACT_get_var (char *name) /* Search all relevent scopes for a variable and push it to the stack. */
+{
+  FACT_t *res;
+
+  /* Get the variable. If it doesn't exist, throw an error. */
+  res = FACT_get_global (CURR_THIS, name);
+  if (res == NULL)
+    FACT_throw_error (CURR_THIS, "undefined variable: %s", name);
+  /* Push the variable to the var stack. */
+  push_v (*res);
 }

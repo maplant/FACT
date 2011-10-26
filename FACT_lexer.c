@@ -54,16 +54,17 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 	}
 
       /* Skip all insignificant whitespace, tally the newlines. */
-      while (*end == '\t' || *end == '\n' || *end == ' ')
+      if (*end == '\t' || *end == '\n' || *end == ' ')
 	{
 	  if (*end == '\n')
 	    lines++;
 	  start = ++end;
+	  continue;
 	}
 
       /* Check for EOI after the newlines. */
-      if (*end == '\0' )
-	goto alloc_token;
+      // if (*end == '\0' )
+      // goto alloc_token;
 
       /* Check for follow up characters. */
       if (follow1 != -1)
@@ -97,6 +98,10 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 			? D_STR
 			: N_STR);
 	  break;
+
+	case '?':
+	  follow1 = '?';
+	  continue;
 
 	case '&':
 	  follow1 = '=';
@@ -140,6 +145,9 @@ FACT_lex_string (char *start) /* The main lexer routine. */
     alloc_token:
       follow1 = follow2 = -1;
       res.tokens = FACT_realloc (res.tokens, sizeof (FACT_token_t) * (res.curr + 1));
+      res.tokens[res.curr].lines = lines;
+      lines = 0;
+      
       if ((end - start) > 0)
 	{
 	  /* Allocate the token. */
@@ -149,25 +157,22 @@ FACT_lex_string (char *start) /* The main lexer routine. */
 	  res.tokens[res.curr].id = ((str_follow == N_STR || *start == '"' || *start == '\'')
 				     ? get_type (res.tokens[res.curr].lexem)
 				     : E_VAR);
-	  res.tokens[res.curr].lines = lines;
-	  lines = 0;
 	  start = end;
 	  res.curr++;
 	}
       else
 	{
 	  res.tokens[res.curr].id = E_END;
-	  res.tokens[res.curr].lines = 0;
 	  break;
 	}
     }
 
-  if (res.tokens[res.curr - 1].id != E_END)
+  if (res.curr == 0 || res.tokens[res.curr - 1].id != E_END)
     {
       /* If the last token is not E_END, make it so. */
       res.tokens = FACT_realloc (res.tokens, sizeof (FACT_token_t) * (res.curr + 1));
       res.tokens[res.curr].id = E_END;
-      res.tokens[res.curr].lines = 0;
+      res.tokens[res.curr].lines = lines;
     }
 
   res.curr = 0;
@@ -202,6 +207,8 @@ static const char *tags[] =
     "==",
     ">",
     ">=",
+    "?",
+    "??",
     "[", "]",
     "^",
     "^=",

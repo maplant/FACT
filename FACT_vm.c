@@ -527,6 +527,18 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  math_call (progm[CURR_IP], &mpc_ior, 3);
 	  break;
 
+	case IS_AUTO:
+	  push_constant (FACT_get_local (CURR_THIS, progm[CURR_IP] + 1) == NULL
+			 ? "0"
+			 : "1");
+	  break;
+
+	case IS_DEF:
+	  push_constant (FACT_get_global (CURR_THIS, progm[CURR_IP] + 1) == NULL
+			 ? "0"
+			 : "1");
+	  break;
+
 	case JMP:
 	  /* Unconditional jump. */
 	  CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;

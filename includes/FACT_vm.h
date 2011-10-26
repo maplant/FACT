@@ -73,6 +73,7 @@ typedef struct FACT_thread
        */
       T_RUN = 0, /* Run the thread if able.                */
       T_DEAD,    /* Delete the thread at some point.       */
+      T_SKIP,    /* Skip the thread and change to T_RUN.   */
       T_IGNORE,  /* Skip over the thread, try again later. */
       T_HANDLE,  /* Throw an error for the thread.         */
     } run_flag;

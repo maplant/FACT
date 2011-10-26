@@ -47,6 +47,8 @@ typedef enum
     E_EQ,
     E_MT,
     E_ME,
+    E_LOCAL_CHECK,
+    E_GLOBAL_CHECK,
     E_OP_BRACK,
     E_CL_BRACK,
     E_BIT_XOR,

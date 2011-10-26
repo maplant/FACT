@@ -14,19 +14,11 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_SHELL_H_
-#define FACT_SHELL_H_
+#ifndef FACT_STRS_H_
+#define FACT_STRS_H_
 
-/* The initial shell prompt is two strings, with a line number in
- * between them. The incomplete prompt is just one part preceded by
- * the length of the initial prompt minus two in spaces. 
- */  
-#define SHELL_START "("   /* The first part of the prompt. */
-#define SHELL_END   ")> " /* And the third part.           */
-#define SHELL_CONT  "| "
+/* String conversion functions:                            */
+char *FACT_natos (FACT_num_t);  /* Number array to string. */
+FACT_num_t FACT_stona (char *); /* String to number array. */
 
-#define REMEMBER_CMDS 100 
-
-void FACT_shell ();
-
-#endif /* FACT_SHELL_H_ */
+#endif /* FACT_STRS_H_ */

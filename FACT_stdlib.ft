@@ -1,6 +1,28 @@
 scope
-print @ (num str)
+print @ (num str) # Print a string. 
 {
   for (num i; i < size (str); i += 1)
     putchar (str[i]);
+}
+
+scope
+linked_list @ (num size)
+{
+  for (scope curr = this:up; size > 0; size -= 1)
+  {
+    print ("Got through here once\n");
+    (curr: num n) = size;
+    curr: scope get_end @ ()
+    {
+      print ("Is this being run, maybe?");
+      scope curr = up;
+      while (curr:next?)
+        curr = curr:next;
+      return curr;
+    }
+    curr: scope next;
+    curr = curr:next;
+  }
+
+  return this;
 }

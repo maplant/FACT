@@ -44,6 +44,8 @@ typedef enum Furlow_opcode
     HALT,    /* Halt execution.                                */
     INC,     /* Increment a register by 1.                     */
     IOR,     /* Bitwise inclusive OR.                          */
+    IS_AUTO, /* Checks if a variable is defined locally.       */
+    IS_DEF,  /* Checks if a variable is defined globablly.     */
     JMP,     /* Unconditional jump.                            */
     JMP_PNT, /* Push a scope with an address to the var stack. */
     JIF,     /* Jump on false.                                 */
@@ -107,6 +109,8 @@ static struct
     { "goto"    , GOTO    , "r"   },
     { "halt"    , HALT    , ""    },
     { "inc"     , INC     , "r"   },
+    { "is_auto" , IS_AUTO , "s"   },
+    { "is_def"  , IS_DEF  , "s"   },
     { "jmp"     , JMP     , "a"   },
     { "jmp_pnt" , JMP_PNT , "a"   },
     { "jif"     , JIF     , "ra"  },

@@ -1,1 +1,21 @@
 FACT is a function programming language based on the use of first-class environments as the data structure. 
+
+Installation:
+
+FACT has five dependencies:
+ * libgmp (GNU Bignum library)
+ * libgc (BDW Garbage collector)
+ * libedit (known as editline)
+ * libtermcap
+ * libpthreads
+
+Make sure that each is properly installed before attempting to build FACT. If you don't, you might
+get an error message and that's not really fun at all.
+
+To build and install FACT, enter the following three commands in the directory this file is in:
+make 
+sudo make install
+
+This will build and install FACT in the correct locations.
+If there were any error messages printed, then you did something wrong. Or someone else did something
+wrong. I don't know for sure, but I bet SOMEBODY fucked up.

@@ -22,7 +22,7 @@
 #define USE_GC               /* Use the BDW garbage collector.   */
 #define USE_ATOMIC           /* Improves speed a small amount.   */
 // #define VM_DEBUG             /* Print out extra debug data.      */
-#define FACT_VERSION "0.0.0" /* Furlow VM version number.        */
+#define FACT_VERSION "0.0.1" /* Furlow VM version number.        */
 
 #ifdef USE_GC
 # define GC_THREADS
@@ -44,6 +44,7 @@
 #include <gmp.h>
 #include <dlfcn.h>
 #include <pthread.h>
+#include <histedit.h>
 
 /* Source header files. */
 #include <FACT_mpc.h>
@@ -55,6 +56,7 @@
 #include <FACT_signals.h> /* Interrupt/signal handling.      */
 #include <FACT_file.h>    /* File interface.                 */
 #include <FACT_alloc.h>   /* Memory allocation.              */
+#include <FACT_strs.h>    /* String utility functions.       */               
 #include <FACT_opcodes.h> /* Instruction listings.           */
 #include <FACT_scope.h>   /* Scope handling routines.        */
 #include <FACT_num.h>     /* Number handling routines.       */

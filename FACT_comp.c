@@ -121,6 +121,8 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
       [E_ME] = CME,
       [E_LT] = CLT,
       [E_LE] = CLE,
+      [E_LOCAL_CHECK] = IS_AUTO,
+      [E_GLOBAL_CHECK] = IS_DEF,
     };
 
   if (curr == NULL)
@@ -191,6 +193,14 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
       /* Set the array to the string. */
       i = 0; 
       res->node_val.grouping.children[5] = compile_str_dq (curr->children[0]->id.lexem, &i);
+      break;
+
+    case E_LOCAL_CHECK:
+    case E_GLOBAL_CHECK:
+      res->node_type = INSTRUCTION;
+      res->node_val.inst.inst_val = lookup_table[curr->id.id];
+      res->node_val.inst.args[0].arg_type = LABEL;
+      res->node_val.inst.args[0].arg_val.label = curr->children[0]->id.lexem;
       break;
 
     case E_NEG:

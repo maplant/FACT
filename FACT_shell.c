@@ -16,44 +16,11 @@
 
 #include <FACT.h>
 
-static void sh_help ();
 static void print_num (FACT_num_t);
 static void print_scope (FACT_scope_t);
 
-/* Shell commands. All are preceded by a ':' when entered. */
-static struct
-{
-  const char *name;
-  void (*func)(void);
-} shell_commands[] =
-  {
-    {
-      "help",
-      &sh_help
-    },
-    {
-      "registers",
-      &Furlow_print_registers
-    },
-    {
-      "state",
-      &Furlow_print_state
-    },
-  };
-
-#define NUM_COMMANDS sizeof (shell_commands) / sizeof (shell_commands[0]) 
-
-static void
-sh_help () /* Print out a list of shell comands. */
-{
-  printf ("?help      Show a list of available commands.\n"
-	  "?mode      Swich interpreter mode.\n"
-	  "?registers Print the values of the VM's reigsters.\n"
-	  "?state     Print the VM's current state.\n");
-}
-
 static char *
-readline () /* Read a single line of input from stdin. */
+readline_BASM () /* Read a single line of input from stdin. */
 {
   int c;
   char *res;
@@ -106,223 +73,277 @@ readline () /* Read a single line of input from stdin. */
   return res;
 }
 
-static char *
-readstmt (int prompt_offset, const char *ps2) /* Read a complete FACT statement. */
+static int
+is_blank (const char *str) /* Returns 1 if the rest of a string is junk (comment or whitespace). */ 
 {
-  /* To do: add support for else clauses and strings. */
-  int c, j;
-  char *res;
-  size_t i;
-  size_t hold_nl;
-  size_t p_count, b_count, c_count;
-  bool in_comment;
-
-  res = NULL;
-  p_count = b_count = c_count = 0;
-  hold_nl = 0;
-  in_comment = false;
-
-  /* Read a statement. */
-  for (i = 0; (c = getchar ()) != EOF; i++)
+  for (;*str != '\0'; str++)
     {
-      if (in_comment && c != '\n')
-	goto alloc_char;
-      
-      switch (c)
+      if (*str == '#')
+	return 1;
+      if (!isspace (*str))
+	return 0;
+    }
+  return 1;
+}
+
+static int
+is_complete (const char *line) /* Check to see if a line forms a complete statement. */
+{
+  /* This is not reentrant. */
+  static size_t p_count, b_count, c_count;
+  static enum
+  {
+    NO_QUOTE = 0,
+    IN_DQUOTE,
+    IN_SQUOTE,
+  } quote_stat;
+  bool bslash;
+  size_t i;
+
+  bslash = false;
+
+  for (i = 0; line[i] != '\0'; i++)
+    {
+      switch (line[i])
 	{
 	case '(':
-	  p_count++;
+	  if (quote_stat == NO_QUOTE)
+	    p_count++;
 	  break;
 
 	case ')':
-	  p_count--;
+	  if (quote_stat == NO_QUOTE
+	      && p_count > 0)
+	    p_count--;
 	  break;
 
 	case '[':
-	  b_count++;
+	  if (quote_stat == NO_QUOTE)
+	    b_count++;
 	  break;
 
 	case ']':
-	  b_count--;
+	  if (quote_stat == NO_QUOTE
+	      && b_count > 0)
+	    b_count--;
 	  break;
 	  
 	case '{':
-	  c_count++;
+	  if (quote_stat == NO_QUOTE)
+	    c_count++;
 	  break;
-	  
+
 	case '}':
-	  c_count--;
-	  if (p_count == 0
-	      && b_count == 0
-	      && c_count == 0)
+	  if (quote_stat == NO_QUOTE)
 	    {
-	      /* The statement is closed by a '}'. */
-	      res = FACT_realloc (res, sizeof (char) * (i + 1));
-	      res[i++] = c;
-	      goto end;
-	    }
+	      if (c_count > 0)
+		c_count--;
+	      if (p_count == 0
+		  && b_count == 0
+		  && c_count == 0
+		  && is_blank (line + i + 1))
+		return 1;
+	    }		
 	  break;
 
 	case ';':
 	  if (p_count == 0
 	      && b_count == 0
-	      && c_count == 0)
+	      && c_count == 0
+	      && is_blank (line + i + 1))
+	    return 1;
+	  break;
+
+	case '\'':
+	  if (quote_stat == NO_QUOTE)
+	    quote_stat = IN_SQUOTE;
+	  else if (quote_stat == IN_SQUOTE)
 	    {
-	      /* The statement is closed by a ';'. */
-	      res = FACT_realloc (res, sizeof (char) * (i + 1));
-	      res[i++] = c;
-	      goto end;
+	      if (!bslash)
+		quote_stat = NO_QUOTE;
 	    }
 	  break;
+
+	case '"':
+	  if (quote_stat == NO_QUOTE)
+	    quote_stat = IN_DQUOTE;
+	  else if (quote_stat == IN_DQUOTE)
+	    {
+	      if (!bslash)
+		quote_stat = NO_QUOTE;
+	    }
+	  break;
+
+	case '\\':
+	  bslash = (bslash ? false : true);
+	  continue; /* Oh hohoho! I'm tricky aren't I! */
 
 	case '#':
-	  in_comment = true;
+	  if (quote_stat == NO_QUOTE)
+	    /* The very fact that we reached this point means that
+	     * the statement is incomplete.
+	     */
+	    return 0;
 	  break;
- 
-	case '\n':
-	  in_comment = false;
-	  hold_nl++;
-	  if (i != 0)
-	    {
-	      /* There are incompletions, print out the second prompt. */
-	      for (j = 0; j < prompt_offset; j++)
-		putchar (' ');
-	      printf ("%s ", ps2);
-	    }
-	  i--;
-	  continue; /* Skip allocation. */
 
-	case '?':
-	  /* Shell command, default back to readline. */
-	  ungetc (c, stdin);
-	  return readline ();
-	  
 	default:
 	  break;
 	}
 
-      while (hold_nl > 0)
-	{
-	  res = FACT_realloc (res, sizeof (char) * (i + 1));
-	  res[i] = '\n';
-	  hold_nl--;
-	  i++;
-	}
-
-    alloc_char:
-      res = FACT_realloc (res, sizeof (char) * (i + 1));
-      res[i] = c;
+      /* This is skipped over when bslash is set to true, thus
+       * it will reset bslash after one iteration.
+       */
+      bslash = false;
     }
 
- end:
-  if (i > 0)
-    {
-      /* Hold the last character. */
-      c = res[i - 1];
-      while (hold_nl > 0)
-	{
-	  res = FACT_realloc (res, sizeof (char) * (i + 1));
-	  res[i - 1] = '\n';
-	  hold_nl--;
-	  i++;
-	}
-      res[i - 1] = c;
-    }
-  
-  if (res != NULL)
-    {
-      /* Add the null terminator. */
-      res = FACT_realloc (res, sizeof (char) * (i + 1));
-      res[i] = '\0';
-    }
-
-  return res;
+  return 0; /* If we got here, it's an incomplete statement. */
 }
 
+static bool new_stmt = true;
+static size_t curr_line = 1;
+
+char *
+shell_prompt (EditLine *e) /* Return the shell prompt. */
+{
+  static char *prev = NULL;
+  static size_t prev_len;
+  size_t i, j, k, line;
+  
+  /* Free the previous prompt or reuse it. */
+  if (prev != NULL)
+    {
+      if (prev[0] == ' ' && !new_stmt)
+	return prev;
+      
+      FACT_free (prev);
+    }
+
+  /* Reallocate and set the prompt. */
+  if (new_stmt)
+    {
+      i = sizeof (SHELL_START) - 1;
+      prev = FACT_malloc_atomic (i + 1);
+      strcpy (prev, SHELL_START);
+
+      /* Write the line number to the string. */
+      line = curr_line;
+      do
+	{
+	  prev[i++] = (line % 10) + '0';
+	  /* We aren't trying to be very speedy here. */
+	  prev = FACT_realloc (prev, i + sizeof (SHELL_END));
+	}
+      while ((line /= 10) > 0);
+
+      for (j = i - 1, k = sizeof (SHELL_START) - 1; k < j; j--, k++)
+	{
+	  char hold;
+	  hold = prev[j];
+	  prev[j] = prev[k];
+	  prev[k] = hold;
+	} 
+
+      /* Set the end prompt. */
+      strcpy (prev + i, SHELL_END);
+      prev_len = i + sizeof (SHELL_END) - 1;
+    }
+  else
+    {
+      prev = FACT_malloc_atomic (prev_len - 1 + sizeof (SHELL_CONT));
+      memset (prev, ' ', prev_len - 2);
+      strcpy (prev + prev_len - 2, SHELL_CONT);
+    }
+
+  return prev;
+}
+      
 void
 FACT_shell (void)
 {
   bool mode;
   char *input;
-  int spaces;
+  const char *line;
   size_t i;
-  size_t curr_line;
+  size_t last_ip;
   FACT_t *ret_val;
   FACT_tree_t parsed;
   FACT_lexed_t tokenized;
   struct cstack_t frame;
 
-  /* Print shell info and initialize the VM. Eventually these should be moved
-   * to the main function.
-   */
-  printf ("Furlow VM version %s\n", FACT_VERSION);
+  /* Editline variables. */
+  int ignore;
+  EditLine *el;
 
-  spaces = 1;
-  curr_line = 1;
   mode = true;  /* True = FACT, false = BASM. */
   input = NULL;
+  last_ip = 0;
+
+  /* Print out some info and then set up the prompt. */
+  printf ("Furlow VM version %s\n", FACT_VERSION);
+
+  el = el_init ("/usr/bin/FACT", stdin, stdout, stderr);
+  el_set (el, EL_PROMPT, &shell_prompt);
+  el_set (el, EL_EDITOR, "emacs");
 
   /* Set error recovery. */
  reset_error:
   if (setjmp (recover))
     {
       /* Print out the error and a stack trace. */
-      for (i = 0; i < spaces; i++)
-	fputc ('=', stderr);
-      fprintf (stderr, "> Caught unhandled error: %s\n", curr_thread->curr_err.what);
+      fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
       while (curr_thread->cstack_size >= 1)
 	{
 	  frame = pop_c ();
-	  for (i = 0; i < spaces; i++)
-	    fputc (' ', stderr);
-	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
 	  fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
 	}
-      /* Push the main scope back on an move the ip two forward. */
-      push_c (frame.ip + 2, frame.this);
-      /* Reset the error jmp_buf and continue. */
+
+      /* Push the main scope back on an move the ip two forward. Then, reset the
+       * error jmp_buf and continue.
+       */
+      push_c (last_ip, frame.this);
       goto reset_error;
     }
-  
+
   for (;;)
     {
       if (mode) /* FACT mode. */
 	{
-	  spaces = printf ("(%zu)> ", curr_line + (input == NULL ? 0 : 1)) - 2;
-	  input = readstmt (spaces, "|");
+	  new_stmt = true;
+	  input = NULL;
+	  i = 1;
+	  do
+	    {
+	      line = el_gets (el, &ignore);
+	      new_stmt = false;
+	      if (line != NULL && ignore > 0)
+		{
+		  i += strlen (line);
+		  if (input == NULL)
+		    {
+		      input = FACT_malloc_atomic (i);
+		      strcpy (input, line);
+		    }
+		  else
+		    {
+		      input = FACT_realloc (input, i);
+		      strcat (input, line);
+		    }
+		}
+	      else
+		break;
+	    }
+	  while (!is_complete (line));
 	}
-      else /* Shell mode. */
+      else /* BASM shell mode. */
 	{
 	  /* Print the prompt: */
 	  printf ("BAS %zu> ", CURR_IP);
-	  input = readline ();
+	  input = readline_BASM ();
 	}
 
       if (input == NULL)
 	break;
-
-      /* If it's a shell command, run the cmomand. */
-      if (input[0] == '?')
-	{
-	  if (!strcmp ("mode", input + 1)) /* Mode is not in shell commands list. */
-	    {
-	      mode = !mode;
-	      continue;
-	    }
-	  
-	  /* TODO: add bin search here. */
-	  for (i = 0; i < NUM_COMMANDS; i++)
-	    {
-	      if (!strcmp (shell_commands[i].name, input + 1))
-		break;
-	    }
-	  if (i == NUM_COMMANDS)
-	    fprintf (stderr, "No command of name %s, try ?help.\n", input + 1);
-	  else
-	    shell_commands[i].func ();
-	  continue;
-	}
-
+      
       if (mode) /* FACT mode. */
 	{
 	  /* Tokenize and parse the code. */
@@ -332,19 +353,19 @@ FACT_shell (void)
 	  /* Go through every token and get to the correct line. */
 	  for (i = 0; tokenized.tokens[i].id != E_END; i++)
 	    curr_line += tokenized.tokens[i].lines;
+	  curr_line += tokenized.tokens[i].lines;
 
 	  if (setjmp (tokenized.handle_err))
 	    {
 	      /* There was a parsing error, print it and skip. */
-	      for (i = 0; i < spaces; i++)
-		putchar ('=');
-	      printf ("> Parsing error (%s:%zu): %s.\n", "<stdin>", tokenized.line, tokenized.err);
+	      printf ("Parsing error (%s:%zu): %s.\n", "<stdin>", tokenized.line, tokenized.err);
 	      continue;
 	    }
 	  
 	  parsed = FACT_parse (&tokenized);
 	  /* There was no error, continue to compilation. */
 	  FACT_compile (parsed, "<stdin>");
+	  last_ip = Furlow_offset ();
 	}
       else
 	/* Assemble the code. */
@@ -359,9 +380,7 @@ FACT_shell (void)
 	  ret_val = Furlow_register (R_X);
 	  if (ret_val->type != UNSET_TYPE)
 	    {
-	      for (i = 0; i < spaces; i++)
-		putchar ('=');
-	      printf (">");
+	      printf ("%%");
 	      if (ret_val->type == NUM_TYPE)
 		print_num ((FACT_num_t) ret_val->ap);
 	      else
@@ -371,6 +390,8 @@ FACT_shell (void)
 	    }
 	}
     }
+
+  el_end (el);
 }
 
 static void
@@ -397,6 +418,9 @@ static void
 print_scope (FACT_scope_t val)
 {
   size_t i;
+
+  if (*val->marked) 
+    return;
   
   if (*val->array_up != NULL)
     {
@@ -410,5 +434,23 @@ print_scope (FACT_scope_t val)
       printf (" ]");
     }
   else
-    printf (" { name = '%s' , code = %zu }", val->name, *val->code);
+    {
+      printf (" { %s%s", val->name, *val->num_vars > 1 ? ":" : "");
+      *val->marked = true;
+      for (i = 0; i < *val->num_vars; i++)
+	{
+	  if ((*val->var_table)[i].type == NUM_TYPE)
+	    {
+	      printf (" ( %s: ", ((FACT_num_t) (*val->var_table)[i].ap)->name); 
+	      print_num ((*val->var_table)[i].ap);
+	      printf (" )");
+	    }
+	  else if ((*val->var_table)[i].type == SCOPE_TYPE)
+	    print_scope ((*val->var_table)[i].ap);
+	  else
+	    printf (" <UNSET>");
+	}
+      *val->marked = false;
+      printf (" }");
+    }
 }
