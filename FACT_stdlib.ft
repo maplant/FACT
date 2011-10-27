@@ -6,6 +6,46 @@ print @ (num str) # Print a string.
 }
 
 scope
+cat @ (num op1, num op2) # Concatinate two strings
+{
+  num arr_size;
+
+  if (size (op1) == 0)
+    arr_size = 1;
+  else
+    arr_size = size (op1);
+
+  if (size (op2) == 0)
+    arr_size += 1;
+  else
+    arr_size += size (op2);
+    
+  num [arr_size] res;
+  num i;
+  
+  if (size (op1) == 0)
+  {
+    res[i] = op1;
+    i += 1;
+  }
+  else
+  {
+    for (i = 0; i < size (op1); i += 1)
+      res[i] = op1[i];
+  }
+
+  if (size (op2) == 0)
+    res[i] = op2;
+  else
+  {
+    for (num j = 0; j < size (op2); j += 1)
+      res[i + j] = op2[j];
+  }
+
+  return res;
+}
+
+scope
 linked_list @ (num size)
 {
   for (scope curr = this:up; size > 0; size -= 1)

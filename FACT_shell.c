@@ -435,7 +435,7 @@ print_scope (FACT_scope_t val)
     }
   else
     {
-      printf (" { %s%s", val->name, *val->num_vars > 1 ? ":" : "");
+      printf (" { %s%s", val->name, *val->num_vars > 0 ? ":" : "");
       *val->marked = true;
       for (i = 0; i < *val->num_vars; i++)
 	{

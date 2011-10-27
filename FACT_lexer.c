@@ -17,6 +17,7 @@
 #include <FACT.h>
 
 static FACT_nterm_t get_type (char *);
+static bool is_num (char *);
 
 FACT_lexed_t
 FACT_lex_string (char *start) /* The main lexer routine. */
@@ -218,7 +219,7 @@ static const char *tags[] =
     "else",
     "for",
     "give",
-    "hold",
+    "handle",
     "if",
     "num",
     "return",
@@ -229,7 +230,8 @@ static const char *tags[] =
     "|=",
     "||",
     "}",
-    "variable",           /* E_VAR        */
+    "variable name",      /* E_VAR        */
+    "numerical value",    /* E_NUM        */
     "function call",      /* E_FUNC_CALL  */
     "array subscription", /* E_ARRAY_ELEM */
     "unary `-'",          /* E_NEG        */
@@ -250,8 +252,39 @@ get_type (char *token)
   for (i = 0; i < E_VAR; i++)
     {
       if (!strcmp (tags[i], token))
-	break;
+	return i;
     }
-  
-  return i;
+
+  if (is_num (token))
+    return E_NUM;
+  return E_VAR;
+}
+
+static bool
+is_num (char *tok) /* Check if a token is a valid number. */
+{
+  bool hex, flp;
+  size_t i;
+
+  hex = ((tok[0] == '0' && tolower ((int) tok[1]) == 'x')
+	 ? true
+	 : false);
+
+  for (i = hex ? 2 : 0, flp = false; tok[i] != '\0'; i++)
+    {
+      if (tok[i] == '.')
+	{
+	  if (flp || tok[i + 1] == '\0')
+	    return false;
+	  flp = true;
+	}
+      else if (!isdigit ((int) tok[i]))
+        {
+          if (!hex || tolower ((int) tok[i]) < 'a' || tolower ((int) tok[i]) > 'f')
+            return false;
+        }
+    }
+  return ((hex && tok[2] == '\0')
+	  ? false
+	  : true);
 }

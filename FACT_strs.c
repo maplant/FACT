@@ -45,15 +45,11 @@ FACT_stona (char *str) /* String to number array. */
 
   len = strlen (str);
   res = FACT_alloc_num ();
-  
-  if (len == 1)
-    mpc_set_si (res->value, *str);
-  else
-    {
-      res->array_up = FACT_alloc_num_array (len);
-      for (i = 0; i < len; i++)
-	mpc_set_si (res->array_up[i]->value, *(str++));
-    }
+
+  res->array_size = len;
+  res->array_up = FACT_alloc_num_array (len);
+  for (i = 0; i < len; i++)
+    mpc_set_si (res->array_up[i]->value, *(str++));
 
   return res;
 }

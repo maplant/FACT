@@ -669,6 +669,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	  threads[num_threads - 1].cstack_size++;
 	  threads[num_threads - 1].cstack_max++;
 	  threads[num_threads - 1].cstack = FACT_malloc (sizeof (struct cstack_t));
+	  threads[num_threads - 1].curr_err.what = DEF_ERR_MSG;
 
 	  /* Set the 'this' scope and ip of the thread and jump. */
 	  THIS_OF (threads + num_threads - 1) = FACT_alloc_scope ();
@@ -793,7 +794,7 @@ push_constant (char *cval) /* Push a constant to the var stack. */
 }
 
 void
-Furlow_init_vm () /* Create the main scope and thread. */
+Furlow_init_vm (void) /* Create the main scope and thread. */
 {
   int i;
   
@@ -803,6 +804,7 @@ Furlow_init_vm () /* Create the main scope and thread. */
   threads->cstack_size++;
   threads->cstack_max++;
   threads->cstack = FACT_malloc (sizeof (struct cstack_t));
+  threads->curr_err.what = DEF_ERR_MSG;
   CURR_THIS = FACT_alloc_scope ();
   CURR_THIS->name = "main";
   CURR_IP = 0;

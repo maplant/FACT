@@ -16,6 +16,8 @@
 
 #include <FACT.h>
 
+/* HC SVNT DRACONES */
+
 /* Intermediete format created by the compiler. Essentially a tree. */
 struct inter_node
 {
@@ -56,7 +58,6 @@ struct inter_node
   } node_val;
 };
 
-static bool is_num (char *);
 static char *strlen_dq (char *);
 static struct inter_node *create_node ();
 static struct inter_node *compile_tree (FACT_tree_t, size_t, size_t);
@@ -93,7 +94,6 @@ FACT_compile (FACT_tree_t tree, const char *file_name)
 /* Since I do not know of any compilation techniques, so it's sort of just ad-hoc.
  * TODO: add argument checking for functions. 
  */
-
 static struct inter_node *
 compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tree, recursively. */
 {
@@ -140,12 +140,17 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
 	res->node_val.inst.inst_val = LAMBDA;
       else
 	{
-	  res->node_val.inst.inst_val = ((is_num (curr->id.lexem))
-					 ? CONST
-					 : VAR);
+	  res->node_val.inst.inst_val = VAR;
 	  res->node_val.inst.args[0].arg_type = LABEL;
 	  res->node_val.inst.args[0].arg_val.label = curr->id.lexem;
 	}
+      break;
+
+    case E_NUM:
+      res->node_type = INSTRUCTION;
+      res->node_val.inst.inst_val = CONST;
+      res->node_val.inst.args[0].arg_type = LABEL;
+      res->node_val.inst.args[0].arg_val.label = curr->id.lexem;
       break;
 
     case E_DQ:
@@ -946,6 +951,30 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count) /* Compile a tre
       res->node_val.grouping.children[11] = set_return_val ();
       break;
 
+    case E_CATCH:
+      res->node_type = GROUPING;
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
+      res->node_val.grouping.num_children = 6;
+      res->node_val.grouping.children[0] = create_node ();
+      res->node_val.grouping.children[0]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[0]->node_val.inst.inst_val = TRAP_B;
+      res->node_val.grouping.children[0]->node_val.inst.args[0].arg_type = ADDR_VAL;
+      res->node_val.grouping.children[0]->node_val.inst.args[0].arg_val.addr = 3;
+      res->node_val.grouping.children[1] = compile_tree (curr->children[0], s_count, l_count);
+      res->node_val.grouping.children[2] = create_node ();
+      res->node_val.grouping.children[2]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[2]->node_val.inst.inst_val = TRAP_E;
+      res->node_val.grouping.children[3] = create_node ();
+      res->node_val.grouping.children[3]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[3]->node_val.inst.inst_val = JMP;
+      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_type = ADDR_VAL;
+      res->node_val.grouping.children[3]->node_val.inst.args[0].arg_val.addr = 5;
+      res->node_val.grouping.children[4] = create_node ();
+      res->node_val.grouping.children[4]->node_type = INSTRUCTION;
+      res->node_val.grouping.children[4]->node_val.inst.inst_val = TRAP_E;
+      res->node_val.grouping.children[5] = compile_tree (curr->children[1], s_count, l_count);
+      break;
+
     case E_OP_CURL: /* This REALLY needs to be optimized. */
       res->node_type = GROUPING;
       res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 3);
@@ -996,7 +1025,8 @@ strlen_dq (char *str) /* Get the length of a string and return it as a string of
     {
       /* Adjust for escape sequences. */
       if (str[i] == '\\'
-	  && (str[i + 1] == 'r'
+	  && (str[i + 1] == '"'
+	      || str[i + 1] == 'r'
 	      || str[i + 1] == 'n'
 	      || str[i + 1] == 't'
 	      || str[i + 1] == '\\'))
@@ -1060,6 +1090,10 @@ compile_str_dq (char *str, size_t *i) /* Compile a string. */
 	  /* Fall through. */
 	case '\\':
 	  new = '\\';
+	  break;
+
+	case '"':
+	  new = '"';
 	  break;
 
 	case 'n': /* Newline. */
@@ -1404,35 +1438,6 @@ spread (char *rop, size_t op)
   rop[1] = (op >> 16) & 0xFF;
   rop[2] = (op >> 8) & 0xFF;
   rop[3] = op & 0xFF;
-}
-
-static bool
-is_num (char *tok) /* Check if a token is a valid number. */
-{
-  bool hex, flp;
-  size_t i;
-
-  hex = ((tok[0] == '0' && tolower ((int) tok[1]) == 'x')
-	 ? true
-	 : false);
-
-  for (i = hex ? 2 : 0, flp = false; tok[i] != '\0'; i++)
-    {
-      if (tok[i] == '.')
-	{
-	  if (flp || tok[i + 1] == '\0')
-	    return false;
-	  flp = true;
-	}
-      else if (!isdigit ((int) tok[i]))
-        {
-          if (!hex || tolower ((int) tok[i]) < 'a' || tolower ((int) tok[i]) > 'f')
-            return false;
-        }
-    }
-  return ((hex && tok[2] == '\0')
-	  ? false
-	  : true);
 }
 
 static struct inter_node *

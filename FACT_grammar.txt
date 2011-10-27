@@ -62,13 +62,17 @@ unary ->   "-" F
 	 ;
 
 F ->   "(" paren ")" 
-     | VAR e
-     | VAR "?"
-     | VAR "??"
+     | VAR opt_def_check
+     | NUM
      | STR
      | array_dec 
      | defin 
      ;
+
+opt_def_check ->   "?"
+                 | "??"
+		 | e
+		 ;
 
 paren ->   func_dec
          | "{" stmt_list "}" /* Lambda scopes. */

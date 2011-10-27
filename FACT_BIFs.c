@@ -17,10 +17,12 @@
 #include <FACT.h>
 
 static void *get_arg (FACT_type); 
-static void FBIF_floor ();
-static void FBIF_print_n ();
-static void FBIF_putchar ();
-static void FBIF_size ();
+static void FBIF_floor (void);
+static void FBIF_print_n (void);
+static void FBIF_putchar (void);
+static void FBIF_size (void);
+static void FBIF_error (void);
+static void FBIF_throw (void);
 
 #define GET_ARG_NUM() ((FACT_num_t) get_arg (NUM_TYPE))
 #define GET_ARG_SCOPE() ((FACT_scope_t) get_arg (SCOPE_TYPE))
@@ -39,17 +41,21 @@ FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
   temp->extrn_func = &FBIF_putchar;
   temp = FACT_add_scope (curr, "size");
   temp->extrn_func = &FBIF_size;
+  temp = FACT_add_scope (curr, "error");
+  temp->extrn_func = &FBIF_error;
+  temp = FACT_add_scope (curr, "throw");
+  temp->extrn_func = &FBIF_throw;
 }
 
 static void
-FBIF_putchar ()
+FBIF_putchar (void)
 {
   putchar (mpc_get_si (GET_ARG_NUM ()->value));
   push_constant ("0");
 }
 
 static void
-FBIF_floor () /* Round a variable down. */
+FBIF_floor (void) /* Round a variable down. */
 {
   FACT_t push_val;
   FACT_num_t res;
@@ -71,14 +77,14 @@ FBIF_floor () /* Round a variable down. */
 }
 
 static void
-FBIF_print_n () /* Print a number. */
+FBIF_print_n (void) /* Print a number. */
 {
   printf ("%s\n", mpc_get_str (GET_ARG_NUM ()->value));
   push_constant ("0");
 }
 
 static void
-FBIF_size () /* Return the size of an array. */
+FBIF_size (void) /* Return the size of an array. */
 {
   FACT_t push_val;
   FACT_num_t res;
@@ -90,6 +96,25 @@ FBIF_size () /* Return the size of an array. */
   push_val.ap = res;
 
   push_v (push_val);
+}
+
+static void
+FBIF_error (void) /* Return the current error message. */
+{
+  FACT_t push_val;
+
+  push_val.type = NUM_TYPE;
+  push_val.ap = FACT_stona ((char *) curr_thread->curr_err.what);
+  push_v (push_val);
+}
+
+static void
+FBIF_throw (void) /* Throw an error. */
+{
+  FACT_num_t msg;
+
+  msg = GET_ARG_NUM ();
+  FACT_throw_error (CURR_THIS, FACT_natos (msg)); /* Should probably use "caller" instead. */
 }
 
 static void *

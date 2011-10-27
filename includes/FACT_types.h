@@ -72,6 +72,8 @@ typedef struct FACT_scope
   } *variadic;
 } *FACT_scope_t;
 
+#define DEF_ERR_MSG "no error"
+
 /* FACT_error describes a thrown error. */
 typedef struct FACT_error
 {

@@ -98,7 +98,7 @@ FACT_throw_error (FACT_scope_t scope, const char *fmt, ...)
   FACT_error_t err;
 
   /* Allocate the buffer. Make sure to free it later. */
-  buff = FACT_malloc (sizeof (char) * (MAX_ERR_LEN + 1));
+  buff = FACT_malloc_atomic (MAX_ERR_LEN + 1);
 
   /* Get the formatted string. */
   va_start (args, fmt);

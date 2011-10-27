@@ -152,6 +152,12 @@ stmt (FACT_lexed_t *set)
 
       pn->children[3] = stmt (set);
     }
+  else if ((pn = accept (set, E_CATCH)) != NULL)
+    {
+      pn->children[0] = stmt (set);
+      expect (set, E_HANDLE);
+      pn->children[1] = stmt (set);
+    }
   else if ((pn = accept (set, E_RETURN)) != NULL)
     {
       pn->children[0] = assignment (set);
@@ -241,29 +247,6 @@ func_dec (FACT_lexed_t *set)
 
   return pn;
 }
-
-/*
-static FACT_tree_t
-array_dec (FACT_lexed_t *set)
-{
-  FACT_tree_t pn, ln;
-
-  ln = assignment (set);
-
-  if ((pn = accept (set, E_COMMA)) != NULL)
-    {
-      do
-	{
-	  pn->children[0] = ln;
-	  pn->children[1] = assignment (set);
-	  ln = pn;
-	}
-      while ((pn = accept (set, E_COMMA)) != NULL);
-    }
-
-  expect (set, E_CL_BRACK);
-  return ln;
-  } */
 
 static FACT_tree_t
 def_scalar (FACT_lexed_t *set)
@@ -357,15 +340,19 @@ factor (FACT_lexed_t *set)
 	}
       expect (set, E_CL_BRACK);
     }
-  else if ((pn = accept (set, E_VAR)) == NULL)
+  else if ((pn = accept (set, E_VAR)) != NULL)
     {
-      /*
-      if ((pn = accept (set, E_OP_BRACK)) != NULL)
-	pn = array_dec (set);
-      else
-      */
+      if ((en = accept (set, E_LOCAL_CHECK)) != NULL
+	  || (en = accept (set, E_GLOBAL_CHECK)) != NULL)
+	{
+	  en->children[0] = pn;
+	  pn = en;
+	}
+    }
+  else if ((pn = accept (set, E_NUM)) == NULL)
+    {
       if ((pn = accept (set, E_NUM_DEF)) != NULL
-	       || (pn = accept (set, E_SCOPE_DEF)) != NULL)
+	  || (pn = accept (set, E_SCOPE_DEF)) != NULL)
 	{
 	  pn->children[0] = def_scalar (set);
 	  pn->children[1] = expect (set, E_VAR);
@@ -375,15 +362,6 @@ factor (FACT_lexed_t *set)
 		      && set->tokens[set->curr].id <= E_END)
 		     ? "unexpected %s"
 		     : "unexpected `%s'"), FACT_get_lexem (set->tokens[set->curr].id));
-    }
-  else
-    {
-      if ((en = accept (set, E_LOCAL_CHECK)) != NULL
-	  || (en = accept (set, E_GLOBAL_CHECK)) != NULL)
-	{
-	  en->children[0] = pn;
-	  pn = en;
-	}
     }
 
   return pn;  
