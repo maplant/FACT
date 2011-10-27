@@ -19,23 +19,30 @@
 FACT_t *
 FACT_get_local (FACT_scope_t env, char *name) /* Search for a variable. */
 {
-  int res;
-  FACT_t *low, *mid, *high;
+  /* The following is adapted from the infamous Berkeley C library
+   * bsearch function. It should be faster than the previous version.
+   * The only thing that I will note is that: yes, I do know what a
+   * register is and I'm not using the directive simply because it's
+   * used in the original version.
+   */
+  register int res;
+  register size_t lim;
+  register FACT_t *base, *p;
 
-  low = *env->var_table;
-  high = low + *env->num_vars;
+  base = *env->var_table;
 
-  while (low < high)
+  for (lim = *env->num_vars; lim != 0; lim >>= 1)
     {
-      mid = low + ((high - low) >> 1);
-      res = strcmp (name, FACT_var_name (*mid));
+      p = base + (lim >> 1);
+      res = strcmp (name, FACT_var_name (*p));
 
-      if (res < 0)
-	high = mid;
-      else if (res > 0)
-	low = mid + 1;
-      else
-	return mid;
+      if (res == 0)
+	return p;
+      if (res > 0)
+	{
+	  base = p + 1;
+	  lim--;
+	}
     }
 
   /* No variable was found. */
