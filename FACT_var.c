@@ -54,29 +54,22 @@ FACT_get_global (FACT_scope_t env, char *name)
 {
   FACT_t *res;
 
-  /* We assume that the env is not NULL. */
-  if (!*env->marked) /* Make sure that env isn't marked */
-    {
+  if (env != NULL && !*env->marked) /* Make sure that env isn't marked */
+    {      
       /* Search for the variable. */
       res = FACT_get_local (env, name);
 
       if (res == NULL) /* No such variable exists in this scope. */
 	{
-	  /* Go up one scope. */
-	  res = FACT_get_local (env, "up");
-
-	  /* If the up scope does not exist or is invalid, return NULL. */
-	  if (res == NULL || res->type != SCOPE_TYPE)
-	    return NULL;
-
 	  /* Mark the current environment and search the next scope up. */
 	  *env->marked = true;
-	  res = FACT_get_global (res->ap, name);
+	  res = FACT_get_global (env->up, name);
 	  /* Unmark the scope and return. */
-	  *env->marked = false;
+	  *env->marked = false;	  
 	}
       return res;
     }
+  
   return NULL;
 }
 

@@ -27,6 +27,8 @@ inline void *FACT_malloc_atomic (size_t);
 inline void *FACT_realloc (void *, size_t);
 inline void FACT_free (void *);
 
+#define FACT_GC() GC_gcollect ()
+
 /* FACT type allocation functions:                                              */
 FACT_num_t FACT_alloc_num (void);              /* Allocate a number.            */
 FACT_num_t *FACT_alloc_num_array (size_t);     /* Allocate an array of numbers. */

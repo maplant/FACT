@@ -291,7 +291,7 @@ FACT_shell (void)
     {
       /* Print out the error and a stack trace. */
       fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
-      while (curr_thread->cstack_size >= 1)
+      while (curr_thread->cstackp - curr_thread->cstack >= 0)
 	{
 	  frame = pop_c ();
 	  fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));

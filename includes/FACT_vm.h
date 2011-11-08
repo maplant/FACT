@@ -43,19 +43,21 @@ struct cstack_t
   FACT_scope_t this; /* 'this' scope being used.        */
 };
 
+#define CYCLES_ON_COLLECT 500 /* Garbage collect every n number of cycles. */ 
+
 /* Threading is handled on the program level in the Furlow VM, for the most
  * part. Each thread has its own stacks and instruction pointer. After an
  * instruction is evaluated, the next thread's data is used.
  */
 typedef struct FACT_thread
 {
-  /* Virtual machine stacks:                              */
-  FACT_t *vstack;          /* Variable stack.             */
-  struct cstack_t *cstack; /* Call stack.                 */ 
-  size_t vstack_size;      /* Size of the variable stack. */
-  size_t vstack_max;
-  size_t cstack_size;      /* Size of the call stack.     */
-  size_t cstack_max;
+  /* Virtual machine stacks:                                       */
+  FACT_t *vstack;           /* Variable stack.                     */
+  FACT_t *vstackp;          /* Points to the top of the var stack. */
+  size_t vstack_size;       /* Memory allocated to the var stack.  */
+  struct cstack_t *cstack;  /* Call stack.                         */
+  struct cstack_t *cstackp; /* Top of the call stack.              */
+  size_t cstack_size;       /* Memory allocated to call stack.     */
 
   /* User traps:                                                       */
   size_t (*traps)[2];    /* Trap stack. Delegates user error handling. */
@@ -68,39 +70,38 @@ typedef struct FACT_thread
   /* Threading data: */
   enum T_FLAG
     {
-      /* These flags specify how the scheduler should deal with the
-       * thread.
-       */
-      T_RUN = 0, /* Run the thread if able.                */
-      T_DEAD,    /* Delete the thread at some point.       */
-      T_SKIP,    /* Skip the thread and change to T_RUN.   */
-      T_IGNORE,  /* Skip over the thread, try again later. */
-      T_HANDLE,  /* Throw an error for the thread.         */
+      T_LIVE = 0, /* Thread is running. */
+      T_DEAD,     /* Thread has halted. */
     } run_flag;
 
+  pthread_t thread_id; 
+  struct FACT_thread *next; /* Next thread in the list. */
   /* TODO: Add a message queue for ITC. */
 } *FACT_thread_t;
 
-/* Threading and stacks:                                */
-extern FACT_thread_t threads;     /* Thread data.       */
-extern FACT_thread_t curr_thread; /* Thread being run.  */
-extern size_t num_threads;        /* Number of threads. */
+/* Threading and stacks:                                                 */
+extern size_t num_threads;                 /* Number of threads.         */
+extern FACT_thread_t threads;              /* Thread data.               */
+extern __thread FACT_thread_t curr_thread; /* Data specific to a thread. */
 
 /* Error recovery:                                   */
 extern jmp_buf handle_err; /* Handles thrown errors. */ 
 extern jmp_buf recover;    /* When no traps are set. */
 
-#define THIS_OF(t) (t)->cstack[(t)->cstack_size - 1].this
-#define IP_OF(t)   (t)->cstack[(t)->cstack_size - 1].ip
-#define CURR_THIS  curr_thread->cstack[curr_thread->cstack_size - 1].this
-#define CURR_IP    curr_thread->cstack[curr_thread->cstack_size - 1].ip
+#define THIS_OF(t) (t)->cstackp->this
+#define IP_OF(t)   (t)->cstackp->ip
+#define CURR_THIS  curr_thread->cstackp->this
+#define CURR_IP    curr_thread->cstackp->ip
 
 /* Stack functions:                                                            */
 FACT_t pop_v (void);                /* Pop the var stack.                      */
 struct cstack_t pop_c (void);       /* Pop the call stack.                     */
 void push_v (FACT_t);               /* Push to the var stack.                  */
 void push_c (size_t, FACT_scope_t); /* Push to the call stack.                 */
-void push_constant (char *);        /* Push a constant value to the var stack. */
+/* Push a constant value to the var stack: */
+void push_constant_str (char *);
+void push_constant_ui  (unsigned long int);
+void push_constant_si  (  signed long int);
 
 /* Register functions:                                              */
 FACT_t *Furlow_register (int);         /* Access a register.        */

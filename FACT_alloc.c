@@ -147,6 +147,7 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   *temp->num_vars = 0;
   *temp->var_table = NULL;
   temp->extrn_func = NULL;
+  temp->up = NULL;
   temp->caller = NULL;
   *temp->array_up = NULL;
   temp->variadic = NULL;

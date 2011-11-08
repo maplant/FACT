@@ -70,6 +70,8 @@ FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 	      memcpy (up, curr, sizeof (struct FACT_scope));
 	      up->name = "up";
 	    }
+	  else
+	    curr->up = temp;
 
 	  return temp;
 	}
@@ -104,8 +106,10 @@ FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
     {
       up = FACT_add_scope ((*curr->var_table)[i].ap, "up");
       memcpy (up, curr, sizeof (struct FACT_scope));
-      up->name = "up";
+      up->name = "up";     
     }
+  else
+    curr->up = FACT_cast_to_scope ((*curr->var_table)[i]);
 
   return (*curr->var_table)[i].ap;
 }
@@ -227,6 +231,7 @@ make_scope_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)
       /* Add the up scope. */
       up = FACT_add_scope (root[i], "up");
       memcpy (up, CURR_THIS, sizeof (struct FACT_scope));
+      root[i]->up = up;
     }
 
   return root;

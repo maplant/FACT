@@ -16,6 +16,8 @@
 
 #include <FACT.h>
 
+/* I should come up with a nice macro system for this. */
+
 static void *get_arg (FACT_type); 
 static void FBIF_floor (void);
 static void FBIF_print_n (void);
@@ -51,7 +53,7 @@ static void
 FBIF_putchar (void)
 {
   putchar (mpc_get_si (GET_ARG_NUM ()->value));
-  push_constant ("0");
+  push_constant_ui (0);
 }
 
 static void
@@ -80,7 +82,7 @@ static void
 FBIF_print_n (void) /* Print a number. */
 {
   printf ("%s\n", mpc_get_str (GET_ARG_NUM ()->value));
-  push_constant ("0");
+  push_constant_ui (0);
 }
 
 static void

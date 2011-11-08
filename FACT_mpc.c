@@ -173,9 +173,9 @@ mpc_mul (mpc_t rop, mpc_t op1, mpc_t op2)
 void
 mpc_div (mpc_t rop, mpc_t op1, mpc_t op2)
 {
-  mpf_t hold_op1, hold_op2, hold_res;
   size_t i;
   unsigned long prec;
+  mpf_t hold_op1, hold_op2, hold_res;
 
   mpf_init (hold_op1);
   mpf_init (hold_op2);
@@ -209,9 +209,9 @@ mpc_div (mpc_t rop, mpc_t op1, mpc_t op2)
 void
 mpc_mod (mpc_t rop, mpc_t op1, mpc_t op2)
 {
-  mpf_t hold_op1, hold_op2, hold_res;
   size_t i;
   unsigned long prec;
+  mpf_t hold_op1, hold_op2, hold_res;
 
   mpf_init (hold_op1);
   mpf_init (hold_op2);

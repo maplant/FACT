@@ -60,6 +60,7 @@ typedef struct FACT_scope
 
   void (*extrn_func)(void); /* Used with external libraries. */
 
+  struct FACT_scope *up;         /* Points to the next scope up.    */
   struct FACT_scope *caller;     /* Points to the calling function. */
   struct FACT_scope ***array_up; /* The next dimension up.          */
 
@@ -71,6 +72,19 @@ typedef struct FACT_scope
     struct FACT_mixed *next; /* Next argument in the list.   */
   } *variadic;
 } *FACT_scope_t;
+
+/* For casting generic type. */
+static inline FACT_num_t
+FACT_cast_to_num (FACT_t gen)
+{
+  return (FACT_num_t) gen.ap;
+}
+
+static inline FACT_scope_t
+FACT_cast_to_scope (FACT_t gen)
+{
+  return (FACT_scope_t) gen.ap;
+}
 
 #define DEF_ERR_MSG "no error"
 

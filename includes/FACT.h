@@ -40,6 +40,7 @@
 #include <stdarg.h>
 #include <signal.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include <gmp.h>
 #include <dlfcn.h>

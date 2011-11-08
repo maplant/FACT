@@ -260,7 +260,7 @@ main (int argc, char **argv)
     {
       /* Print out the error and a stack trace. */
       fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
-      while (curr_thread->cstack_size >= 1)
+      while (curr_thread->cstackp - curr_thread->cstack >= 0)
 	{
 	  frame = pop_c ();
 	  /* Add some line numbers and stuff here eventually. Maybe up scope? */
