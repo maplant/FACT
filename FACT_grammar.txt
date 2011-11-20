@@ -109,11 +109,13 @@ func_dec ->   assignment "@" "(" func_opt_arg_dec ")" "{" stmt_list "}"
 
 func_opt_arg_dec ->   "scope" VAR func_arg_dec
                     | "num" VAR func_arg_dec
+		    | VAR "?" func_arg_dec
 		    | e
 		    ;
 		    
 func_arg_dec ->   "," "scope" VAR func_arg_dec
                 | "," "num" VAR func_arg_dec
+		| "," VAR "?" func_arg_dec
 		| e
 		;
 		

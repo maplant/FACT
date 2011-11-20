@@ -73,18 +73,9 @@ typedef struct FACT_scope
   } *variadic;
 } *FACT_scope_t;
 
-/* For casting generic type. */
-static inline FACT_num_t
-FACT_cast_to_num (FACT_t gen)
-{
-  return (FACT_num_t) gen.ap;
-}
-
-static inline FACT_scope_t
-FACT_cast_to_scope (FACT_t gen)
-{
-  return (FACT_scope_t) gen.ap;
-}
+/* For casting generic types. */
+#define FACT_cast_to_num(v)   ((FACT_num_t)   (v).ap)
+#define FACT_cast_to_scope(v) ((FACT_scope_t) (v).ap)
 
 #define DEF_ERR_MSG "no error"
 

@@ -320,18 +320,20 @@ mpc_cmp_si (mpc_t op1, signed long int op2)
 unsigned long int
 mpc_get_ui (mpc_t rop)
 {
-  unsigned long int ret;
+  unsigned long int ret, i;
   mpz_t temp1;
-  mpz_t temp2;
-
+  //  mpz_t temp2;
+ 
   mpz_init_set (temp1, rop->value);
-  mpz_init_set_ui (temp2, 1);
-  pow_of_ten (temp2, rop->precision);
-  mpz_tdiv_q (temp1, temp1, temp2);
+  for (i = 0; i < rop->precision; i++)
+    mpz_tdiv_q_ui (temp1, temp1, 10);
+  //  mpz_init_set_ui (temp2, 1);
+  // pow_of_ten (temp2, rop->precision);
+  // mpz_tdiv_q (temp1, temp1, temp2);
   ret = mpz_get_ui (temp1);
 
   mpz_clear (temp1);
-  mpz_clear (temp2);
+  // mpz_clear (temp2);
   return ret;
 }
 

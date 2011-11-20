@@ -124,7 +124,6 @@ pop_c () /* Pop the current call stack. */
 
   res = *curr_thread->cstackp;
   curr_thread->cstackp->this = NULL;
-  curr_thread->cstackp->ip = 0;
   curr_thread->cstackp--;
 
   return res;
@@ -838,8 +837,36 @@ Furlow_run () /* Run the program until a HALT is reached. */
 
       SEG (SPRT);
       {
-	/* Create a new thread and jump. */
-	//    Furlow_lock_threads ();
+	FACT_thread_t curr;
+
+	/* Gain control of threads. */
+	Furlow_lock_threads ();
+
+	/* Find the next open spot in the linked list. */
+	for (curr = threads; curr->next != NULL; curr = curr->next);
+
+	/* Allocate and initialize the new thread. */
+	curr->next = FACT_malloc (sizeof (struct FACT_thread));
+	curr = curr->next;
+	curr->thread_num = num_threads++;
+	curr->curr_err.what = DEF_ERR_MSG;
+	curr->cstack_size = 1;
+	curr->cstack = FACT_malloc (sizeof (struct cstack_t));
+
+	/* Set the top scope and the IP of the thread. */
+	THIS_OF (curr) = FACT_alloc_scope ();
+	IP_OF (curr) = get_seg_addr (progm[CURR_IP] + 1);
+
+	/* Add the build in functions to the top scope. */
+	FACT_add_BIFs (THIS_OF (curr));
+
+	/* Initialize the registers. */
+	for (i = 0; i < T_REGISTERS; i++)
+	  curr->registers[i].type = UNSET_TYPE;
+
+	/* Run the thread and give up control of threads. */
+	// pthread_create (&curr->thread_id, NULL, Furlow_thread_mask, curr);
+	Furlow_unlock_threads ();
 	//
 	//    tnum = curr_thread - threads;
 	//    threads = FACT_realloc (threads, sizeof (struct FACT_thread) * ++num_threads);
@@ -1049,3 +1076,47 @@ Furlow_init_vm (void) /* Create the main scope and thread. */
   for (i = 0; i < T_REGISTERS; i++)
     threads->registers[i].type = UNSET_TYPE;
 }
+
+#ifdef DEBUG
+void
+Furlow_disassemble (void) /* Print the byte code currently loaded into the VM. */
+{
+  size_t i;
+  int inst, ofs, j;
+
+  if (progm == NULL)
+    goto end;
+
+  for (i = 0; (inst = progm[i][0]) != HALT; i++)
+    {
+      /* print out the instruction and address. */
+      printf ("%zu:\t%s", i, Furlow_instructions[inst].token);
+      for (j = 0, ofs = 1; Furlow_instructions[inst].args[j] != 0; j++)
+	{
+	  switch (Furlow_instructions[inst].args[j])
+	    {
+	    case 'r': /* Register. */
+	      printf (", %%%d", progm[i][ofs]);
+	      ofs++;
+	      break;
+
+	    case 's': /* String. */
+	      printf (", $%s", progm[i] + ofs);
+	      ofs += strlen (progm[i] + ofs);
+	      break;
+
+	    case 'a': /* Address. */
+	      printf (", @%zu", get_seg_addr (progm[i] + ofs));
+	      ofs += 4;
+	      break;
+
+	    default:
+	      abort ();
+	    }
+	}
+      printf ("\n");
+    }
+ end:
+  printf ("%zu:\thalt\n", (progm != NULL) ? i : 0);
+}
+#endif /* DEBUG */

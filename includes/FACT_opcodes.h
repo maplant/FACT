@@ -89,6 +89,7 @@ static struct
 } Furlow_instructions[] =
   {
     { "add"     , ADD     , "rrr" },
+    { "and"     , AND     , "rrr" },
     { "append"  , APPEND  , "rr"  },
     { "call"    , CALL    , "r"   },
     { "ceq"     , CEQ     , "rrr" },
@@ -107,13 +108,17 @@ static struct
     { "elem"    , ELEM    , "rr"  },
     { "exit"    , EXIT    , ""    },
     { "goto"    , GOTO    , "r"   },
+    { "group"   , GROUP   , "r"   },
     { "halt"    , HALT    , ""    },
     { "inc"     , INC     , "r"   },
+    { "ior"     , IOR     , "rrr" },
     { "is_auto" , IS_AUTO , "s"   },
     { "is_def"  , IS_DEF  , "s"   },
     { "jmp"     , JMP     , "a"   },
     { "jmp_pnt" , JMP_PNT , "a"   },
     { "jif"     , JIF     , "ra"  },
+    { "jin"     , JIN     , "ra"  },
+    { "jis"     , JIS     , "ra"  },
     { "jit"     , JIT     , "ra"  },
     { "lambda"  , LAMBDA  , ""    },
     { "mod"     , MOD     , "rrr" },
@@ -121,6 +126,7 @@ static struct
     { "neg"     , NEG     , "r"   },
     { "new_n"   , NEW_N   , "r"   },
     { "new_s"   , NEW_S   , "r"   },
+    { "nop"     , NOP     , ""    },
     { "purge"   , PURGE   , ""    },
     { "ref"     , REF     , "rr"  },
     { "ret"     , RET     , ""    },
@@ -136,6 +142,7 @@ static struct
     { "trap_e"  , TRAP_E  , ""    },
     { "use"     , USE     , "r"   },
     { "var"     , VAR     , "s"   },
+    { "xor"     , XOR     , "rrr" },
   };
 
 #define MAX_INSTRUCTION_LEN 10

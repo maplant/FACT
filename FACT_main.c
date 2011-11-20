@@ -43,7 +43,7 @@ int
 main (int argc, char **argv)
 {
   int i, j;
-  bool shell_on, load_stdlib;
+  bool shell_on, load_stdlib, disasm;
   FACT_t res;
   unsigned long q_size;
   char *stdlib_path;
@@ -55,13 +55,14 @@ main (int argc, char **argv)
     char short_opt, *long_opt;
   } flags[] = /* List of valid flags. */
       {
-	{ 's', "shell=yes"       }, // 0
-	{ 'n', "shell=no"        }, // 1
-	{  0 , "load-stdlib=yes" }, // 2
-	{  0 , "load-stdlib=no"  }, // 3
-	{ 'f', "file"            }, // 4
-	{ 'h', "help"            }, // 5
-	{ 'v', "version"         }  // 6
+	{ 's', "shell=yes"       }, /* 0 */
+	{ 'n', "shell=no"        }, /* 1 */
+	{  0 , "load-stdlib=yes" }, /* 2 */
+	{  0 , "load-stdlib=no"  }, /* 3 */
+	{ 'f', "file"            }, /* 4 */
+	{ 'h', "help"            }, /* 5 */
+	{ 'v', "version"         }, /* 6 */
+	{ 'd', "disassemble"     }, /* 7 */
       };
 
   /* Set exit routines. */
@@ -92,7 +93,8 @@ main (int argc, char **argv)
   argv++;
   argc--;
 
-  /* Set the default values to shell_on and load_stdlib. */
+  /* Set the default values to shell_on, load_stdlib, and disasm. */
+  disasm = false;
   load_stdlib = true;
   shell_on = ((argc == 0)
 	      ? true
@@ -239,6 +241,10 @@ main (int argc, char **argv)
 	    goto exit;
 	  break;
 
+	case 7: /* disassemble     */
+	  disasm = true;
+	  continue;
+	  
 	default: /* DOESNOTREACH   */
 	  abort ();
 	  break;
@@ -294,7 +300,16 @@ main (int argc, char **argv)
   if (shell_on)
     FACT_shell ();
   else
-    Furlow_run ();
+    {      
+      /* Disassemble the VM's code if desired. */
+      if (disasm)
+	{
+	  printf ("---- BEGIN DISASSEMBLAGE ----\n");
+	  Furlow_disassemble ();
+	  printf ("---- END   DISASSEMBLAGE ----\n");
+	}
+      Furlow_run ();
+    }
   
  exit:
   /* Clean up and exit. */

@@ -283,7 +283,7 @@ FACT_shell (void)
 
   el = el_init ("/usr/bin/FACT", stdin, stdout, stderr);
   el_set (el, EL_PROMPT, &shell_prompt);
-  el_set (el, EL_EDITOR, "emacs");
+  //  el_set (el, EL_EDITOR, "emacs");
 
   /* Set error recovery. */
  reset_error:
@@ -364,7 +364,7 @@ FACT_shell (void)
 	  
 	  parsed = FACT_parse (&tokenized);
 	  /* There was no error, continue to compilation. */
-	  FACT_compile (parsed, "<stdin>");
+	  FACT_compile (parsed, "<stdin>", true);
 	  last_ip = Furlow_offset ();
 	}
       else

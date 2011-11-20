@@ -58,7 +58,7 @@ FACT_load_file (const char *file_name) /* Load a file into the VM. */
 	}
       
       parsed = FACT_parse (&tokenized);
-      FACT_compile (parsed, file_name);
+      FACT_compile (parsed, file_name, false);
     }
   
   fclose (fp);

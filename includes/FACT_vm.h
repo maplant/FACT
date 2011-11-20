@@ -30,12 +30,15 @@ enum
     R_POP = 0, /* Pop register.          */
     R_TOP = 1, /* Top of stack register. */
     R_TID = 2, /* Thread ID register.    */
-    R_I,       /* "i" register.          */
-    R_J,       /* "j" register.          */
-    R_K,       /* "k" register.          */
-    R_A,       /* "A" register.          */
-    R_X,       /* "X" register.          */
+    R_I   = 3, /* "i" register.          */
+    R_J   = 4, /* "j" register.          */
+    R_K   = 5, /* "k" register.          */
+    R_A   = 6, /* "A" register.          */
+    R_X   = 7, /* "X" register.          */
   };
+
+/* R_UNNAMED(n): Get unnamed register "n". */
+#define R_UNNAMED(n) (R_X + (n) + 1)
 
 struct cstack_t 
 {
@@ -43,7 +46,7 @@ struct cstack_t
   FACT_scope_t this; /* 'this' scope being used.        */
 };
 
-#define CYCLES_ON_COLLECT 500 /* Garbage collect every n number of cycles. */ 
+#define CYCLES_ON_COLLECT 800 /* Garbage collect every n number of cycles. */ 
 
 /* Threading is handled on the program level in the Furlow VM, for the most
  * part. Each thread has its own stacks and instruction pointer. After an
@@ -74,8 +77,11 @@ typedef struct FACT_thread
       T_DEAD,     /* Thread has halted. */
     } run_flag;
 
-  pthread_t thread_id; 
-  struct FACT_thread *next; /* Next thread in the list. */
+  /* Internal thread information:                        */
+  size_t thread_num;        /* Iternal thread ID number. */
+  pthread_t thread_id;      /* Pthreads representation.  */
+  struct FACT_thread *next; /* Next thread in the list.  */
+
   /* TODO: Add a message queue for ITC. */
 } *FACT_thread_t;
 
@@ -121,5 +127,9 @@ inline size_t Furlow_offset ();       /* Get the instruction offset.        */
 
 /* Scope handling:                                                      */
 void FACT_get_either (char *); /* Search for a variable of either type. */
+
+#ifdef DEBUG
+void Furlow_disassemble (void);
+#endif /* DEBUG */
 
 #endif /* FACT_VM_H_ */
