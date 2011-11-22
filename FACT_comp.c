@@ -16,7 +16,11 @@
 
 #include <FACT.h>
 
-/* HC SVNT DRACONES */
+/* HC SVNT DRACONES
+ * Let me elaborate: this code is really bad. A mix of gobbeldy gook and such.
+ * I'm guessing it's almost impossible to understand. Someday I'll fix it.
+ * Hopefully.
+ */
 
 /* Intermediete format created by the compiler. Essentially a tree. */
 struct inter_node
@@ -123,20 +127,16 @@ set_child (struct inter_node *group, struct inter_node *val)
 static inline struct inst_arg
 ignore (void) /* No argument */
 {
-  struct inst_arg ret =
-    {
-      .arg_type = NO_ARG
-    };
+  struct inst_arg ret;
+  ret.arg_type = NO_ARG;
   return ret;
 }
 
 static inline struct inst_arg
 reg_arg (unsigned char reg_num) /* Register value. */
 {
-  struct inst_arg ret =
-    {
-      .arg_type = REG_VAL
-    };
+  struct inst_arg ret;
+  ret.arg_type = REG_VAL;
   ret.arg_val.reg = reg_num;
   return ret;
 }
@@ -144,10 +144,8 @@ reg_arg (unsigned char reg_num) /* Register value. */
 static inline struct inst_arg
 addr_arg (size_t node_num) /* Address value. */
 {
-  struct inst_arg ret =
-    {
-      .arg_type = ADDR_VAL
-    };
+  struct inst_arg ret;
+  ret.arg_type = ADDR_VAL;
   ret.arg_val.addr = node_num;
   return ret;
 }
@@ -155,10 +153,8 @@ addr_arg (size_t node_num) /* Address value. */
 static inline struct inst_arg
 str_arg (char *str_val) /* String value. */
 {
-  struct inst_arg ret =
-    {
-      .arg_type = STR_VAL
-    };
+  struct inst_arg ret;
+  ret.arg_type = STR_VAL;
   ret.arg_val.str = str_val;
   return ret;
 }
@@ -866,11 +862,33 @@ compile_args (FACT_tree_t curr)
     return NULL;
 
   res = create_node ();
-  res->node_type = GROUPING;;
-  res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 4);
-  add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
-  add_instruction (res, curr->id.id == E_NUM_DEF ? DEF_N : DEF_S,
-		   reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
+  res->node_type = GROUPING;
+  res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 8);
+
+  if (curr->id.id == E_NUM_DEF
+      || curr->id.id == E_SCOPE_DEF) /* Statically typed argument. */
+    {
+      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, curr->id.id == E_NUM_DEF ? DEF_N : DEF_S,
+		       reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
+    }
+  else /* Dynamically typed argument. */
+    {
+      /* jis,%top,
+       * const,$0
+       * def_n,%pop,var_name
+       * jmp,@2
+       * const,$0
+       * def_s,%pop,var_name
+       */ 
+      add_instruction (res, JIS, reg_arg (R_TOP), addr_arg (3), ignore ());
+      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, DEF_N, reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
+      add_instruction (res, JMP, addr_arg (5), ignore (), ignore ());
+      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, DEF_S, reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
+    }
+  
   add_instruction (res, SWAP, ignore (), ignore (), ignore ());
   add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_POP), ignore ());
   res->next = compile_args (curr->children[1]);

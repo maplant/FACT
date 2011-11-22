@@ -50,11 +50,9 @@ linked_list @ (num size)
 {
   for (scope curr = this:up; size > 0; size -= 1)
   {
-    print ("Got through here once\n");
     (curr: num n) = size;
     curr: scope get_end @ ()
     {
-      print ("Is this being run, maybe?");
       scope curr = up;
       while (curr:next?)
         curr = curr:next;
@@ -63,6 +61,19 @@ linked_list @ (num size)
     curr: scope next;
     curr = curr:next;
   }
-
   return this;
+}
+
+scope
+is_num @ (?n)
+{
+  catch n = 0; handle return 0;
+  return 1;
+}
+
+scope
+is_scope @ (?n)
+{
+  catch n = 0; handle return 1;
+  return 0;
 }

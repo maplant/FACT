@@ -218,16 +218,19 @@ func_dec (FACT_lexed_t *set)
   pn = expect (set, E_FUNC_DEF);
   expect (set, E_OP_PAREN);
 
+  /* Argument list. */
   if ((an = accept (set, E_NUM_DEF)) != NULL
-      || (an = accept (set, E_SCOPE_DEF)) != NULL)
+      || (an = accept (set, E_SCOPE_DEF)) != NULL
+      || (an = accept (set, E_LOCAL_CHECK)) != NULL)
     {
       an->children[0] = expect (set, E_VAR);
       hold = an;
       while (accept (set, E_COMMA) != NULL)
 	{
 	  if ((an = accept (set, E_NUM_DEF)) == NULL
-	      && (an = accept (set, E_SCOPE_DEF)) == NULL)
-	    error (set, "expected \"num\" or \"scope\" after comma");
+	      && (an = accept (set, E_SCOPE_DEF)) == NULL
+	      && (an = accept (set, E_LOCAL_CHECK)) == NULL)
+	    error (set, "expected num, scope, or ? token after comma");
 	  an->children[0] = expect (set, E_VAR);
 
 	  an->children[1] = hold;
