@@ -18,7 +18,11 @@ num thread_1 = ${
     {
       scope m = recieve ();
       if (m:message == "exit")
+      {
+        print ("exit signal recieved by thread ");
+	print_n (m:sender);
         break;
+      }
       print ("Message `");
       print (m:message);
       print ("` recieved from thread ");
@@ -46,7 +50,7 @@ num thread_2 = ${
     if (parcels () != 0)
     {
       scope m = recieve ();
-      send (m:message, "oh this is so very weird");
+      send (m:message, "exit");
       break;
     }
   }
@@ -56,7 +60,6 @@ num thread_2 = ${
 send (thread_1, "are you ready thread 1? Actually I dont care!");
 send (thread_2, thread_1);
 send (thread_1, "and we're done!");
-send (thread_1, "exit");
 
 while (parcels () == 0);
 
