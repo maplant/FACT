@@ -22,6 +22,7 @@ typedef enum
   {
     E_NE = 0,
     E_DQ,
+    E_THREAD,
     E_MOD,
     E_MOD_AS,
     E_BIT_AND,

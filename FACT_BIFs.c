@@ -16,15 +16,34 @@
 
 #include <FACT.h>
 
-/* I should come up with a nice macro system for this. */
+/* Macros for declaring FACT BIFs. */
+#define FBIF(name) { #name, &FBIF_##name }
+#define FBIF_DEC(name) static void FBIF_##name (void)
 
-static void *get_arg (FACT_type); 
-static void FBIF_floor (void);
-static void FBIF_print_n (void);
-static void FBIF_putchar (void);
-static void FBIF_size (void);
-static void FBIF_error (void);
-static void FBIF_throw (void);
+static void *get_arg (FACT_type);
+
+FBIF_DEC (floor);
+FBIF_DEC (print_n);
+FBIF_DEC (putchar);
+FBIF_DEC (size);
+FBIF_DEC (error);
+FBIF_DEC (throw);
+
+static const struct
+{
+  char *name;
+  void (*phys)(void);
+} BIF_list[] =
+  {
+    FBIF (floor),
+    FBIF (print_n),
+    FBIF (putchar),
+    FBIF (size),
+    FBIF (error),
+    FBIF (throw),
+  };
+
+#define NUM_FBIF ((sizeof BIF_list) / (sizeof BIF_list[0]))
 
 #define GET_ARG_NUM() ((FACT_num_t) get_arg (NUM_TYPE))
 #define GET_ARG_SCOPE() ((FACT_scope_t) get_arg (SCOPE_TYPE))
@@ -32,21 +51,17 @@ static void FBIF_throw (void);
 void
 FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
 {
+  int i;
   FACT_scope_t temp;
 
   /* Add each of the functions. */
-  temp = FACT_add_scope (curr, "floor");
-  temp->extrn_func = &FBIF_floor;
-  temp = FACT_add_scope (curr, "print_n");
-  temp->extrn_func = &FBIF_print_n;
-  temp = FACT_add_scope (curr, "putchar");
-  temp->extrn_func = &FBIF_putchar;
-  temp = FACT_add_scope (curr, "size");
-  temp->extrn_func = &FBIF_size;
-  temp = FACT_add_scope (curr, "error");
-  temp->extrn_func = &FBIF_error;
-  temp = FACT_add_scope (curr, "throw");
-  temp->extrn_func = &FBIF_throw;
+  for (i = 0; i < NUM_FBIF; i++)
+    {
+      temp = FACT_add_scope (curr, BIF_list[i].name);
+      temp->extrn_func = BIF_list[i].phys;
+    }
+
+  /* Well that was pretty easy. */
 }
 
 static void

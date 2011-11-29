@@ -345,7 +345,12 @@ Furlow_run () /* Run the program until a HALT is reached. */
        * recover. Otherwise, set the ip to the current trap handler.
        */
       if (curr_thread->num_traps == 0)
-	longjmp (recover, 1);
+	{
+	  if (curr_thread->thread_num != 0) /* Don't jump to recover if we can't. */
+	    return;
+	  else
+	    longjmp (recover, 1);
+	}
 
       /* Destroy the unecessary stacks and set the ip. */
       while ((curr_thread->cstackp - curr_thread->cstack + 1)
@@ -851,11 +856,11 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	curr->thread_num = num_threads++;
 	curr->curr_err.what = DEF_ERR_MSG;
 	curr->cstack_size = 1;
-	curr->cstack = FACT_malloc (sizeof (struct cstack_t));
+	curr->cstackp = curr->cstack = FACT_malloc (sizeof (struct cstack_t));
 
 	/* Set the top scope and the IP of the thread. */
 	THIS_OF (curr) = FACT_alloc_scope ();
-	IP_OF (curr) = get_seg_addr (progm[CURR_IP] + 1);
+	IP_OF (curr) = CURR_IP + 1;
 
 	/* Add the build in functions to the top scope. */
 	FACT_add_BIFs (THIS_OF (curr));
@@ -864,9 +869,15 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	for (i = 0; i < T_REGISTERS; i++)
 	  curr->registers[i].type = UNSET_TYPE;
 
+	/* Push the TID of the new thread to the var stack. */
+	push_constant_ui (curr->thread_num);
+	
 	/* Run the thread and give up control of threads. */
-	// pthread_create (&curr->thread_id, NULL, Furlow_thread_mask, curr);
+	pthread_create (&curr->thread_id, NULL, Furlow_thread_mask, curr);
 	Furlow_unlock_threads ();
+
+	/* Jump. */
+	CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
 	//
 	//    tnum = curr_thread - threads;
 	//    threads = FACT_realloc (threads, sizeof (struct FACT_thread) * ++num_threads);
@@ -1009,6 +1020,15 @@ get_seg_addr (char *arg) /* Convert a segment address to a ulong. */
   n = (n << 8) + (unsigned char) arg[3];
 
   return n;
+}
+
+void *
+Furlow_thread_mask (void *new_thread)
+{
+  /* Set curr_thread to new_thread and run the VM. */
+  curr_thread = new_thread;
+  Furlow_run ();
+  return NULL;
 }
 
 void

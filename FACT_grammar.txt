@@ -61,7 +61,8 @@ unary ->   "-" F
 	 | F
 	 ;
 
-F ->   "(" paren ")" 
+F ->   "(" paren ")"
+     | "$" threaded_expression
      | VAR opt_def_check
      | NUM
      | STR
@@ -69,6 +70,10 @@ F ->   "(" paren ")"
      | defin 
      ;
 
+threaded_expression ->   "{" stmt_list "}"
+                       | assignment
+		       ;
+		       
 opt_def_check ->   "?"
                  | "??"
 		 | e

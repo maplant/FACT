@@ -260,7 +260,6 @@ shell_prompt (EditLine *e) /* Return the shell prompt. */
 void
 FACT_shell (void)
 {
-  bool mode;
   char *input;
   const char *line;
   size_t i;
@@ -274,7 +273,6 @@ FACT_shell (void)
   int ignore;
   EditLine *el;
 
-  mode = true;  /* True = FACT, false = BASM. */
   input = NULL;
   last_ip = 0;
 
@@ -304,90 +302,72 @@ FACT_shell (void)
       goto reset_error;
     }
 
-  for (;;)
+  for (;;) /* This can be simplified a lot I think. */
     {
-      if (mode) /* FACT mode. */
+      new_stmt = true;
+      input = NULL;
+      i = 1;
+      do
 	{
-	  new_stmt = true;
-	  input = NULL;
-	  i = 1;
-	  do
+	  line = el_gets (el, &ignore);
+	  new_stmt = false;
+	  if (line != NULL && ignore > 0)
 	    {
-	      line = el_gets (el, &ignore);
-	      new_stmt = false;
-	      if (line != NULL && ignore > 0)
+	      i += strlen (line);
+	      if (input == NULL)
 		{
-		  i += strlen (line);
-		  if (input == NULL)
-		    {
-		      input = FACT_malloc_atomic (i);
-		      strcpy (input, line);
-		    }
-		  else
-		    {
-		      input = FACT_realloc (input, i);
-		      strcat (input, line);
-		    }
+		  input = FACT_malloc_atomic (i);
+		  strcpy (input, line);
 		}
 	      else
-		break;
+		{
+		  input = FACT_realloc (input, i);
+		  strcat (input, line);
+		}
 	    }
-	  while (!is_complete (line));
+	  else
+	    break;
 	}
-      else /* BASM shell mode. */
-	{
-	  /* Print the prompt: */
-	  printf ("BAS %zu> ", CURR_IP);
-	  input = readline_BASM ();
-	}
+      while (!is_complete (line));
 
       if (input == NULL)
 	break;
       
-      if (mode) /* FACT mode. */
+      /* Tokenize and parse the code. */
+      tokenized = FACT_lex_string (input);
+      tokenized.line = curr_line;
+      
+      /* Go through every token and get to the correct line. */
+      for (i = 0; tokenized.tokens[i].id != E_END; i++)
+	curr_line += tokenized.tokens[i].lines;
+      curr_line += tokenized.tokens[i].lines;
+      
+      if (setjmp (tokenized.handle_err))
 	{
-	  /* Tokenize and parse the code. */
-	  tokenized = FACT_lex_string (input);
-	  tokenized.line = curr_line;
-
-	  /* Go through every token and get to the correct line. */
-	  for (i = 0; tokenized.tokens[i].id != E_END; i++)
-	    curr_line += tokenized.tokens[i].lines;
-	  curr_line += tokenized.tokens[i].lines;
-
-	  if (setjmp (tokenized.handle_err))
-	    {
-	      /* There was a parsing error, print it and skip. */
-	      printf ("Parsing error (%s:%zu): %s.\n", "<stdin>", tokenized.line, tokenized.err);
-	      continue;
-	    }
-	  
-	  parsed = FACT_parse (&tokenized);
-	  /* There was no error, continue to compilation. */
-	  FACT_compile (parsed, "<stdin>", true);
-	  last_ip = Furlow_offset ();
+	  /* There was a parsing error, print it and skip. */
+	  printf ("Parsing error (%s:%zu): %s.\n", "<stdin>", tokenized.line, tokenized.err);
+	  continue;
 	}
-      else
-	/* Assemble the code. */
-	FACT_assembler (input);
+	  
+      parsed = FACT_parse (&tokenized);
+      /* There was no error, continue to compilation. */
+      FACT_compile (parsed, "<stdin>", true);
+      last_ip = Furlow_offset ();
 	  
       /* Run the code. */
       Furlow_run ();
 
-      if (mode)
+      /* The X register contains the return value of the last expression. */
+      ret_val = Furlow_register (R_X);
+      if (ret_val->type != UNSET_TYPE)
 	{
-	  /* The X register contains the return value of the last expression. */
-	  ret_val = Furlow_register (R_X);
-	  if (ret_val->type != UNSET_TYPE)
-	    {
-	      printf ("%%");
-	      if (ret_val->type == NUM_TYPE)
-		print_num ((FACT_num_t) ret_val->ap);
-	      else
-		print_scope ((FACT_scope_t) ret_val->ap);
-	      printf ("\n");
-	      ret_val->type = UNSET_TYPE;
-	    }
+	  printf ("%%");
+	  if (ret_val->type == NUM_TYPE)
+	    print_num ((FACT_num_t) ret_val->ap);
+	  else
+	    print_scope ((FACT_scope_t) ret_val->ap);
+	  printf ("\n");
+	  ret_val->type = UNSET_TYPE;
 	}
     }
 

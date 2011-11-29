@@ -17,7 +17,7 @@
 #ifndef FACT_H_
 #define FACT_H_
 
-#define SAFE                 /* Use extra caution.               */
+// #define SAFE                 /* Use extra caution.               */
 #define DEBUG                /* Print extra debug info.          */
 #define USE_GC               /* Use the BDW garbage collector.   */
 #define USE_ATOMIC           /* Improves speed a small amount.   */

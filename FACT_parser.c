@@ -322,6 +322,16 @@ factor (FACT_lexed_t *set)
   
   if ((pn = accept (set, E_OP_PAREN)) != NULL)
     pn = paren (set);
+  else if ((pn = accept (set, E_THREAD)) != NULL)
+    {
+      if ((pn->children[0] = accept (set, E_OP_CURL)) != NULL)
+	{
+	  pn->children[0]->children[0] = stmt_list (set);
+	  pn->children[0]->next = expect (set, E_CL_CURL);
+	}
+      else
+	pn->children[0] = assignment (set);
+    }
   else if ((pn = accept (set, E_DQ)) != NULL)
     {
       pn->children[0] = accept (set, E_VAR);

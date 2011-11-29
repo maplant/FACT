@@ -619,6 +619,14 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count, bool set_rx) /* 
       set_child (res, compile_tree (curr->children[1], s_count, l_count, set_rx));
       break;
 
+    case E_THREAD:
+      res->node_type = GROUPING;
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 3);
+      add_instruction (res, SPRT, addr_arg (2), ignore (), ignore ());
+      set_child (res, compile_tree (curr->children[0], 0, 0, false));
+      add_instruction (res, HALT, ignore (), ignore (), ignore ());
+      break;
+
     case E_OP_CURL: /* This REALLY needs to be optimized. */
       res->node_type = GROUPING;
       res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 3);
