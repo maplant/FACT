@@ -556,7 +556,12 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count, bool set_rx) /* 
 	add_instruction (res, JIF, reg_arg (R_POP), addr_arg (6), ignore ());
       
       /* Do not create a new scope for brackets. */
-      if (curr->children[1]->id.id == E_OP_CURL)
+      if (curr->children[1] == NULL)
+	{
+	  set_child (res, NULL);
+	  set_child (res, NULL);
+	}
+      else if (curr->children[1]->id.id == E_OP_CURL)
 	{
 	  set_child (res, compile_tree (curr->children[1]->children[0],
 					s_count + 1, s_count + 1, set_rx));
@@ -590,9 +595,11 @@ compile_tree (FACT_tree_t curr, size_t s_count, size_t l_count, bool set_rx) /* 
 	set_child (res, NULL);
       else
 	add_instruction (res, JIF, reg_arg (R_POP), addr_arg (8), ignore ());
-	
+
+      if (curr->children[3] == NULL)
+	set_child (res, NULL);
       /* Do not create a new scope for brackets. */
-      if (curr->children[3]->id.id == E_OP_CURL)
+      else if (curr->children[3]->id.id == E_OP_CURL)
 	set_child (res, compile_tree (curr->children[3]->children[0], s_count + 1, s_count + 1, set_rx));
 				      
       else

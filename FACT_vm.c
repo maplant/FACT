@@ -28,9 +28,9 @@ __thread FACT_thread_t curr_thread; /* Specific data to thread. */
 pthread_mutex_t progm_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t threads_lock = PTHREAD_MUTEX_INITIALIZER;
 
-/* Error recovery:                                      */
-jmp_buf handle_err; /* Jump to the error handler.       */
-jmp_buf recover;    /* When there are no other options. */
+/* Error recovery:                                               */
+__thread jmp_buf handle_err; /* Jump to the error handler.       */
+__thread jmp_buf recover;    /* When there are no other options. */
 
 /* The machine:                                         */
 static char **progm;     /* Program being run.          */
@@ -101,7 +101,7 @@ pop_v () /* Pop the variable stack. */
    * error in user-created BAS code, so we do not make it a required check.
    */
   if (curr_thread->vstackp < curr_thread->vstack)
-    FACT_throw_error (CURR_THIS, "illegal POP on empty var stack.");
+    FACT_throw_error (CURR_THIS, "illegal POP on empty var stack");
 #endif /* SAFE */
 
   res = *curr_thread->vstackp;
@@ -119,7 +119,7 @@ pop_c () /* Pop the current call stack. */
 
 #ifdef SAFE
   if (curr_thread->cstackp < curr_thread->cstack)
-    FACT_throw_error (CURR_THIS, "illegal POP on empty call stack.");
+    FACT_throw_error (CURR_THIS, "illegal POP on empty call stack");
 #endif /* SAFE */
 
   res = *curr_thread->cstackp;
@@ -345,12 +345,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
        * recover. Otherwise, set the ip to the current trap handler.
        */
       if (curr_thread->num_traps == 0)
-	{
-	  if (curr_thread->thread_num != 0) /* Don't jump to recover if we can't. */
-	    return;
-	  else
-	    longjmp (recover, 1);
-	}
+	longjmp (recover, 1);
 
       /* Destroy the unecessary stacks and set the ip. */
       while ((curr_thread->cstackp - curr_thread->cstack + 1)
@@ -857,9 +852,13 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	curr->curr_err.what = DEF_ERR_MSG;
 	curr->cstack_size = 1;
 	curr->cstackp = curr->cstack = FACT_malloc (sizeof (struct cstack_t));
-
+	curr->root_message = NULL;
+	curr->num_messages = 0;
+	pthread_mutex_init (&curr->queue_lock, NULL);
+	
 	/* Set the top scope and the IP of the thread. */
 	THIS_OF (curr) = FACT_alloc_scope ();
+	THIS_OF (curr)->name = "main<thread>";
 	IP_OF (curr) = CURR_IP + 1;
 
 	/* Add the build in functions to the top scope. */
@@ -878,31 +877,6 @@ Furlow_run () /* Run the program until a HALT is reached. */
 
 	/* Jump. */
 	CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
-	//
-	//    tnum = curr_thread - threads;
-	//    threads = FACT_realloc (threads, sizeof (struct FACT_thread) * ++num_threads);
-	//    curr_thread = threads + tnum;
-	//    threads[num_threads - 1].cstack_size++;
-	//    threads[num_threads - 1].cstack_max++;
-	//    threads[num_threads - 1].cstack = FACT_malloc (sizeof (struct cstack_t));
-	//    threads[num_threads - 1].curr_err.what = DEF_ERR_MSG;
-	
-	/* Set the 'this' scope and ip of the thread and jump. */
-    
-	//    THIS_OF (threads + num_threads - 1) = FACT_alloc_scope ();
-	//    IP_OF (threads + num_threads - 1) = get_seg_addr (progm[CURR_IP] + 1);
-	
-	/* Add built in functions to the new scope. */
-	//    FACT_add_BIFs (THIS_OF (threads + num_threads - 1));
-	
-	/* Initialize the registers. */
-	//    for (i = 0; i < T_REGISTERS; i++)
-	//      threads[num_threads - 1].registers[i].type = UNSET_TYPE;
-
-	/* Run the thread. */
-	//    pthread_create (&threads[num_threads - 1].thread_id, NULL, Furlow_thread_mask,
-	//		    threads + num_threads - 1);
-	//    Furlow_unlock_threads ();
       }
       END_SEG ();
 
@@ -1025,9 +999,27 @@ get_seg_addr (char *arg) /* Convert a segment address to a ulong. */
 void *
 Furlow_thread_mask (void *new_thread)
 {
-  /* Set curr_thread to new_thread and run the VM. */
-  curr_thread = new_thread;
-  Furlow_run ();
+  struct cstack_t frame;
+  
+  /* Set the recover jmp buffer. */
+  if (setjmp (recover))
+    {
+#ifdef DEBUG
+      /* Print out the error and a stack trace. */
+      fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
+      while (curr_thread->cstackp - curr_thread->cstack >= 0)
+	{
+	  frame = pop_c ();
+	  fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
+	}
+#endif /* DEBUG */
+    }
+  else
+    {
+      /* Set curr_thread to new_thread and run the VM. */
+      curr_thread = new_thread;
+      Furlow_run ();
+    }
   return NULL;
 }
 
@@ -1089,6 +1081,9 @@ Furlow_init_vm (void) /* Create the main scope and thread. */
   threads->cstackp = threads->cstack = FACT_malloc (sizeof (struct cstack_t));
   threads->curr_err.what = DEF_ERR_MSG;
   threads->next = NULL;
+  threads->root_message = NULL;
+  threads->num_messages = 0;
+  pthread_mutex_init (&threads->queue_lock, NULL);
   CURR_THIS = FACT_alloc_scope ();
   CURR_THIS->name = "main";
   CURR_IP = 0;

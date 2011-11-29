@@ -17,7 +17,7 @@
 #ifndef FACT_H_
 #define FACT_H_
 
-// #define SAFE                 /* Use extra caution.               */
+#define SAFE                 /* Use extra caution.               */
 #define DEBUG                /* Print extra debug info.          */
 #define USE_GC               /* Use the BDW garbage collector.   */
 #define USE_ATOMIC           /* Improves speed a small amount.   */
@@ -63,6 +63,7 @@
 #include <FACT_num.h>     /* Number handling routines.       */
 #include <FACT_var.h>     /* Variable look-ups.              */
 #include <FACT_vm.h>      /* Virtual machine functions.      */
+#include <FACT_threads.h> /* Thread handling.                */
 #include <FACT_basm.h>    /* Bytecode assembler routines.    */
 #include <FACT_BIFs.h>    /* Built In Functions.             */
 #include <FACT_debug.h>   /* Print debug information.        */ 

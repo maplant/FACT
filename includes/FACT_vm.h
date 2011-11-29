@@ -82,7 +82,15 @@ typedef struct FACT_thread
   pthread_t thread_id;      /* Pthreads representation.  */
   struct FACT_thread *next; /* Next thread in the list.  */
 
-  /* TODO: Add a message queue for ITC. */
+  /* Message queue for thread communication: */
+  pthread_mutex_t queue_lock;
+  struct FACT_thread_queue
+  {
+    size_t sender_id; /* The sender of the message.           */
+    FACT_num_t msg;   /* Only numerical values can be passed. */
+    struct FACT_thread_queue *next; /* Implemented as a linked list. */
+  } *root_message;
+  size_t num_messages;
 } *FACT_thread_t;
 
 /* Threading and stacks:                                                 */
@@ -90,9 +98,9 @@ extern size_t num_threads;                 /* Number of threads.         */
 extern FACT_thread_t threads;              /* Thread data.               */
 extern __thread FACT_thread_t curr_thread; /* Data specific to a thread. */
 
-/* Error recovery:                                   */
-extern jmp_buf handle_err; /* Handles thrown errors. */ 
-extern jmp_buf recover;    /* When no traps are set. */
+/* Error recovery:                                            */
+extern __thread jmp_buf handle_err; /* Handles thrown errors. */ 
+extern __thread jmp_buf recover;    /* When no traps are set. */
 
 #define THIS_OF(t) (t)->cstackp->this
 #define IP_OF(t)   (t)->cstackp->ip

@@ -1,0 +1,63 @@
+scope
+print @ (num str) # Print a string.  
+{
+  for (num i; i < size (str); i += 1)
+    putchar (str[i]);
+}
+
+num thread_1 = ${
+  scope
+  print @ (num str) # Print a string.  
+  {
+    for (num i; i < size (str); i += 1)
+      putchar (str[i]);
+  }
+  while (1)
+  {
+    if (parcels () != 0)
+    {
+      scope m = recieve ();
+      if (m:message == "exit")
+        break;
+      print ("Message `");
+      print (m:message);
+      print ("` recieved from thread ");
+      print_n (m:sender);
+    }
+  }
+  print ("Thread 1, dead.\n");
+  send (0, "done");
+};
+
+send (thread_1, "Hello there!");
+send (thread_1, "Im glad this works!");
+send (thread_1, "now lets complicate things even further...");
+
+num thread_2 = ${
+  scope
+  print @ (num str) # Print a string.  
+  {
+    for (num i; i < size (str); i += 1)
+      putchar (str[i]);
+  }
+  # Wait for a message of a thread id, and then send a message to that thread.
+  while (1)
+  {
+    if (parcels () != 0)
+    {
+      scope m = recieve ();
+      send (m:message, "oh this is so very weird");
+      break;
+    }
+  }
+  print ("Thread 2, dead.\n");
+};
+
+send (thread_1, "are you ready thread 1? Actually I dont care!");
+send (thread_2, thread_1);
+send (thread_1, "and we're done!");
+send (thread_1, "exit");
+
+while (parcels () == 0);
+
+print ("and that's the show folks!\n");

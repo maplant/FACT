@@ -28,6 +28,9 @@ FBIF_DEC (putchar);
 FBIF_DEC (size);
 FBIF_DEC (error);
 FBIF_DEC (throw);
+FBIF_DEC (send);
+FBIF_DEC (recieve);
+FBIF_DEC (parcels);
 
 static const struct
 {
@@ -41,6 +44,9 @@ static const struct
     FBIF (size),
     FBIF (error),
     FBIF (throw),
+    FBIF (send),
+    FBIF (recieve),
+    FBIF (parcels),
   };
 
 #define NUM_FBIF ((sizeof BIF_list) / (sizeof BIF_list[0]))
@@ -132,6 +138,37 @@ FBIF_throw (void) /* Throw an error. */
 
   msg = GET_ARG_NUM ();
   FACT_throw_error (CURR_THIS, FACT_natos (msg)); /* Should probably use "caller" instead. */
+}
+
+static void
+FBIF_send (void) /* Send a message to a thread. */
+{
+  FACT_num_t dest, msg;
+
+  msg = GET_ARG_NUM ();
+  dest = GET_ARG_NUM ();
+
+  FACT_send_message (msg, mpc_get_ui (dest->value));
+  push_constant_ui (0);
+}
+
+static void
+FBIF_recieve (void) /* Pop the current thread's message queue. */
+{
+  FACT_t res;
+
+  res.type = SCOPE_TYPE;
+  res.ap = FACT_get_next_message ();
+
+  push_v (res);
+}
+
+static void
+FBIF_parcels (void) /* Get the number of items in the message queue. */
+{
+  pthread_mutex_lock (&curr_thread->queue_lock);
+  push_constant_ui (curr_thread->num_messages);
+  pthread_mutex_unlock (&curr_thread->queue_lock);
 }
 
 static void *

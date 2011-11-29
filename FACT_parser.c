@@ -122,7 +122,10 @@ stmt (FACT_lexed_t *set)
       expect (set, E_OP_PAREN);
       pn->children[0] = assignment (set);
       expect (set, E_CL_PAREN);
-      pn->children[1] = stmt (set);
+      if (accept (set, E_SEMI) != NULL)
+	pn->children[1] = NULL;
+      else
+	pn->children[1] = stmt (set);
     }
   else if ((pn = accept (set, E_FOR)) != NULL)
     {
@@ -150,7 +153,10 @@ stmt (FACT_lexed_t *set)
 	  expect (set, E_CL_PAREN);
 	}
 
-      pn->children[3] = stmt (set);
+      if (accept (set, E_SEMI) != NULL)
+	pn->children[3] = NULL;
+      else
+	pn->children[3] = stmt (set);
     }
   else if ((pn = accept (set, E_CATCH)) != NULL)
     {
