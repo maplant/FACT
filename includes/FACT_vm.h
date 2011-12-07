@@ -83,6 +83,7 @@ typedef struct FACT_thread
   struct FACT_thread *next; /* Next thread in the list.  */
 
   /* Message queue for thread communication: */
+  pthread_cond_t msg_block;   /* Blocking to prevent busy-wait. */
   pthread_mutex_t queue_lock;
   struct FACT_thread_queue
   {

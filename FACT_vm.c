@@ -186,7 +186,7 @@ push_c (size_t nip, FACT_scope_t nthis) /* Push to the call stack. */
   diff = curr_thread->cstackp - curr_thread->cstack;
   if (diff >= curr_thread->cstack_size)
     {
-      /* Sqaure the size of the call stack. The call stack should never be NULL. */
+      /* Square the size of the call stack. The call stack should never be NULL. */
       //      printf ("ALLOCATION: %zu >= %zu\n", diff, curr_thread->cstack_size);
       curr_thread->cstack_size <<= 1;
       curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * (curr_thread->cstack_size));
@@ -855,6 +855,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
 	curr->root_message = NULL;
 	curr->num_messages = 0;
 	pthread_mutex_init (&curr->queue_lock, NULL);
+	pthread_cond_init (&curr->msg_block, NULL);
 	
 	/* Set the top scope and the IP of the thread. */
 	THIS_OF (curr) = FACT_alloc_scope ();
@@ -1084,12 +1085,22 @@ Furlow_init_vm (void) /* Create the main scope and thread. */
   threads->root_message = NULL;
   threads->num_messages = 0;
   pthread_mutex_init (&threads->queue_lock, NULL);
+  pthread_cond_init (&threads->msg_block, NULL);
   CURR_THIS = FACT_alloc_scope ();
   CURR_THIS->name = "main";
   CURR_IP = 0;
 
   for (i = 0; i < T_REGISTERS; i++)
     threads->registers[i].type = UNSET_TYPE;
+}
+
+void
+Furlow_destroy_vm (void) /* Deallocate everything and destroy every thread. */
+{
+  /* This function has yet to be implemented, as I need to do
+   * some thinking beforehand. Nothing major hopefully.
+   */
+  return;
 }
 
 #ifdef DEBUG

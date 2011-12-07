@@ -58,6 +58,10 @@ FACT_send_message (FACT_num_t msg, size_t dest) /* Add a message to a thread's q
       last->msg = FACT_alloc_num ();
       FACT_set_num (last->msg, msg);
     }
+
+  if (curr->num_messages == 0) /* Unblock the thread, if we must. */
+    pthread_cond_signal (&curr->msg_block);
+  
   curr->num_messages++;
   pthread_mutex_unlock (&curr->queue_lock);
 }
@@ -70,12 +74,9 @@ FACT_get_next_message (void) /* Pop the current thread's message queue. */
   
   pthread_mutex_lock (&curr_thread->queue_lock);
   
-  /* If there are no messages, throw an error. */ 
+  /* If there are no messages, block. */
   if (curr_thread->num_messages == 0)
-    {
-      pthread_mutex_unlock (&curr_thread->queue_lock);
-      FACT_throw_error (CURR_THIS, "no messages in queue");
-    }
+    pthread_cond_wait (&curr_thread->msg_block, &curr_thread->queue_lock);
 
   /* Create a scope to represent the message. */
   msg_holder = FACT_alloc_scope ();

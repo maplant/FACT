@@ -14,20 +14,17 @@ num thread_1 = ${
   }
   while (1)
   {
-    if (parcels () != 0)
+    scope m = recieve ();
+    if (m:message == "exit")
     {
-      scope m = recieve ();
-      if (m:message == "exit")
-      {
-        print ("exit signal recieved by thread ");
-	print_n (m:sender);
-        break;
-      }
-      print ("Message `");
-      print (m:message);
-      print ("` recieved from thread ");
+      print ("exit signal recieved by thread ");
       print_n (m:sender);
+      break;
     }
+    print ("Message `");
+    print (m:message);
+    print ("` recieved from thread ");
+    print_n (m:sender);
   }
   print ("Thread 1, dead.\n");
   send (0, "done");
@@ -47,12 +44,9 @@ num thread_2 = ${
   # Wait for a message of a thread id, and then send a message to that thread.
   while (1)
   {
-    if (parcels () != 0)
-    {
-      scope m = recieve ();
-      send (m:message, "exit");
-      break;
-    }
+    scope m = recieve ();
+    send (m:message, "exit");
+    break;
   }
   print ("Thread 2, dead.\n");
 };
@@ -61,6 +55,6 @@ send (thread_1, "are you ready thread 1? Actually I dont care!");
 send (thread_2, thread_1);
 send (thread_1, "and we're done!");
 
-while (parcels () == 0);
+recieve ();
 
 print ("and that's the show folks!\n");

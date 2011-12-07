@@ -76,10 +76,8 @@ readline_BASM () /* Read a single line of input from stdin. */
 static int
 is_blank (const char *str) /* Returns 1 if the rest of a string is junk (comment or whitespace). */ 
 {
-  for (;*str != '\0'; str++)
+  for (;*str != '\0' && *str != '#'; str++)
     {
-      if (*str == '#')
-	return 1;
       if (!isspace (*str))
 	return 0;
     }

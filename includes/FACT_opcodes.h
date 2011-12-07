@@ -55,7 +55,7 @@ typedef enum Furlow_opcode
     LAMBDA,  /* Push a lambda scope to the stack.              */
     MOD,     /* Modulo.                                        */
     MUL,     /* Multiplication.                                */
-    NEG,     /* Negative.                                      */    
+    NEG,     /* Negative.                                      */
     NEW_N,   /* Allocate a num and push it to the var stack.   */
     NEW_S,   /* Allocate a scope and push it to the var stack. */
     NOP,     /* No operator.                                   */
