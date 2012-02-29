@@ -41,6 +41,7 @@
 #include <signal.h>
 #include <limits.h>
 #include <pthread.h>
+#include <math.h>
 
 #include <gmp.h>
 #include <dlfcn.h>
@@ -65,6 +66,7 @@
 #include <FACT_vm.h>      /* Virtual machine functions.      */
 #include <FACT_threads.h> /* Thread handling.                */
 #include <FACT_basm.h>    /* Bytecode assembler routines.    */
+#include <FACT_libs.h>    /* Module loading.                 */
 #include <FACT_BIFs.h>    /* Built In Functions.             */
 #include <FACT_debug.h>   /* Print debug information.        */ 
 #include <FACT_shell.h>   /* Terminal interface.             */

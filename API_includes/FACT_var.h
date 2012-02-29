@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,9 @@
 #ifndef FACT_VAR_H_
 #define FACT_VAR_H_
 
+#include <FACT/FACT_types.h>
+
 /* Retrieving variables:                                                                           */
-void FACT_get_var (char *);                     /* Search for a variable and push it to the stack. */
 FACT_t *FACT_get_local (FACT_scope_t, char *);  /* Search for a local variable.                    */
 FACT_t *FACT_get_global (FACT_scope_t, char *); /* Search for a global variable.                   */
 
@@ -29,18 +30,5 @@ FACT_t *FACT_get_global (FACT_scope_t, char *); /* Search for a global variable.
     : _v.type == SCOPE_TYPE			\
     ? ((FACT_scope_t) _v.ap)->name		\
     : NULL; })
-
-/*
-static inline char *
-FACT_var_name (FACT_t v)
-{
-  if (v.type == UNSET_TYPE)
-    return NULL;
-  
-  return (v.type == NUM_TYPE
-	  ? ((FACT_num_t) v.ap)->name
-	  : ((FACT_scope_t) v.ap)->name);
-}
-*/
 
 #endif /* FACT_VAR_H_ */

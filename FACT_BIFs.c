@@ -32,21 +32,19 @@ FBIF_DEC (send);
 FBIF_DEC (recieve);
 FBIF_DEC (parcels);
 
-static const struct
-{
+static const struct {
   char *name;
   void (*phys)(void);
-} BIF_list[] =
-  {
-    FBIF (floor),
-    FBIF (print_n),
-    FBIF (putchar),
-    FBIF (size),
-    FBIF (error),
-    FBIF (throw),
-    FBIF (send),
-    FBIF (recieve),
-  };
+} BIF_list[] = {
+  FBIF (floor),
+  FBIF (print_n),
+  FBIF (putchar),
+  FBIF (size),
+  FBIF (error),
+  FBIF (throw),
+  FBIF (send),
+  FBIF (recieve),
+};
 
 #define NUM_FBIF ((sizeof BIF_list) / (sizeof BIF_list[0]))
 
@@ -60,11 +58,10 @@ FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
   FACT_scope_t temp;
 
   /* Add each of the functions. */
-  for (i = 0; i < NUM_FBIF; i++)
-    {
-      temp = FACT_add_scope (curr, BIF_list[i].name);
-      temp->extrn_func = BIF_list[i].phys;
-    }
+  for (i = 0; i < NUM_FBIF; i++) {
+    temp = FACT_add_scope (curr, BIF_list[i].name);
+    temp->extrn_func = BIF_list[i].phys;
+  }
 
   /* Well that was pretty easy. */
 }
@@ -86,11 +83,10 @@ FBIF_floor (void) /* Round a variable down. */
   /* Get the argument. */
   mpc_set (res->value, GET_ARG_NUM ()->value);
 
-  while (res->value->precision > 0)
-    {
-      mpz_div_ui (res->value->value, res->value->value, 10);
-      res->value->precision--;
-    }
+  while (res->value->precision > 0) {
+    mpz_div_ui (res->value->value, res->value->value, 10);
+    res->value->precision--;
+  }
 
   push_val.type = NUM_TYPE;
   push_val.ap = res;

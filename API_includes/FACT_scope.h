@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,6 @@
 
 #ifndef FACT_SCOPE_H_
 #define FACT_SCOPE_H_
-
-#include <FACT/FACT_types.h>
 
 FACT_scope_t FACT_get_local_scope (FACT_scope_t, char *);
 FACT_scope_t FACT_add_scope (FACT_scope_t, char *);

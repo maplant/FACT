@@ -76,9 +76,9 @@ mpc_set_si (mpc_t rop, signed long op)
 static unsigned int
 get_prec (char *val)
 {
-  unsigned int i, prec;
-
-  for (i = prec = 0; val[i] != '\0'; i++)
+  unsigned int i;
+  
+  for (i = 0; val[i] != '\0'; i++)
     {
       if (val[i] == '.')
 	{
@@ -92,8 +92,12 @@ get_prec (char *val)
 void
 mpc_set_str (mpc_t rop, char *str, int base) /* Convert a string to an mpc type. */
 {
-  rop->precision = get_prec (str);
-  mpz_set_str (rop->value, str, base);
+  char *cpy;
+  cpy = FACT_malloc (strlen (str) + 1);
+  strcpy (cpy, str);
+  rop->precision = get_prec (cpy);
+  mpz_set_str (rop->value, cpy, base);
+  FACT_free (cpy);
 }
 
 void
@@ -162,12 +166,16 @@ mpc_neg (mpc_t rop, mpc_t op)
 void
 mpc_mul (mpc_t rop, mpc_t op1, mpc_t op2)
 {
+  mpz_mul (rop->value, op1->value, op2->value);
+  rop->precision = op1->precision + op2->precision;
+  /*
   mpz_t temp;
   mpz_init_set (temp, op2->value);
   mpz_mul (temp, op1->value, temp);
   rop->precision = op1->precision + op2->precision;
   mpz_swap (rop->value, temp);
   mpz_clear (temp);
+  */
 }
 
 void
@@ -358,18 +366,17 @@ mpc_get_si (mpc_t rop)
 char *
 mpc_get_str (mpc_t rop)
 {
-  int len;
   char *res;
+  size_t len;
 
   res = FACT_malloc_atomic (mpz_sizeinbase (rop->value, 10) + 2);
   mpz_get_str (res, 10, rop->value);
 
-  if (rop->precision && mpz_cmp_ui (rop->value, 0))
-    {
-      res = FACT_realloc (res, (strlen (res) + 2) * sizeof (char));
-      len = strlen (res);
-      memmove (res + len - rop->precision + 1, res + len - rop->precision, len - 2);
-      res[len - rop->precision] = '.';
-    }
+  if (rop->precision && mpz_cmp_ui (rop->value, 0)) {
+    len = strlen (res);
+    res = FACT_realloc (res, (strlen (res) + 2) * sizeof (char));
+    memmove (res + len - rop->precision + 1, res + len - rop->precision, rop->precision + 1);
+    res[len - rop->precision] = '.';
+  }
   return res;
 }

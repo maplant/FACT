@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,23 +25,21 @@
 /* Definitions of special register values. The index registers (R_I, R_J,
  * etc) are not technically special, but are defined here.
  */
-enum
-  {
-    R_POP = 0, /* Pop register.          */
-    R_TOP = 1, /* Top of stack register. */
-    R_TID = 2, /* Thread ID register.    */
-    R_I   = 3, /* "i" register.          */
-    R_J   = 4, /* "j" register.          */
-    R_K   = 5, /* "k" register.          */
-    R_A   = 6, /* "A" register.          */
-    R_X   = 7, /* "X" register.          */
-  };
+enum {
+  R_POP = 0, /* Pop register.          */
+  R_TOP = 1, /* Top of stack register. */
+  R_TID = 2, /* Thread ID register.    */
+  R_I   = 3, /* "i" register.          */
+  R_J   = 4, /* "j" register.          */
+  R_K   = 5, /* "k" register.          */
+  R_A   = 6, /* "A" register.          */
+  R_X   = 7, /* "X" register.          */
+};
 
 /* R_UNNAMED(n): Get unnamed register "n". */
 #define R_UNNAMED(n) (R_X + (n) + 1)
 
-struct cstack_t 
-{
+struct cstack_t {
   size_t ip;         /* Instruction pointer being used. */
   FACT_scope_t this; /* 'this' scope being used.        */
 };
@@ -52,8 +50,7 @@ struct cstack_t
  * part. Each thread has its own stacks and instruction pointer. After an
  * instruction is evaluated, the next thread's data is used.
  */
-typedef struct FACT_thread
-{
+typedef struct FACT_thread {
   /* Virtual machine stacks:                                       */
   FACT_t *vstack;           /* Variable stack.                     */
   FACT_t *vstackp;          /* Points to the top of the var stack. */
@@ -71,12 +68,11 @@ typedef struct FACT_thread
   FACT_t registers[T_REGISTERS]; /* NOT to be handled directly. */
 
   /* Threading data: */
-  enum T_FLAG
-    {
-      T_LIVE = 0, /* Thread is running. */
-      T_DEAD,     /* Thread has halted. */
-    } run_flag;
-
+  enum T_FLAG {
+    T_LIVE = 0, /* Thread is running. */
+    T_DEAD,     /* Thread has halted. */
+  } run_flag;
+  
   /* Internal thread information:                        */
   size_t thread_num;        /* Iternal thread ID number. */
   pthread_t thread_id;      /* Pthreads representation.  */
@@ -85,8 +81,7 @@ typedef struct FACT_thread
   /* Message queue for thread communication: */
   pthread_cond_t msg_block;   /* Blocking to prevent busy-wait. */
   pthread_mutex_t queue_lock;
-  struct FACT_thread_queue
-  {
+  struct FACT_thread_queue {
     size_t sender_id; /* The sender of the message.           */
     FACT_num_t msg;   /* Only numerical values can be passed. */
     struct FACT_thread_queue *next; /* Implemented as a linked list. */
@@ -133,9 +128,6 @@ void Furlow_add_instruction (char *); /* Add an instruction to the program. */
 inline void Furlow_lock_program ();   /* Wait for a chance and lock.        */
 inline void Furlow_unlock_program (); /* Unlock the program.                */
 inline size_t Furlow_offset ();       /* Get the instruction offset.        */
-
-/* Scope handling:                                                      */
-void FACT_get_either (char *); /* Search for a variable of either type. */
 
 #ifdef DEBUG
 void Furlow_disassemble (void);

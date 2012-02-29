@@ -16,8 +16,7 @@
 
 #include <FACT.h>
 
-inline void *
-FACT_malloc (size_t alloc_size)
+inline void *FACT_malloc (size_t alloc_size)
 {
   void *temp;
 
@@ -28,37 +27,33 @@ FACT_malloc (size_t alloc_size)
 #endif /* USE_GC */
 
   /* Check for NULL pointer. */
-  if (temp == NULL)
-    {
-      fprintf (stderr, "Failed to allocate block of size %d, aborting.\n", alloc_size);
-      abort ();
-    }
+  if (temp == NULL) {
+    fprintf (stderr, "Failed to allocate block of size %d, aborting.\n", alloc_size);
+    abort ();
+  }
 
   return temp;
 }
 
 #if (defined USE_GC && defined USE_ATOMIC)
-inline void *
-FACT_malloc_atomic (size_t alloc_size)
+inline void *FACT_malloc_atomic (size_t alloc_size)
 {
   void *temp;
 
   temp = GC_malloc_atomic (alloc_size);
 
   /* Check for NULL pointer. */
-  if (temp == NULL)
-    {
-      fprintf (stderr, "Failed to allocate block of size %d, aborting.\n", alloc_size);
-      abort ();
-    }
-
+  if (temp == NULL) {
+    fprintf (stderr, "Failed to allocate block of size %d, aborting.\n", alloc_size);
+    abort ();
+  }
+  
   memset (temp, 0, alloc_size);
   return temp;
 }
 #endif /* USE_GC */
 
-inline void *
-FACT_realloc (void *old, size_t new_size)
+inline void *FACT_realloc (void *old, size_t new_size)
 {
   void *temp;
 
@@ -69,17 +64,15 @@ FACT_realloc (void *old, size_t new_size)
 #endif /* USE_GC */
 
   /* Check for NULL pointer. */
-  if (temp == NULL)
-    {
-      fprintf (stderr, "Failed to reallocate block of size %d, aborting.\n", new_size);
-      abort ();
-    }
+  if (temp == NULL) {
+    fprintf (stderr, "Failed to reallocate block of size %d, aborting.\n", new_size);
+    abort ();
+  }
 
   return temp;
 }
 
-inline void
-FACT_free (void *p)
+inline void FACT_free (void *p)
 {
 #ifdef USE_GC
   GC_free (p);
@@ -88,8 +81,7 @@ FACT_free (void *p)
 #endif /* USE_GC */
 }
  
-FACT_num_t
-FACT_alloc_num (void) /* Allocate and initialize a num type. */
+FACT_num_t FACT_alloc_num (void) /* Allocate and initialize a num type. */
 {
   FACT_num_t temp;
 
@@ -105,8 +97,7 @@ FACT_alloc_num (void) /* Allocate and initialize a num type. */
   return temp;
 }
 
-FACT_num_t *
-FACT_alloc_num_array (size_t n)
+FACT_num_t *FACT_alloc_num_array (size_t n)
 {
   FACT_num_t *temp;
 
@@ -114,18 +105,15 @@ FACT_alloc_num_array (size_t n)
   temp = FACT_malloc (sizeof (FACT_num_t) * n); /* Allocate the nodes. */
 
   /* Initialize all the nodes. */
-  do
-    {
-      n--;
-      temp[n] = FACT_alloc_num ();
-    }
-  while (n > 0);
+  do {
+    n--;
+    temp[n] = FACT_alloc_num ();
+  } while (n > 0);
 
   return temp;
 }
 
-FACT_scope_t
-FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
+FACT_scope_t FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
 {
   FACT_scope_t temp;
 
@@ -156,8 +144,7 @@ FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   return temp;
 }
 
-FACT_scope_t *
-FACT_alloc_scope_array (size_t n)
+FACT_scope_t *FACT_alloc_scope_array (size_t n)
 {
   FACT_scope_t *temp;
 
@@ -165,12 +152,10 @@ FACT_alloc_scope_array (size_t n)
   temp = FACT_malloc (sizeof (FACT_scope_t) * n); /* Allocate the nodes. */
 
   /* Initialize all the nodes. */
-  do
-    {
-      n--;
-      temp[n] = FACT_alloc_scope ();
-    }
-  while (n > 0);
+  do {
+    n--;
+    temp[n] = FACT_alloc_scope ();
+  } while (n > 0);
 
   return temp;
 }

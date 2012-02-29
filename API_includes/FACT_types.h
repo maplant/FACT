@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
 
 #ifndef FACT_TYPES_H_
 #define FACT_TYPES_H_
+
+#include <FACT/FACT_mpc.h>
 
 /* Data in FACT is either a number or a scope. */
 typedef enum {

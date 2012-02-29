@@ -19,64 +19,10 @@
 static void print_num (FACT_num_t);
 static void print_scope (FACT_scope_t);
 
-static char *
-readline_BASM () /* Read a single line of input from stdin. */
-{
-  int c;
-  char *res;
-  size_t i;
-
-  /* Perhaps replace this with some ncurses or termios routine,
-   * like readline.
-   */
-  res = NULL;
-  for (i = 0; (c = getchar ()) != EOF && c != '\n'; i++)
-    {
-      if (c == '\\')
-	{
-	  c = getchar ();
-	  if (c != '\n')
-	    ungetc (c, stdin);
-	  else
-	    {
-	      i--;
-	      continue;
-	    }
-	}
-      
-      /* Break on newline. */
-      if (c == '\n')
-	break;
-      
-      /* Skip all repeated spaces. */
-      if (c == ' ')
-	{
-	  while ((c = getchar ()) == ' ');
-	  if (c == '\n' || c == EOF)
-	    goto end;
-	  ungetc (c, stdin);
-	  c = ' ';
-	}
-      
-      res = FACT_realloc (res, sizeof (char) * (i + 1));
-      res[i] = c;
-    }
-
- end:
-  if (res != NULL)
-    {
-      /* Add the null terminator. */
-      res = FACT_realloc (res, sizeof (char) * (i + 1));
-      res[i] = '\0';
-    }
-
-  return res;
-}
-
 static int
 is_blank (const char *str) /* Returns 1 if the rest of a string is junk (comment or whitespace). */ 
 {
-  for (;*str != '\0' && *str != '#'; str++)
+  for (; *str != '\0' && *str != '#'; str++)
     {
       if (!isspace (*str))
 	return 0;
@@ -88,7 +34,7 @@ static int
 is_complete (const char *line) /* Check to see if a line forms a complete statement. */
 {
   /* This is not reentrant. */
-  static size_t p_count, b_count, c_count;
+  static int p_count, b_count, c_count;
   static enum
   {
     NO_QUOTE = 0,
@@ -98,6 +44,13 @@ is_complete (const char *line) /* Check to see if a line forms a complete statem
   bool bslash;
   size_t i;
 
+  /* If line is NULL, take that as a signal to reset all the counts. */
+  if (line == NULL)
+    {
+      p_count = b_count = c_count = 0;
+      return 1;
+    }
+  
   bslash = false;
 
   for (i = 0; line[i] != '\0'; i++)
@@ -279,7 +232,6 @@ FACT_shell (void)
 
   el = el_init ("/usr/bin/FACT", stdin, stdout, stderr);
   el_set (el, EL_PROMPT, &shell_prompt);
-  //  el_set (el, EL_EDITOR, "emacs");
 
   /* Set error recovery. */
  reset_error:
@@ -305,6 +257,7 @@ FACT_shell (void)
       new_stmt = true;
       input = NULL;
       i = 1;
+
       do
 	{
 	  line = el_gets (el, &ignore);

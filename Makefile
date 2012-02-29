@@ -1,10 +1,10 @@
 CC = gcc
-LIBS = -lgmp -lgc -ledit -ltermcap -lpthread
+LIBS = -lgmp -lgc -ledit -ltermcap -lpthread -lm
 PROG = FACT
 CFLAGS = -c -g3 -I$(INCLUDE_DIR)
-LDFLAGS = -rdynamic 
+LDFLAGS = -rdynamic
 INCLUDE_DIR = ./includes 
-INSTALL_DIR = /usr/bin/
+INSTALL_DIR = /usr/bin
 SRCS =	FACT_alloc.c FACT_shell.c FACT_basm.c FACT_vm.c  FACT_mpc.c    \
 	FACT_num.c FACT_scope.c FACT_error.c FACT_BIFs.c FACT_debug.c   \
 	FACT_signals.c FACT_lexer.c FACT_var.c FACT_parser.c FACT_comp.c \
@@ -23,6 +23,11 @@ $(PROG):	$(OBJS)
 install:
 	rm -f $(INSTALL_DIR)/$(PROG)
 	cp $(PROG) $(INSTALL_DIR)
+
+install-devel:
+	rm -rf /usr/include/FACT
+	mkdir /usr/include/FACT
+	cp -r API_includes/. /usr/include/FACT 
 
 clean:
 	rm *.o
