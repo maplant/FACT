@@ -17,8 +17,6 @@
 #ifndef FACT_SCOPE_H_
 #define FACT_SCOPE_H_
 
-#include <FACT/FACT_types.h>
-
 FACT_scope_t FACT_get_local_scope (FACT_scope_t, char *);
 FACT_scope_t FACT_add_scope (FACT_scope_t, char *);
 
