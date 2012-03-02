@@ -72,7 +72,7 @@ typedef struct FACT_scope {
 #define FACT_cast_to_num(v)   ((FACT_num_t)   (v).ap)
 #define FACT_cast_to_scope(v) ((FACT_scope_t) (v).ap)
 
-#define FACT_DEF_ERR_MSG "no error"
+#define DEF_ERR_MSG "no error"
 
 /* FACT_error describes a thrown error. */
 typedef struct FACT_error {
