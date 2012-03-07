@@ -18,8 +18,7 @@
 
 unsigned long default_prec = 6;
 
-static void
-pow_of_ten (mpz_t rop, unsigned long op)
+static void pow_of_ten (mpz_t rop, unsigned long op)
 {
   unsigned long i;
 
@@ -27,47 +26,40 @@ pow_of_ten (mpz_t rop, unsigned long op)
     mpz_mul_ui (rop, rop, 10);
 }
 
-void
-mpc_set_default_prec (unsigned long prec)
+void mpc_set_default_prec (unsigned long prec)
 {
   default_prec = prec;
 }
 
-unsigned long
-mpc_get_default_prec ()
+unsigned long mpc_get_default_prec ()
 {
   return default_prec;
 }
 
-void
-mpc_init (mpc_t new)
+void mpc_init (mpc_t new)
 {
   new->precision = 0;
   mpz_init (new->value);
 }
 
-void 
-mpc_clear (mpc_t dead)
+void mpc_clear (mpc_t dead)
 {
   mpz_clear (dead->value);
 }
 
-void
-mpc_set (mpc_t rop, mpc_t op)
+void mpc_set (mpc_t rop, mpc_t op)
 {
   rop->precision = op->precision;
   mpz_set (rop->value, op->value);
 }
 
-void
-mpc_set_ui (mpc_t rop, unsigned long op)
+void mpc_set_ui (mpc_t rop, unsigned long op)
 {
   rop->precision = 0;
   mpz_set_ui (rop->value, op);
 }
 
-void
-mpc_set_si (mpc_t rop, signed long op)
+void mpc_set_si (mpc_t rop, signed long op)
 {
   rop->precision = 0;
   mpz_set_si (rop->value, op);
@@ -78,19 +70,16 @@ get_prec (char *val)
 {
   unsigned int i;
   
-  for (i = 0; val[i] != '\0'; i++)
-    {
-      if (val[i] == '.')
-	{
-	  val[i] = ' ';
-	  return strlen (val + i + 1);
-	}
+  for (i = 0; val[i] != '\0'; i++) {
+    if (val[i] == '.') {
+      val[i] = ' ';
+      return strlen (val + i + 1);
     }
+  }
   return 0;
 }
 
-void
-mpc_set_str (mpc_t rop, char *str, int base) /* Convert a string to an mpc type. */
+void mpc_set_str (mpc_t rop, char *str, int base) /* Convert a string to an mpc type. */
 {
   char *cpy;
   cpy = FACT_malloc (strlen (str) + 1);
@@ -100,71 +89,57 @@ mpc_set_str (mpc_t rop, char *str, int base) /* Convert a string to an mpc type.
   FACT_free (cpy);
 }
 
-void
-mpc_add (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_add (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   mpz_t temp; 
   
-  if (op1->precision == op2->precision)
-    {
-      mpz_add (rop->value, op1->value, op2->value);
-      rop->precision = op1->precision;
-    }
-  else if (op1->precision > op2->precision)
-    {
-      mpz_init_set (temp, op2->value);
-      pow_of_ten (temp, op1->precision - op2->precision);
-      mpz_add (rop->value, temp, op1->value);
-      mpz_clear (temp);
-      rop->precision = op1->precision;
-    }
-  else
-    {
-      mpz_init_set (temp, op1->value);
-      pow_of_ten (temp, op2->precision - op1->precision);
-      mpz_add (rop->value, temp, op2->value);
-      mpz_clear (temp);
-      rop->precision = op2->precision;
-    }
+  if (op1->precision == op2->precision) {
+    mpz_add (rop->value, op1->value, op2->value);
+    rop->precision = op1->precision;
+  } else if (op1->precision > op2->precision) {
+    mpz_init_set (temp, op2->value);
+    pow_of_ten (temp, op1->precision - op2->precision);
+    mpz_add (rop->value, temp, op1->value);
+    mpz_clear (temp);
+    rop->precision = op1->precision;
+  } else {
+    mpz_init_set (temp, op1->value);
+    pow_of_ten (temp, op2->precision - op1->precision);
+    mpz_add (rop->value, temp, op2->value);
+    mpz_clear (temp);
+    rop->precision = op2->precision;
+  }
 }
 
-void
-mpc_sub (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_sub (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   mpz_t temp; 
   
-  if (op1->precision == op2->precision)
-    {
-      mpz_sub (rop->value, op1->value, op2->value);
-      rop->precision = op1->precision;
-    }
-  else if (op1->precision > op2->precision)
-    {
-      mpz_init_set (temp, op2->value);
-      pow_of_ten (temp, op1->precision - op2->precision);
-      mpz_sub (rop->value, op1->value, temp);
-      mpz_clear (temp);
-      rop->precision = op1->precision;
-    }
-  else
-    {
-      mpz_init_set (temp, op1->value);
-      pow_of_ten (temp, op2->precision - op1->precision);
-      mpz_sub (rop->value, temp, op2->value);
-      mpz_clear (temp);
-      rop->precision = op2->precision;
-    }
+  if (op1->precision == op2->precision) {
+    mpz_sub (rop->value, op1->value, op2->value);
+    rop->precision = op1->precision;
+  } else if (op1->precision > op2->precision) {
+    mpz_init_set (temp, op2->value);
+    pow_of_ten (temp, op1->precision - op2->precision);
+    mpz_sub (rop->value, op1->value, temp);
+    mpz_clear (temp);
+    rop->precision = op1->precision;
+  } else {
+    mpz_init_set (temp, op1->value);
+    pow_of_ten (temp, op2->precision - op1->precision);
+    mpz_sub (rop->value, temp, op2->value);
+    mpz_clear (temp);
+    rop->precision = op2->precision;
+  }
 }
 
-void
-mpc_neg (mpc_t rop, mpc_t op)
+void mpc_neg (mpc_t rop, mpc_t op)
 {
   rop->precision = op->precision;
   mpz_neg (rop->value, op->value);
 }
 
-void
-mpc_mul (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_mul (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   mpz_mul (rop->value, op1->value, op2->value);
   rop->precision = op1->precision + op2->precision;
@@ -178,8 +153,7 @@ mpc_mul (mpc_t rop, mpc_t op1, mpc_t op2)
   */
 }
 
-void
-mpc_div (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_div (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   size_t i;
   unsigned long prec;
@@ -214,8 +188,7 @@ mpc_div (mpc_t rop, mpc_t op1, mpc_t op2)
   mpf_clear (hold_res);
 }
 
-void
-mpc_mod (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_mod (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   size_t i;
   unsigned long prec;
@@ -255,54 +228,46 @@ mpc_mod (mpc_t rop, mpc_t op1, mpc_t op2)
 
 /* Bitwise functions ignore precision. */
 
-void
-mpc_and (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_and (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   rop->precision = 0;
   mpz_and (rop->value, op1->value, op2->value);
 }
 
-void
-mpc_ior (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_ior (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   rop->precision = 0;
   mpz_and (rop->value, op1->value, op2->value);
 }
 
-void
-mpc_xor (mpc_t rop, mpc_t op1, mpc_t op2)
+void mpc_xor (mpc_t rop, mpc_t op1, mpc_t op2)
 {
   rop->precision = 0;
   mpz_and (rop->value, op1->value, op2->value);
 }
 
-int
-mpc_cmp (mpc_t op1, mpc_t op2)
+int mpc_cmp (mpc_t op1, mpc_t op2)
 {
   int ret;
   mpz_t temp;
 
   if (op1->precision == op2->precision)
     return mpz_cmp (op1->value, op2->value);
-  else if (op1->precision > op2->precision)
-    {
-      mpz_init_set (temp, op2->value);
-      pow_of_ten (temp, op1->precision - op2->precision);
-      ret = mpz_cmp (op1->value, temp);
-    }
-  else
-    {
-      mpz_init_set (temp, op1->value);
-      pow_of_ten (temp, op2->precision - op1->precision);
-      ret = mpz_cmp (temp, op2->value);
-    }
+  else if (op1->precision > op2->precision) {
+    mpz_init_set (temp, op2->value);
+    pow_of_ten (temp, op1->precision - op2->precision);
+    ret = mpz_cmp (op1->value, temp);
+  } else {
+    mpz_init_set (temp, op1->value);
+    pow_of_ten (temp, op2->precision - op1->precision);
+    ret = mpz_cmp (temp, op2->value);
+  }
   
   mpz_clear (temp);
   return ret;
 }
 
-int
-mpc_cmp_ui (mpc_t op1, unsigned long int op2)
+int mpc_cmp_ui (mpc_t op1, unsigned long int op2)
 {
   unsigned int i;
 
@@ -312,8 +277,7 @@ mpc_cmp_ui (mpc_t op1, unsigned long int op2)
   return mpz_cmp_ui (op1->value, op2);
 }
 
-int
-mpc_cmp_si (mpc_t op1, signed long int op2)
+int mpc_cmp_si (mpc_t op1, signed long int op2)
 {
   unsigned int i;
   
@@ -325,8 +289,7 @@ mpc_cmp_si (mpc_t op1, signed long int op2)
 
 /* TODO: make these next few functions better. */
 
-unsigned long int
-mpc_get_ui (mpc_t rop)
+unsigned long int mpc_get_ui (mpc_t rop)
 {
   unsigned long int ret, i;
   mpz_t temp1;
@@ -345,8 +308,7 @@ mpc_get_ui (mpc_t rop)
   return ret;
 }
 
-signed long int
-mpc_get_si (mpc_t rop)
+signed long int mpc_get_si (mpc_t rop)
 {
   signed long int ret;
   mpz_t temp1;
@@ -363,8 +325,7 @@ mpc_get_si (mpc_t rop)
   return ret;
 }
 
-char *
-mpc_get_str (mpc_t rop)
+char *mpc_get_str (mpc_t rop)
 {
   char *res;
   size_t len;
@@ -374,7 +335,13 @@ mpc_get_str (mpc_t rop)
 
   if (rop->precision && mpz_cmp_ui (rop->value, 0)) {
     len = strlen (res);
-    res = FACT_realloc (res, (strlen (res) + 2) * sizeof (char));
+    if (rop->precision >= len) {
+      res = FACT_realloc (res, rop->precision + 1);
+      memmove (res + rop->precision - len, res, len + 1);
+      memset (res, '0', rop->precision - len);
+      len = rop->precision;
+    }
+    res = FACT_realloc (res, (strlen (res) + 2));
     memmove (res + len - rop->precision + 1, res + len - rop->precision, rop->precision + 1);
     res[len - rop->precision] = '.';
   }

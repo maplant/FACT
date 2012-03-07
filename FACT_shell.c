@@ -22,11 +22,10 @@ static void print_scope (FACT_scope_t);
 static int
 is_blank (const char *str) /* Returns 1 if the rest of a string is junk (comment or whitespace). */ 
 {
-  for (; *str != '\0' && *str != '#'; str++)
-    {
-      if (!isspace (*str))
-	return 0;
-    }
+  for (; *str != '\0' && *str != '#'; str++) {
+    if (!isspace (*str))
+      return 0;
+  }
   return 1;
 }
 
@@ -35,8 +34,7 @@ is_complete (const char *line) /* Check to see if a line forms a complete statem
 {
   /* This is not reentrant. */
   static int p_count, b_count, c_count;
-  static enum
-  {
+  static enum {
     NO_QUOTE = 0,
     IN_DQUOTE,
     IN_SQUOTE,
@@ -45,107 +43,101 @@ is_complete (const char *line) /* Check to see if a line forms a complete statem
   size_t i;
 
   /* If line is NULL, take that as a signal to reset all the counts. */
-  if (line == NULL)
-    {
-      p_count = b_count = c_count = 0;
-      return 1;
-    }
+  if (line == NULL) {
+    p_count = b_count = c_count = 0;
+    return 1;
+  }
   
   bslash = false;
 
-  for (i = 0; line[i] != '\0'; i++)
-    {
-      switch (line[i])
-	{
-	case '(':
-	  if (quote_stat == NO_QUOTE)
-	    p_count++;
-	  break;
+  for (i = 0; line[i] != '\0'; i++) {
+    switch (line[i]) {
+    case '(':
+      if (quote_stat == NO_QUOTE)
+	p_count++;
+      break;
 
-	case ')':
-	  if (quote_stat == NO_QUOTE
-	      && p_count > 0)
-	    p_count--;
-	  break;
+    case ')':
+      if (quote_stat == NO_QUOTE
+	  && p_count > 0)
+	p_count--;
+      break;
 
-	case '[':
-	  if (quote_stat == NO_QUOTE)
-	    b_count++;
-	  break;
+    case '[':
+      if (quote_stat == NO_QUOTE)
+	b_count++;
+      break;
 
-	case ']':
-	  if (quote_stat == NO_QUOTE
-	      && b_count > 0)
-	    b_count--;
-	  break;
+    case ']':
+      if (quote_stat == NO_QUOTE
+	  && b_count > 0)
+	b_count--;
+      break;
 	  
-	case '{':
-	  if (quote_stat == NO_QUOTE)
-	    c_count++;
-	  break;
+    case '{':
+      if (quote_stat == NO_QUOTE)
+	c_count++;
+      break;
 
-	case '}':
-	  if (quote_stat == NO_QUOTE)
-	    {
-	      if (c_count > 0)
-		c_count--;
-	      if (p_count == 0
-		  && b_count == 0
-		  && c_count == 0
-		  && is_blank (line + i + 1))
-		return 1;
-	    }		
-	  break;
+    case '}':
+      if (quote_stat == NO_QUOTE) {
+	if (c_count > 0)
+	  c_count--;
+	if (p_count == 0
+	    && b_count == 0
+	    && c_count == 0
+	    && is_blank (line + i + 1))
+	  return 1;
+      }		
+      break;
 
-	case ';':
-	  if (p_count == 0
-	      && b_count == 0
-	      && c_count == 0
-	      && is_blank (line + i + 1))
-	    return 1;
-	  break;
+    case ';':
+      if (p_count == 0
+	  && b_count == 0
+	  && c_count == 0
+	  && is_blank (line + i + 1))
+	return 1;
+      break;
 
-	case '\'':
-	  if (quote_stat == NO_QUOTE)
-	    quote_stat = IN_SQUOTE;
-	  else if (quote_stat == IN_SQUOTE)
-	    {
-	      if (!bslash)
-		quote_stat = NO_QUOTE;
-	    }
-	  break;
+    case '\'':
+      if (quote_stat == NO_QUOTE)
+	quote_stat = IN_SQUOTE;
+      else if (quote_stat == IN_SQUOTE) {
+	if (!bslash)
+	  quote_stat = NO_QUOTE;
+      }
+      break;
 
-	case '"':
-	  if (quote_stat == NO_QUOTE)
-	    quote_stat = IN_DQUOTE;
-	  else if (quote_stat == IN_DQUOTE)
-	    {
-	      if (!bslash)
-		quote_stat = NO_QUOTE;
-	    }
-	  break;
+    case '"':
+      if (quote_stat == NO_QUOTE)
+	quote_stat = IN_DQUOTE;
+      else if (quote_stat == IN_DQUOTE) {
+	if (!bslash)
+	  quote_stat = NO_QUOTE;
+      }
+      break;
 
-	case '\\':
-	  bslash = (bslash ? false : true);
-	  continue; /* Oh hohoho! I'm tricky aren't I! */
+    case '\\':
+      bslash = (bslash ? false : true);
+      continue; /* Oh hohoho! I'm tricky aren't I! */
 
-	case '#':
-	  if (quote_stat == NO_QUOTE)
-	    /* The very fact that we reached this point means that
-	     * the statement is incomplete.
-	     */
-	    return 0;
-	  break;
+    case '#':
+      if (quote_stat == NO_QUOTE)
+	/* The very fact that we reached this point means that
+	 * the statement is incomplete.
+	 */
+	return 0;
+      break;
 
-	default:
-	  break;
-	}
-
-      /* This is skipped over when bslash is set to true, thus
-       * it will reset bslash after one iteration.
-       */
-      bslash = false;
+    default:
+      break;
     }
+
+    /* This is skipped over when bslash is set to true, thus
+     * it will reset bslash after one iteration.
+     */
+    bslash = false;
+  }
 
   return 0; /* If we got here, it's an incomplete statement. */
 }

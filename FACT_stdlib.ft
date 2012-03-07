@@ -1,79 +1,104 @@
-scope
-print @ (num str) # Print a string. 
-{
-  for (num i; i < size (str); i += 1)
-    putchar (str[i]);
-}
+scope std = ({
+  scope print @ (num str) # Print a string. 
+  {
+    for (num i; i < size (str); i += 1)
+      putchar (str[i]);
+  }
 
-scope
-cat @ (num op1, num op2) # Concatinate two strings
-{
-  num arr_size;
+  scope cat @ (num op1, num op2) # Concatinate two strings
+  {
+    num arr_size;
 
-  if (size (op1) == 0)
-    arr_size = 1;
-  else
-    arr_size = size (op1);
+    if (size (op1) == 0)
+      arr_size = 1;
+    else
+      arr_size = size (op1);
 
-  if (size (op2) == 0)
-    arr_size += 1;
-  else
-    arr_size += size (op2);
+    if (size (op2) == 0)
+      arr_size += 1;
+    else
+      arr_size += size (op2);
     
-  num [arr_size] res;
-  num i;
+    num [arr_size] res;
+    num i;
   
-  if (size (op1) == 0)
-  {
-    res[i] = op1;
-    i += 1;
-  } 
-  else
-  {
-    for (i = 0; i < size (op1); i += 1)
-      res[i] = op1[i];
-  }
-
-  if (size (op2) == 0)
-    res[i] = op2;
-  else
-  {
-    for (num j = 0; j < size (op2); j += 1)
-      res[i + j] = op2[j];
-  }
-
-  return res;
-}
-
-scope
-linked_list @ (num size)
-{
-  for (scope curr = this:up; size > 0; size -= 1)
-  {
-    (curr: num n) = size;
-    curr: scope get_end @ ()
-    {
-      scope curr = up;
-      while (curr:next?)
-        curr = curr:next;
-      return curr;
+    if (size (op1) == 0) {
+      res[i] = op1;
+      i += 1;
+    } else {
+      for (i = 0; i < size (op1); i += 1)
+        res[i] = op1[i];
     }
-    curr: scope next;
-    curr = curr:next;
+
+    if (size (op2) == 0)
+      res[i] = op2;
+    else {
+      for (num j = 0; j < size (op2); j += 1)
+        res[i + j] = op2[j];
+    }
+
+    return res;
   }
-  return this;
-}
 
-scope
-is_num @ (?n)
-{
-  catch n = 0; handle return 0;
-  return 1;
-}
+  scope linked_list @ (num size)
+  {
+    for (scope curr = this:up; size > 0; size -= 1) {
+      (curr: num n) = size;
+      curr: scope get_end @ ()
+      {
+        scope curr = up;
+        while (curr:next?)
+          curr = curr:next;
+        return curr;
+      }
+      curr: scope next;
+      curr = curr:next;
+    }
+    return this;
+  }
 
-scope
-is_scope @ (?n)
-{
-  catch n = 0; handle return 1;
-  return 0;
-}
+# These two are sort of clever.
+
+  scope is_num @ (?n)
+  {
+    catch n = 0; handle return 0;
+    return 1;
+  }
+
+  scope is_scope @ (?n)
+  {
+    catch n = 0; handle return 1;
+    return 0;
+  }
+
+  scope math = ({
+# Math functions and definitions 
+
+# The value of PI up to the feynman point. 
+    num PI = 3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196442881097566593344612847564823378678316527120190914564856692346034861045432664821339360726024914127372458700660631558817488152092096282925409171536436789259036001133053054882046652138414695194151160943305727036575959195309218611738193261179310511854807446237996274956735188575272489122793818301194912983367336244065664308602139494639522473719070217986094370277053921717629317675238467481846766940513200056812714526356082778577134275778960917363717872146844090122495343014654958537105079227968925892354201995611212902196086403441815981362977477130996051870721134999999;
+
+    scope sin @ (num x) 
+    {
+      # We use recursion because that is great.
+      scope sin_inner @ (num n, num x, num lim) 
+      {
+        if (n >= lim)
+          return 1;
+        return n * (n + 1) - (x * x) + (n * (n + 1) * x * x) / sine_inner (n + 2, x, lim);
+      }
+      return x / (1 + (x * x) / sine_inner (2, x, 50));
+    }
+
+# We define the rest of the trig functions in terms of sine
+
+    scope cos @ (num x)
+    {
+      return sin (PI / 2 - x);
+    }
+
+    scope tan @ (num x)
+    {
+      return sin (x) / cos (x);
+    }
+  });
+});
