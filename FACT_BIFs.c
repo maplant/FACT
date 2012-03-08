@@ -31,6 +31,7 @@ FBIF_DEC (throw);
 FBIF_DEC (send);
 FBIF_DEC (recieve);
 FBIF_DEC (parcels);
+FBIF_DEC (exit);
 
 static const struct {
   char *name;
@@ -44,6 +45,7 @@ static const struct {
   FBIF (throw),
   FBIF (send),
   FBIF (recieve),
+  FBIF (exit),
 };
 
 #define NUM_FBIF ((sizeof BIF_list) / (sizeof BIF_list[0]))
@@ -51,8 +53,7 @@ static const struct {
 #define GET_ARG_NUM() ((FACT_num_t) get_arg (NUM_TYPE))
 #define GET_ARG_SCOPE() ((FACT_scope_t) get_arg (SCOPE_TYPE))
 
-void
-FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
+void FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
 {
   int i;
   FACT_scope_t temp;
@@ -66,15 +67,13 @@ FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
   /* Well that was pretty easy. */
 }
 
-static void
-FBIF_putchar (void)
+static void FBIF_putchar (void)
 {
   putchar (mpc_get_si (GET_ARG_NUM ()->value));
   push_constant_ui (0);
 }
 
-static void
-FBIF_floor (void) /* Round a variable down. */
+static void FBIF_floor (void) /* Round a variable down. */
 {
   FACT_t push_val;
   FACT_num_t res;
@@ -94,15 +93,13 @@ FBIF_floor (void) /* Round a variable down. */
   push_v (push_val);
 }
 
-static void
-FBIF_print_n (void) /* Print a number. */
+static void FBIF_print_n (void) /* Print a number. */
 {
   printf ("%s\n", mpc_get_str (GET_ARG_NUM ()->value));
   push_constant_ui (0);
 }
 
-static void
-FBIF_size (void) /* Return the size of an array. */
+static void FBIF_size (void) /* Return the size of an array. */
 {
   FACT_t push_val;
   FACT_num_t res;
@@ -116,8 +113,7 @@ FBIF_size (void) /* Return the size of an array. */
   push_v (push_val);
 }
 
-static void
-FBIF_error (void) /* Return the current error message. */
+static void FBIF_error (void) /* Return the current error message. */
 {
   FACT_t push_val;
 
@@ -126,8 +122,7 @@ FBIF_error (void) /* Return the current error message. */
   push_v (push_val);
 }
 
-static void
-FBIF_throw (void) /* Throw an error. */
+static void FBIF_throw (void) /* Throw an error. */
 {
   FACT_num_t msg;
 
@@ -135,8 +130,7 @@ FBIF_throw (void) /* Throw an error. */
   FACT_throw_error (CURR_THIS, FACT_natos (msg)); /* Should probably use "caller" instead. */
 }
 
-static void
-FBIF_send (void) /* Send a message to a thread. */
+static void FBIF_send (void) /* Send a message to a thread. */
 {
   FACT_num_t dest, msg;
 
@@ -147,8 +141,7 @@ FBIF_send (void) /* Send a message to a thread. */
   push_constant_ui (0);
 }
 
-static void
-FBIF_recieve (void) /* Pop the current thread's message queue. */
+static void FBIF_recieve (void) /* Pop the current thread's message queue. */
 {
   FACT_t res;
 
@@ -158,8 +151,12 @@ FBIF_recieve (void) /* Pop the current thread's message queue. */
   push_v (res);
 }
 
-static void *
-get_arg (FACT_type type_of_arg) /* Get an argument. */
+static void FBIF_exit (void) /* Exit. */
+{
+  exit (mpc_get_si (GET_ARG_NUM ()->value));
+}
+
+static void *get_arg (FACT_type type_of_arg) /* Get an argument. */
 {
   FACT_t pop_res;
 

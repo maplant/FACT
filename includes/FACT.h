@@ -23,6 +23,7 @@
 #define USE_ATOMIC           /* Improves speed a small amount.   */
 // #define VM_DEBUG             /* Print out extra debug data.      */
 #define FACT_VERSION "0.0.1" /* Furlow VM version number.        */
+#define FACT_STDLIB_PATH "/usr/share/FACT/FACT_stdlib.ft"
 
 #ifdef USE_GC
 # define GC_THREADS

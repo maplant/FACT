@@ -328,6 +328,7 @@ signed long int mpc_get_si (mpc_t rop)
 char *mpc_get_str (mpc_t rop)
 {
   char *res;
+  _Bool sign;
   size_t len;
 
   res = FACT_malloc_atomic (mpz_sizeinbase (rop->value, 10) + 2);
@@ -335,15 +336,21 @@ char *mpc_get_str (mpc_t rop)
 
   if (rop->precision && mpz_cmp_ui (rop->value, 0)) {
     len = strlen (res);
+    if (sign = (*res == '-'))
+      memmove (res, res + 1, len--);
     if (rop->precision >= len) {
       res = FACT_realloc (res, rop->precision + 1);
       memmove (res + rop->precision - len, res, len + 1);
       memset (res, '0', rop->precision - len);
       len = rop->precision;
     }
-    res = FACT_realloc (res, (strlen (res) + 2));
+    res = FACT_realloc (res, (len + (sign ? 3 : 2)));
     memmove (res + len - rop->precision + 1, res + len - rop->precision, rop->precision + 1);
     res[len - rop->precision] = '.';
+    if (sign) {
+      memmove (res + 1, res, strlen (res) + 1);
+      *res = '-';
+    }
   }
   return res;
 }

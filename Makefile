@@ -23,6 +23,9 @@ $(PROG):	$(OBJS)
 install:
 	rm -f $(INSTALL_DIR)/$(PROG)
 	cp $(PROG) $(INSTALL_DIR)
+	rm -rf /usr/share/FACT
+	mkdir /usr/share/FACT
+	cp FACT_stdlib.ft /usr/share/FACT
 
 install-devel:
 	rm -rf /usr/include/FACT
