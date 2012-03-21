@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -122,18 +122,20 @@ FACT_scope_t FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   temp->marked = FACT_malloc_atomic (sizeof (bool));
   temp->array_size = FACT_malloc_atomic (sizeof (size_t));
   temp->code = FACT_malloc_atomic (sizeof (size_t));
-  temp->var_table = FACT_malloc (sizeof (FACT_t *));
-  temp->num_vars = FACT_malloc_atomic (sizeof (size_t));
+  temp->vars = FACT_malloc (sizeof (FACT_table_t *));
+  //  temp->var_table = FACT_malloc (sizeof (FACT_t *));
+  //  temp->num_vars = FACT_malloc_atomic (sizeof (size_t));
   temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
   temp->name = "lambda";
+  *temp->vars = FACT_malloc (sizeof (FACT_table_t));
   
   /* Initialize the memory, if we need to. */
 #ifndef USE_GC
   *temp->array_size = 0;
   *temp->code = 0;
   *temp->marked = false;
-  *temp->num_vars = 0;
-  *temp->var_table = NULL;
+  //  *temp->num_vars = 0;
+  //  *temp->var_table = NULL;
   temp->extrn_func = NULL;
   temp->up = NULL;
   temp->caller = NULL;

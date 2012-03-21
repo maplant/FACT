@@ -14,13 +14,22 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_SCOPE_H_
-#define FACT_SCOPE_H_
+#ifndef FACT_HASH_H_
+#define FACT_HASH_H_
 
-FACT_scope_t FACT_get_local_scope (FACT_scope_t, char *);
-FACT_scope_t FACT_add_scope (FACT_scope_t, char *);
+#define START_NUM_ENTRIES 256
 
-void FACT_def_scope (char *, bool);
-void FACT_append_scope (FACT_scope_t, FACT_scope_t);
+struct _var_table {
+  struct _entry {
+    FACT_t *data;
+    size_t num_vars;
+  } *buckets;
+  size_t num_buckets;
+  size_t total_num_vars;
+};
 
-#endif /* FACT_SCOPE_H_ */
+FACT_t *FACT_find_in_table (FACT_table_t *, char *);
+FACT_t *FACT_add_to_table (FACT_table_t *, FACT_t);
+void FACT_table_digest (FACT_table_t *);
+
+#endif /* FACT_HASH_H_ */

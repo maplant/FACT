@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,7 @@
 static void print_num (FACT_num_t);
 static void print_scope (FACT_scope_t);
 
-static int
-is_blank (const char *str) /* Returns 1 if the rest of a string is junk (comment or whitespace). */ 
+static int is_blank (const char *str) /* Returns 1 if the rest of a string is junk (comment or whitespace). */ 
 {
   for (; *str != '\0' && *str != '#'; str++) {
     if (!isspace (*str))
@@ -29,8 +28,7 @@ is_blank (const char *str) /* Returns 1 if the rest of a string is junk (comment
   return 1;
 }
 
-static int
-is_complete (const char *line) /* Check to see if a line forms a complete statement. */
+static int is_complete (const char *line) /* Check to see if a line forms a complete statement. */
 {
   /* This is not reentrant. */
   static int p_count, b_count, c_count;
@@ -145,63 +143,54 @@ is_complete (const char *line) /* Check to see if a line forms a complete statem
 static bool new_stmt = true;
 static size_t curr_line = 1;
 
-char *
-shell_prompt (EditLine *e) /* Return the shell prompt. */
+char *shell_prompt (EditLine *e) /* Return the shell prompt. */
 {
   static char *prev = NULL;
   static size_t prev_len;
   size_t i, j, k, line;
   
   /* Free the previous prompt or reuse it. */
-  if (prev != NULL)
-    {
-      if (prev[0] == ' ' && !new_stmt)
-	return prev;
-      
-      FACT_free (prev);
-    }
+  if (prev != NULL) {
+    if (prev[0] == ' ' && !new_stmt)
+      return prev;
+    
+    FACT_free (prev);
+  }
 
   /* Reallocate and set the prompt. */
-  if (new_stmt)
-    {
-      i = sizeof (SHELL_START) - 1;
-      prev = FACT_malloc_atomic (i + 1);
-      strcpy (prev, SHELL_START);
+  if (new_stmt) {
+    i = sizeof (SHELL_START) - 1;
+    prev = FACT_malloc_atomic (i + 1);
+    strcpy (prev, SHELL_START);
+    
+    /* Write the line number to the string. */
+    line = curr_line;
+    do {
+      prev[i++] = (line % 10) + '0';
+      /* We aren't trying to be very speedy here. */
+      prev = FACT_realloc (prev, i + sizeof (SHELL_END));
+    } while ((line /= 10) > 0);
+    
+    for (j = i - 1, k = sizeof (SHELL_START) - 1; k < j; j--, k++) {
+      char hold;
+      hold = prev[j];
+      prev[j] = prev[k];
+      prev[k] = hold;
+    } 
 
-      /* Write the line number to the string. */
-      line = curr_line;
-      do
-	{
-	  prev[i++] = (line % 10) + '0';
-	  /* We aren't trying to be very speedy here. */
-	  prev = FACT_realloc (prev, i + sizeof (SHELL_END));
-	}
-      while ((line /= 10) > 0);
-
-      for (j = i - 1, k = sizeof (SHELL_START) - 1; k < j; j--, k++)
-	{
-	  char hold;
-	  hold = prev[j];
-	  prev[j] = prev[k];
-	  prev[k] = hold;
-	} 
-
-      /* Set the end prompt. */
-      strcpy (prev + i, SHELL_END);
-      prev_len = i + sizeof (SHELL_END) - 1;
-    }
-  else
-    {
-      prev = FACT_malloc_atomic (prev_len - 1 + sizeof (SHELL_CONT));
-      memset (prev, ' ', prev_len - 2);
-      strcpy (prev + prev_len - 2, SHELL_CONT);
-    }
+    /* Set the end prompt. */
+    strcpy (prev + i, SHELL_END);
+    prev_len = i + sizeof (SHELL_END) - 1;
+  } else {
+    prev = FACT_malloc_atomic (prev_len - 1 + sizeof (SHELL_CONT));
+    memset (prev, ' ', prev_len - 2);
+    strcpy (prev + prev_len - 2, SHELL_CONT);
+  }
 
   return prev;
 }
       
-void
-FACT_shell (void)
+void FACT_shell (void)
 {
   char *input;
   const char *line;
@@ -227,153 +216,137 @@ FACT_shell (void)
 
   /* Set error recovery. */
  reset_error:
-  if (setjmp (recover))
-    {
-      /* Print out the error and a stack trace. */
-      fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
-      while (curr_thread->cstackp - curr_thread->cstack >= 0)
-	{
-	  frame = pop_c ();
-	  fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
-	}
-
-      /* Push the main scope back on an move the ip two forward. Then, reset the
-       * error jmp_buf and continue.
-       */
-      push_c (last_ip, frame.this);
-      goto reset_error;
+  if (setjmp (recover)) {
+    /* Print out the error and a stack trace. */
+    fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
+    while (curr_thread->cstackp - curr_thread->cstack >= 0) {
+      frame = pop_c ();
+      fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
     }
-
-  for (;;) /* This can be simplified a lot I think. */
-    {
-      new_stmt = true;
-      input = NULL;
-      i = 1;
-
-      do
-	{
-	  line = el_gets (el, &ignore);
-	  new_stmt = false;
-	  if (line != NULL && ignore > 0)
-	    {
-	      i += strlen (line);
-	      if (input == NULL)
-		{
-		  input = FACT_malloc_atomic (i);
-		  strcpy (input, line);
-		}
-	      else
-		{
-		  input = FACT_realloc (input, i);
-		  strcat (input, line);
-		}
-	    }
-	  else
-	    break;
+    
+    /* Push the main scope back on an move the ip two forward. Then, reset the
+     * error jmp_buf and continue.
+     */
+    push_c (last_ip, frame.this);
+    goto reset_error;
+  }
+  
+  for (;;) { /* This can be simplified a lot I think. */
+    new_stmt = true;
+    input = NULL;
+    i = 1;
+    
+    do {
+      line = el_gets (el, &ignore);
+      new_stmt = false;
+      if (line != NULL && ignore > 0) {
+	i += strlen (line);
+	if (input == NULL) {
+	  input = FACT_malloc_atomic (i);
+	  strcpy (input, line);
+	} else {
+	  input = FACT_realloc (input, i);
+	  strcat (input, line);
 	}
-      while (!is_complete (line));
-
-      if (input == NULL)
+      } else
 	break;
-      
-      /* Tokenize and parse the code. */
-      tokenized = FACT_lex_string (input);
-      tokenized.line = curr_line;
-      
-      /* Go through every token and get to the correct line. */
-      for (i = 0; tokenized.tokens[i].id != E_END; i++)
-	curr_line += tokenized.tokens[i].lines;
-      curr_line += tokenized.tokens[i].lines;
-      
-      if (setjmp (tokenized.handle_err))
-	{
-	  /* There was a parsing error, print it and skip. */
-	  printf ("Parsing error (%s:%zu): %s.\n", "<stdin>", tokenized.line, tokenized.err);
-	  continue;
-	}
-	  
-      parsed = FACT_parse (&tokenized);
-      /* There was no error, continue to compilation. */
-      FACT_compile (parsed, "<stdin>", true);
-      last_ip = Furlow_offset ();
-	  
-      /* Run the code. */
-      Furlow_run ();
-
-      /* The X register contains the return value of the last expression. */
-      ret_val = Furlow_register (R_X);
-      if (ret_val->type != UNSET_TYPE)
-	{
-	  printf ("%%");
-	  if (ret_val->type == NUM_TYPE)
-	    print_num ((FACT_num_t) ret_val->ap);
-	  else
-	    print_scope ((FACT_scope_t) ret_val->ap);
-	  printf ("\n");
-	  ret_val->type = UNSET_TYPE;
-	}
     }
+    while (!is_complete (line));
+    
+    if (input == NULL)
+      break;
+      
+    /* Tokenize and parse the code. */
+    tokenized = FACT_lex_string (input);
+    tokenized.line = curr_line;
+    
+    /* Go through every token and get to the correct line. */
+    for (i = 0; tokenized.tokens[i].id != E_END; i++)
+      curr_line += tokenized.tokens[i].lines;
+    curr_line += tokenized.tokens[i].lines;
+      
+    if (setjmp (tokenized.handle_err)) {
+      /* There was a parsing error, print it and skip. */
+      printf ("Parsing error (%s:%zu): %s.\n", "<stdin>", tokenized.line, tokenized.err);
+      continue;
+    }
+	  
+    parsed = FACT_parse (&tokenized);
+    /* There was no error, continue to compilation. */
+    FACT_compile (parsed, "<stdin>", true);
+    last_ip = Furlow_offset ();
+    
+    /* Run the code. */
+    Furlow_run ();
+    
+    /* The X register contains the return value of the last expression. */
+    ret_val = Furlow_register (R_X);
+    if (ret_val->type != UNSET_TYPE) {
+      printf ("%%");
+      if (ret_val->type == NUM_TYPE)
+	print_num ((FACT_num_t) ret_val->ap);
+      else
+	print_scope ((FACT_scope_t) ret_val->ap);
+      printf ("\n");
+      ret_val->type = UNSET_TYPE;
+    }
+  }
 
   el_end (el);
 }
 
-static void
-print_num (FACT_num_t val)
+static void print_num (FACT_num_t val)
 {
   size_t i;
   
-  if (val->array_up != NULL)
-    {
-      printf (" [");
-      for (i = 0; i < val->array_size; i++)
-	{
-	  if (i)
-	    printf (", ");
-	  print_num (val->array_up[i]);
-	}
-      printf (" ]");
+  if (val->array_up != NULL) {
+    printf (" [");
+    for (i = 0; i < val->array_size; i++) {
+      if (i)
+	printf (", ");
+      print_num (val->array_up[i]);
     }
-  else
+    printf (" ]");
+  } else
     printf (" %s", mpc_get_str (val->value));
 }
 
-static void
-print_scope (FACT_scope_t val)
+static void print_scope (FACT_scope_t val)
 {
   size_t i;
 
   if (*val->marked) 
     return;
   
-  if (*val->array_up != NULL)
-    {
-      printf (" [");
-      for (i = 0; i < *val->array_size; i++)
-	{
-	  if (i)
-	    printf (", ");
-	  print_scope ((*val->array_up)[i]);
-	}
-      printf (" ]");
-    }
-  else
-    {
-      printf (" { %s%s", val->name, *val->num_vars > 0 ? ":" : "");
-      *val->marked = true;
-      for (i = 0; i < *val->num_vars; i++)
-	{
-	  if ((*val->var_table)[i].type == NUM_TYPE)
-	    {
-	      printf (" ( %s: ", ((FACT_num_t) (*val->var_table)[i].ap)->name); 
-	      print_num ((*val->var_table)[i].ap);
-	      printf (" )");
-	    }
-	  else if ((*val->var_table)[i].type == SCOPE_TYPE)
-	    print_scope ((*val->var_table)[i].ap);
-	  else
-	    printf (" <UNSET>");
-	}
-      *val->marked = false;
-      printf (" }");
-    }
+  if (*val->array_up != NULL) {
+    printf (" [");
+    for (i = 0; i < *val->array_size; i++)
+      {
+	if (i)
+	  printf (", ");
+	print_scope ((*val->array_up)[i]);
+      }
+    printf (" ]");
+  } else {
+    printf ("{ %s:", val->name);
+    FACT_table_digest (*val->vars);
+    printf ("}");
+    /*
+    printf (" { %s%s", val->name, *val->num_vars > 0 ? ":" : "");
+    *val->marked = true;
+    for (i = 0; i < *val->num_vars; i++)
+      {
+	if ((*val->var_table)[i].type == NUM_TYPE) {
+	  printf (" ( %s: ", ((FACT_num_t) (*val->var_table)[i].ap)->name); 
+	  print_num ((*val->var_table)[i].ap);
+	  printf (" )");
+	} else if ((*val->var_table)[i].type == SCOPE_TYPE)
+	  print_scope ((*val->var_table)[i].ap);
+	else
+	  printf (" <UNSET>");
+      }
+    *val->marked = false;
+    printf (" }");
+    */
+  }
 }

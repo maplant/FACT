@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,6 +43,8 @@ typedef struct FACT_num {
   struct FACT_num **array_up; /* Points to the next dimension.        */
 } *FACT_num_t;
 
+typedef struct _var_table FACT_table_t;
+
 /* The FACT_scope structure expresses scopes and functions. */ 
 typedef struct FACT_scope {
   _Bool *marked;      /* Prevents loops in variable searches. */
@@ -51,8 +53,9 @@ typedef struct FACT_scope {
 
   char *name; /* Declared name of the scope. */
 
-  FACT_t **var_table; /* Variables declared in the scope. */
-  size_t *num_vars;   /* Number of variables.             */
+  FACT_table_t **vars;
+  //  FACT_t **var_table; /* Variables declared in the scope. */
+  // size_t *num_vars;   /* Number of variables.             */
 
   void (*extrn_func)(void); /* Used with external libraries. */
 

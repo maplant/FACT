@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,49 +20,55 @@ static FACT_num_t *make_num_array (char *, size_t, size_t *, size_t);
 static FACT_num_t copy_num (FACT_num_t);
 static void free_num (FACT_num_t);
 
-FACT_num_t
-FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable to a scope. */
+FACT_num_t FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable to a scope. */
 {
   size_t i;
+  FACT_t new;
   FACT_t *check;
   
   /* Check if the variable already exists. */
-  check = FACT_get_local (curr, name);
+  check = FACT_find_in_table (*curr->vars, name);
   
-  if (check != NULL) /* The variable already exists. */
-    {
-      if (check->type == NUM_TYPE)
-	{
-	  /* It already exists as a number, clear and return it. */
-	  FACT_num_t temp;
+  if (check != NULL) { /* The variable already exists. */
+    if (check->type == NUM_TYPE) {
+      /* It already exists as a number, clear and return it. */
+      FACT_num_t temp;
+      
+      temp = check->ap;
+      mpc_set_ui (temp->value, 0);
 
-	  temp = check->ap;
-	  mpc_set_ui (temp->value, 0);
+      for (i = 0; i < temp->array_size; i++)
+	free_num (temp->array_up[i]);
+      
+      FACT_free (temp->array_up);
+      temp->array_up = NULL;
+      temp->array_size = 0;
+      return temp;
+    } else /* If it's already a scope, however, just throw an error. */
+      FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
+  }
 
-	  for (i = 0; i < temp->array_size; i++)
-	    free_num (temp->array_up[i]);
-
-	  FACT_free (temp->array_up);
-	  temp->array_up = NULL;
-	  temp->array_size = 0;
-	  return temp;
-	}
-      else /* If it's already a scope, however, just throw an error. */
-	FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
-    }
-
+  new.ap = FACT_alloc_num ();
+  new.type = NUM_TYPE;
+  ((FACT_num_t) new.ap)->name = name;
+  FACT_add_to_table (*curr->vars, new);
+  return new.ap;
+  
   /* Reallocate the var table and add the variable. */
+  /*
   *curr->var_table = FACT_realloc (*curr->var_table, sizeof (FACT_t) * (*curr->num_vars + 1));
   (*curr->var_table)[*curr->num_vars].ap = FACT_alloc_num ();
   (*curr->var_table)[*curr->num_vars].type = NUM_TYPE;
   ((FACT_num_t) (*curr->var_table)[*curr->num_vars].ap)->name = name;
+  */
+
 
   /* Move the var its correct alphanumerical position. */
+		       /*
   for (i = (*curr->num_vars)++; i > 0; i--)
     {
       if (strcmp (FACT_var_name ((*curr->var_table)[i - 1]), name) > 0)
 	{
-	  /* Swap the elements. */
 	  FACT_t hold;
 	  
 	  hold = (*curr->var_table)[i - 1];
@@ -74,10 +80,10 @@ FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable to a scope
     }
 
   return (*curr->var_table)[i].ap;
+		       */
 }
 
-void
-FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous number variable. */
+void FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous number variable. */
 {
   mpc_t elem_value;
   FACT_t push_val;
@@ -102,23 +108,21 @@ FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous number 
   dim_sizes = NULL;
   
   /* Keep popping the stack until we have all the dimension sizes. */ 
-  for (i = 0; i < dimensions; i++)
-    {
-      dim_sizes = FACT_realloc (dim_sizes, sizeof (size_t *) * (i + 1));
-      /* Pop the stack and get the value. */
-      elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
-      /* Check to make sure we aren't grossly out of range. */
-      if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
-	  || mpz_sgn (elem_value->value) < 0)
-	FACT_throw_error (CURR_THIS, "out of bounds error"); 
-      dim_sizes[i] = mpc_get_ui (elem_value);
-      if (dim_sizes[i] == 0)
-	{
-	  FACT_free (dim_sizes);
-	  FACT_throw_error (CURR_THIS, "dimension size must be larger than 0");
-	}
+  for (i = 0; i < dimensions; i++) {
+    dim_sizes = FACT_realloc (dim_sizes, sizeof (size_t *) * (i + 1));
+    /* Pop the stack and get the value. */
+    elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
+    /* Check to make sure we aren't grossly out of range. */
+    if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
+	|| mpz_sgn (elem_value->value) < 0)
+      FACT_throw_error (CURR_THIS, "out of bounds error"); 
+    dim_sizes[i] = mpc_get_ui (elem_value);
+    if (dim_sizes[i] == 0) {
+      FACT_free (dim_sizes);
+      FACT_throw_error (CURR_THIS, "dimension size must be larger than 0");
     }
-
+  }
+  
   /* Make the variable an array. */
   ((FACT_num_t) push_val.ap)->array_up = make_num_array (((FACT_num_t) push_val.ap)->name, dimensions, dim_sizes, 0);
   ((FACT_num_t) push_val.ap)->array_size = dim_sizes[0];
@@ -129,8 +133,7 @@ FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous number 
   push_v (push_val);
 }
 
-void
-FACT_get_num_elem (FACT_num_t base, char *args)
+void FACT_get_num_elem (FACT_num_t base, char *args)
 {
   mpc_t elem_value;
   FACT_t push_val;
@@ -151,8 +154,7 @@ FACT_get_num_elem (FACT_num_t base, char *args)
   push_v (push_val);
 }
 
-void
-FACT_set_num (FACT_num_t rop, FACT_num_t op)
+void FACT_set_num (FACT_num_t rop, FACT_num_t op)
 {
   size_t i;
 
@@ -165,68 +167,60 @@ FACT_set_num (FACT_num_t rop, FACT_num_t op)
 
   if (rop->array_size)
     rop->array_up = FACT_realloc (rop->array_up, sizeof (FACT_num_t) * op->array_size);
-  else
-    {
-      FACT_free (rop->array_up);
-      rop->array_up = NULL;
-      return; /* Nothing left to do here. */
-    }
-
+  else {
+    FACT_free (rop->array_up);
+    rop->array_up = NULL;
+    return; /* Nothing left to do here. */
+  }
+  
   for (i = 0; i < rop->array_size; i++)
     rop->array_up[i] = copy_num (op->array_up[i]);
 }
 
-int
-FACT_compare_num (FACT_num_t op1, FACT_num_t op2) /* Return -1 if op1 is < op2, 0 if they are equal, and 1 if op1 is greater. */
+int FACT_compare_num (FACT_num_t op1, FACT_num_t op2) /* Return -1 if op1 is < op2, 0 if they are equal, and 1 if op1 is greater. */
 {
   size_t i, min_size;
   int res;
   
-  if (op1->array_size == 0)
-    {
-      if (op2->array_size != 0)
-	return -1;
-
-      res = mpc_cmp (op1->value, op2->value);
-      return res;
+  if (op1->array_size == 0) {
+    if (op2->array_size != 0)
+      return -1;
+    
+    res = mpc_cmp (op1->value, op2->value);
+    return res;
+  } else {
+    if (op2->array_size == 0)
+      return 1;
+    
+    min_size = (op1->array_size > op2->array_size ? op2->array_size : op1->array_size);
+    for (i = 0; i < min_size; i++) {
+      res = FACT_compare_num (op1->array_up[i], op2->array_up[i]);
+      if (res != 0)
+	return res;
     }
-  else
-    {
-      if (op2->array_size == 0)
-	return 1;
-
-      min_size = (op1->array_size > op2->array_size ? op2->array_size : op1->array_size);
-      for (i = 0; i < min_size; i++)
-	{
-	  res = FACT_compare_num (op1->array_up[i], op2->array_up[i]);
-	  if (res != 0)
-	    return res;
-	}
-
+    
       /* Now just go by whichever is the bigger array, or return 0. */
-      if (op1->array_size > op2->array_size)
-	return 1;
-      else if (op1->array_size < op2->array_size)
-	return -1;
-      else
-	return 0;
-    }
+    if (op1->array_size > op2->array_size)
+      return 1;
+    else if (op1->array_size < op2->array_size)
+      return -1;
+    else
+      return 0;
+  }
 }     
 
-void
-FACT_append_num (FACT_num_t op1, FACT_num_t op2)
+void FACT_append_num (FACT_num_t op1, FACT_num_t op2)
 {
   size_t offset;
   
   /* Move the op1 to an array if it isn't one already. */
-  if (op1->array_size == 0)
-    {
-      op1->array_size = 1;
-      op1->array_up = FACT_alloc_num_array (1);
-      mpc_set (op1->array_up[0]->value, op1->value);
-      mpc_set_ui (op1->value, 0);
-    }
-
+  if (op1->array_size == 0) {
+    op1->array_size = 1;
+    op1->array_up = FACT_alloc_num_array (1);
+    mpc_set (op1->array_up[0]->value, op1->value);
+    mpc_set_ui (op1->value, 0);
+  }
+  
   offset = op1->array_size;
   op1->array_size++;
   op1->array_up = FACT_realloc (op1->array_up, sizeof (FACT_num_t) * op1->array_size);
@@ -253,8 +247,7 @@ FACT_append_num (FACT_num_t op1, FACT_num_t op2)
   */
 }
   
-static FACT_num_t *
-make_num_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)
+static FACT_num_t *make_num_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)
 {
   size_t i;
   FACT_num_t *root;
@@ -264,20 +257,18 @@ make_num_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)
 
   root = FACT_alloc_num_array (dim_sizes[curr_dim]);
 
-  for (i = 0; i < dim_sizes[curr_dim]; i++)
-    {
-      root[i]->name = name;
-      root[i]->array_up = make_num_array (name, dims, dim_sizes, curr_dim + 1);
-      /* Could be optimized not to check every single time. */
-      if (root[i]->array_up != NULL)
-	root[i]->array_size = dim_sizes[curr_dim + 1];
-    }
-
+  for (i = 0; i < dim_sizes[curr_dim]; i++) {
+    root[i]->name = name;
+    root[i]->array_up = make_num_array (name, dims, dim_sizes, curr_dim + 1);
+    /* Could be optimized not to check every single time. */
+    if (root[i]->array_up != NULL)
+      root[i]->array_size = dim_sizes[curr_dim + 1];
+  }
+  
   return root;
 }
       
-static FACT_num_t
-copy_num (FACT_num_t root) /* Copy a number array recursively. */
+static FACT_num_t copy_num (FACT_num_t root) /* Copy a number array recursively. */
 {
   size_t i;
   FACT_num_t res;
@@ -298,8 +289,7 @@ copy_num (FACT_num_t root) /* Copy a number array recursively. */
   return res;
 }
 
-static void
-free_num (FACT_num_t root) /* Free a number array recursively. */
+static void free_num (FACT_num_t root) /* Free a number array recursively. */
 {
   size_t i;
 

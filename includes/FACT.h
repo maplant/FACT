@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,6 +52,7 @@
 /* Source header files. */
 #include <FACT_mpc.h>
 #include <FACT_types.h>
+#include <FACT_hash.h>
 #include <FACT_error.h>   /* Error handling.                 */
 #include <FACT_lexer.h>   /* Lexer functions.                */
 #include <FACT_parser.h>  /* Parser of the FACT grammar.     */

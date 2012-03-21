@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,54 +36,45 @@ __thread jmp_buf recover;    /* When there are no other options. */
 static char **progm;     /* Program being run.          */
 static char **next_inst; /* Next available instruction. */
 
-void
-Furlow_add_instruction (char *new) /* Add an instruction to the progm. */
+void Furlow_add_instruction (char *new) /* Add an instruction to the progm. */
 {
   size_t nsize;
   static char halt_nowrite[1] = { HALT }; 
 
-  if (progm == NULL) /* No program yet. */
-    {
-      next_inst = progm = FACT_malloc (sizeof (char *) * 2);
-      *progm = new;
-      *++next_inst = halt_nowrite; 
-    }
-  else
-    {
-      *next_inst = new;
-      nsize = next_inst - progm + 1; 
-      progm = FACT_realloc (progm, sizeof (char *) * (nsize + 1)); 
-      next_inst = progm + nsize;
-      *next_inst = halt_nowrite;
-    }
+  if (progm == NULL) { /* No program yet. */
+    next_inst = progm = FACT_malloc (sizeof (char *) * 2);
+    *progm = new;
+    *++next_inst = halt_nowrite; 
+  } else {
+    *next_inst = new;
+    nsize = next_inst - progm + 1; 
+    progm = FACT_realloc (progm, sizeof (char *) * (nsize + 1)); 
+    next_inst = progm + nsize;
+    *next_inst = halt_nowrite;
+  }
 }
 
-inline void
-Furlow_lock_program (void) /* Lock progm. */
+inline void Furlow_lock_program (void) /* Lock progm. */
 {
   pthread_mutex_lock (&progm_lock);
 }
 
-inline void
-Furlow_lock_threads (void) /* Lock threads, not the individual threads. */
+inline void Furlow_lock_threads (void) /* Lock threads, not the individual threads. */
 {
   pthread_mutex_lock (&threads_lock);
 }
 
-inline void
-Furlow_unlock_program (void) /* Unlock progm. */
+inline void Furlow_unlock_program (void) /* Unlock progm. */
 {
   pthread_mutex_unlock (&progm_lock);
 }
 
-inline void
-Furlow_unlock_threads (void) /* Unlock threads. */
+inline void Furlow_unlock_threads (void) /* Unlock threads. */
 {
   pthread_mutex_unlock (&threads_lock);
 }
 
-inline size_t
-Furlow_offset (void) /* Get the instruction offset. */
+inline size_t Furlow_offset (void) /* Get the instruction offset. */
 {
   /* Return the number of instructions there are, minus the terminating HALT. */
   return (((next_inst - progm) == 0)
@@ -91,8 +82,7 @@ Furlow_offset (void) /* Get the instruction offset. */
 	  : (next_inst - progm));
 }
   
-FACT_t
-pop_v () /* Pop the variable stack. */
+FACT_t pop_v () /* Pop the variable stack. */
 {
   FACT_t res;
 
@@ -112,8 +102,7 @@ pop_v () /* Pop the variable stack. */
   return res;
 }
 
-struct cstack_t
-pop_c () /* Pop the current call stack. */
+struct cstack_t pop_c () /* Pop the current call stack. */
 {
   struct cstack_t res;
 
@@ -129,8 +118,7 @@ pop_c () /* Pop the current call stack. */
   return res;
 }
 
-size_t *
-pop_t () /* Pop the trap stack. */
+size_t *pop_t () /* Pop the trap stack. */
 {
   size_t *res;
   
@@ -145,60 +133,52 @@ pop_t () /* Pop the trap stack. */
   
   if (curr_thread->num_traps)
     curr_thread->traps = FACT_realloc (curr_thread->traps, sizeof (size_t [2]) * curr_thread->num_traps);
-  else
-    {
-      FACT_free (curr_thread->traps);
-      curr_thread->traps = NULL;
-    }
+  else {
+    FACT_free (curr_thread->traps);
+    curr_thread->traps = NULL;
+  }
 
   return res;
 }
 
-void
-push_v (FACT_t n) /* Push to the variable stack. */
+void push_v (FACT_t n) /* Push to the variable stack. */
 {
   size_t diff;
 
   curr_thread->vstackp++;  
   diff = curr_thread->vstackp - curr_thread->vstack;
-  if (diff >= curr_thread->vstack_size)
-    {
-      if (curr_thread->vstack_size == 0)
-	{
-	  curr_thread->vstack_size = 1;
-	  diff--;
-	}
-      else
-	curr_thread->vstack_size <<= 1; /* Square the size of the var stack. */
-      curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_size));
-      curr_thread->vstackp = curr_thread->vstack + diff;
-    }
+  if (diff >= curr_thread->vstack_size) {
+    if (curr_thread->vstack_size == 0) {
+      curr_thread->vstack_size = 1;
+      diff--;
+    } else
+      curr_thread->vstack_size <<= 1; /* Square the size of the var stack. */
+    curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_size));
+    curr_thread->vstackp = curr_thread->vstack + diff;
+  }
   
   *curr_thread->vstackp = n;
 }
 
-void
-push_c (size_t nip, FACT_scope_t nthis) /* Push to the call stack. */
+void push_c (size_t nip, FACT_scope_t nthis) /* Push to the call stack. */
 {
   size_t diff;
   
   curr_thread->cstackp++;
   diff = curr_thread->cstackp - curr_thread->cstack;
-  if (diff >= curr_thread->cstack_size)
-    {
-      /* Square the size of the call stack. The call stack should never be NULL. */
-      //      printf ("ALLOCATION: %zu >= %zu\n", diff, curr_thread->cstack_size);
-      curr_thread->cstack_size <<= 1;
-      curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * (curr_thread->cstack_size));
-      curr_thread->cstackp = curr_thread->cstack + diff;
-    }
-
+  if (diff >= curr_thread->cstack_size) {
+    /* Square the size of the call stack. The call stack should never be NULL. */
+    //      printf ("ALLOCATION: %zu >= %zu\n", diff, curr_thread->cstack_size);
+    curr_thread->cstack_size <<= 1;
+    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * (curr_thread->cstack_size));
+    curr_thread->cstackp = curr_thread->cstack + diff;
+  }
+  
   curr_thread->cstackp->ip = nip;
   curr_thread->cstackp->this = nthis;
 }
 
-void
-push_t (size_t n1, size_t n2) /* Push to the trap stack. */
+void push_t (size_t n1, size_t n2) /* Push to the trap stack. */
 {
   curr_thread->num_traps++;
   curr_thread->traps = FACT_realloc (curr_thread->traps, sizeof (size_t [2]) * (curr_thread->num_traps));
@@ -206,38 +186,34 @@ push_t (size_t n1, size_t n2) /* Push to the trap stack. */
   curr_thread->traps[curr_thread->num_traps - 1][1] = n2;
 }
 
-FACT_t *
-Furlow_register (int reg_number) /* Access a Furlow machine register. */
+FACT_t *Furlow_register (int reg_number) /* Access a Furlow machine register. */
 {
   /* Check for special registers. */
-  if (reg_number < S_REGISTERS)
-    {
-      switch (reg_number)
-	{
-	case R_POP:
-	  /* Store the result in the registers array. */
-	  curr_thread->registers[R_POP] = pop_v ();
-	  break;
-
-	case R_TOP:
-	  if (curr_thread->vstackp < curr_thread->vstack)
-	    FACT_throw_error (CURR_THIS, "illegal TOP on empty stack");
-	  return curr_thread->vstackp;
-
-	case R_TID:
-	  if (curr_thread->registers[R_TID].type != NUM_TYPE)
-	    {
-	      curr_thread->registers[R_TID].type = NUM_TYPE;
-	      curr_thread->registers[R_TID].ap = FACT_alloc_num ();
-	    }
-	  mpc_set_ui (((FACT_num_t) curr_thread->registers[R_TID].ap)->value,
-		      curr_thread - threads);
-	  break;
-
-	default: /* NOTREACHED */
-	  abort ();
-	}
+  if (reg_number < S_REGISTERS) {
+    switch (reg_number) {
+    case R_POP:
+      /* Store the result in the registers array. */
+      curr_thread->registers[R_POP] = pop_v ();
+      break;
+      
+    case R_TOP:
+      if (curr_thread->vstackp < curr_thread->vstack)
+	FACT_throw_error (CURR_THIS, "illegal TOP on empty stack");
+      return curr_thread->vstackp;
+      
+    case R_TID:
+      if (curr_thread->registers[R_TID].type != NUM_TYPE) {
+	curr_thread->registers[R_TID].type = NUM_TYPE;
+	curr_thread->registers[R_TID].ap = FACT_alloc_num ();
+      }
+      mpc_set_ui (((FACT_num_t) curr_thread->registers[R_TID].ap)->value,
+		  curr_thread - threads);
+      break;
+      
+    default: /* NOTREACHED */
+      abort ();
     }
+  }
 
   /* Probably best to add some extra checks here. */
   return &curr_thread->registers[reg_number];
@@ -275,717 +251,705 @@ Furlow_run () /* Run the program until a HALT is reached. */
   FACT_t *reg_args[4]; /* For register operations.                               */
   FACT_thread_t next;
   struct cstack_t cs_arg;
-  static const void *inst_jump_table[] = /* Jump table to each instruction. */
-    {
+  static const void *inst_jump_table[] = { /* Jump table to each instruction. */    
 #define ENTRY(n) [n] = &&INST_##n  
-      ENTRY (ADD),
-      ENTRY (AND),
-      ENTRY (APPEND),
-      ENTRY (CALL),
-      ENTRY (CEQ),
-      ENTRY (CLE),
-      ENTRY (CLT),
-      ENTRY (CME),
-      ENTRY (CMT),
-      ENTRY (CNE),
-      ENTRY (CONST),
-      ENTRY (DEC),
-      ENTRY (DEF_N),
-      ENTRY (DEF_S),
-      ENTRY (DIV),
-      ENTRY (DROP),
-      ENTRY (DUP),
-      ENTRY (ELEM),
-      ENTRY (EXIT),
-      ENTRY (GOTO),
-      /* ENTRY (GROUP), */
-      ENTRY (HALT),
-      ENTRY (INC),
-      ENTRY (IOR),
-      ENTRY (IS_AUTO),
-      ENTRY (IS_DEF),
-      ENTRY (JMP),
-      ENTRY (JMP_PNT),
-      ENTRY (JIF),
-      ENTRY (JIN),
-      ENTRY (JIS),
-      ENTRY (JIT),
-      ENTRY (LAMBDA),
-      ENTRY (MOD),
-      ENTRY (MUL),
-      ENTRY (NEG),
-      ENTRY (NEW_N),
-      ENTRY (NEW_S),
-      ENTRY (NOP),
-      ENTRY (PURGE),
-      ENTRY (REF),
-      ENTRY (RET),
-      ENTRY (SET_C),
-      ENTRY (SET_F),
-      ENTRY (SET_N),
-      ENTRY (SPRT),
-      ENTRY (STO),
-      ENTRY (SUB),
-      ENTRY (SWAP),
-      ENTRY (THIS),
-      ENTRY (TRAP_B),
-      ENTRY (TRAP_E),
-      ENTRY (USE),
-      ENTRY (VAR),
-      ENTRY (XOR)
-    };
+    ENTRY (ADD),
+    ENTRY (AND),
+    ENTRY (APPEND),
+    ENTRY (CALL),
+    ENTRY (CEQ),
+    ENTRY (CLE),
+    ENTRY (CLT),
+    ENTRY (CME),
+    ENTRY (CMT),
+    ENTRY (CNE),
+    ENTRY (CONST),
+    ENTRY (DEC),
+    ENTRY (DEF_N),
+    ENTRY (DEF_S),
+    ENTRY (DIV),
+    ENTRY (DROP),
+    ENTRY (DUP),
+    ENTRY (ELEM),
+    ENTRY (EXIT),
+    ENTRY (GOTO),
+    /* ENTRY (GROUP), */
+    ENTRY (HALT),
+    ENTRY (INC),
+    ENTRY (IOR),
+    ENTRY (IS_AUTO),
+    ENTRY (IS_DEF),
+    ENTRY (JMP),
+    ENTRY (JMP_PNT),
+    ENTRY (JIF),
+    ENTRY (JIN),
+    ENTRY (JIS),
+    ENTRY (JIT),
+    ENTRY (LAMBDA),
+    ENTRY (MOD),
+    ENTRY (MUL),
+    ENTRY (NEG),
+    ENTRY (NEW_N),
+    ENTRY (NEW_S),
+    ENTRY (NOP),
+    ENTRY (PURGE),
+    ENTRY (REF),
+    ENTRY (RET),
+    ENTRY (SET_C),
+    ENTRY (SET_F),
+    ENTRY (SET_N),
+    ENTRY (SPRT),
+    ENTRY (STO),
+    ENTRY (SUB),
+    ENTRY (SWAP),
+    ENTRY (THIS),
+    ENTRY (TRAP_B),
+    ENTRY (TRAP_E),
+    ENTRY (USE),
+    ENTRY (VAR),
+    ENTRY (XOR)
+  };
   
   curr_thread->run_flag = T_LIVE; /* The thread is now live. */
   
  eval:
   /* Set the error handler. */
-  if (setjmp (handle_err))
-    {
-      /* An error has been caught. If there are no available traps, jump to
-       * recover. Otherwise, set the ip to the current trap handler.
-       */
-      if (curr_thread->num_traps == 0)
-	longjmp (recover, 1);
+  if (setjmp (handle_err)) {
+    /* An error has been caught. If there are no available traps, jump to
+     * recover. Otherwise, set the ip to the current trap handler.
+     */
+    if (curr_thread->num_traps == 0)
+      longjmp (recover, 1);
+    
+    /* Destroy the unecessary stacks and set the ip. */
+    while ((curr_thread->cstackp - curr_thread->cstack + 1)
+	   > curr_thread->traps[curr_thread->num_traps - 1][1])
+      pop_c ();
+    
+    CURR_IP = curr_thread->traps[curr_thread->num_traps - 1][0];
+    curr_thread->run_flag = T_LIVE;
+    goto eval; /* Go back to eval to reset the error handler. */
+  }
 
-      /* Destroy the unecessary stacks and set the ip. */
-      while ((curr_thread->cstackp - curr_thread->cstack + 1)
-	     > curr_thread->traps[curr_thread->num_traps - 1][1])
-	pop_c ();
-      
-      CURR_IP = curr_thread->traps[curr_thread->num_traps - 1][0];
-      curr_thread->run_flag = T_LIVE;
-      goto eval; /* Go back to eval to reset the error handler. */
-    }
-
-  for (cycles = 0;; CURR_IP++, cycles++)
-    {
-      /* Run the garbage collector. */
-      if (cycles == CYCLES_ON_COLLECT)
-	{
+  for (cycles = 0;; CURR_IP++, cycles++) {
+    /* Run the garbage collector. */
+    if (cycles == CYCLES_ON_COLLECT) {
 #ifdef USE_GC
-	  FACT_GC ();
+      FACT_GC ();
 #endif /* USE_GC */
-	  cycles = 0;
-	}
-      
-      /* Jump to the instruction. */
-      goto *inst_jump_table [progm[CURR_IP][0]];
-      
-      /* Instructions are divided into "segments." Each segment contains the
-       * code executed by one instruction. The macro SEG (n) creates a goto
-       * label for the instruction n, and the macro END_SEG jumps to the
-       * next instruction. Slightly confusing, but decently fast.
-       */
-      SEG (ADD);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_add (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
-
-      SEG (AND);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	if (((FACT_num_t) args[0].ap)->value->precision
-	    || ((FACT_num_t) args[1].ap)->value->precision)
-	  FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
-	mpc_and (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
-
-      SEG (APPEND);
-      {
-	args[0] = *Furlow_register (progm[CURR_IP][1]);
-	args[1] = *Furlow_register (progm[CURR_IP][2]);
-	if (args[1].type == NUM_TYPE)
-	  {
-	    if (args[0].type == SCOPE_TYPE)
-	      FACT_throw_error (CURR_THIS, "cannot append a scope to a number");
-	    FACT_append_num (args[1].ap, args[0].ap);
-	  }
-	else
-	  {
-	    if (args[0].type == NUM_TYPE)
-	      FACT_throw_error (CURR_THIS, "cannot append a number to a scope");
-	    FACT_append_scope (args[1].ap, args[0].ap);
-	  }
-      }
-      END_SEG ();
-
-      SEG (CALL);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-	push_c (*(FACT_cast_to_scope (args[0])->code) - 1, args[0].ap);
-	
-	/* Check if extrn_func is set, and if so call it. */
-	if (FACT_cast_to_scope (args[0])->extrn_func == NULL)
-	  continue;
-	FACT_cast_to_scope (args[0])->extrn_func ();
-	
-	/* Close any open trap regions. */
-	while (curr_thread->num_traps != 0
-	       && curr_thread->traps[curr_thread->num_traps][1] == curr_thread->cstack_size)
-	  pop_t ();
-	
-	/* Pop the call stack. */
-	pop_c ();
-      }
-      END_SEG ();
-	
-      SEG (CEQ);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		    (FACT_compare_num (args[1].ap, args[0].ap) == 0
-		     ? 1
-		     : 0));
-      }
-      END_SEG ();
-
-      SEG (CLE);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		    (FACT_compare_num (args[1].ap, args[0].ap) <= 0
-		     ? 1
-		     : 0));
-      }
-      END_SEG ();
-
-      SEG (CLT);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		    (FACT_compare_num (args[1].ap, args[0].ap) < 0
-		     ? 1
-		     : 0));
-      }
-      END_SEG ();
-
-      SEG (CME);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		    (FACT_compare_num (args[1].ap, args[0].ap) >= 0
-		     ? 1
-		     : 0));
-      }
-      END_SEG ();
-
-      SEG (CMT);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		    (FACT_compare_num (args[1].ap, args[0].ap) > 0
-		     ? 1
-		     : 0));
-      }
-      END_SEG ();
-	  
-      SEG (CNE);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		    (FACT_compare_num (args[1].ap, args[0].ap) != 0
-		     ? 1
-		     : 0));
-      }
-      END_SEG ();
-
-      SEG (CONST);
-      {
-	/* Push a constant value to the stack. */
-	push_constant_str (progm[CURR_IP] + 1);
-      }
-      END_SEG ();
-
-      SEG (DEC);
-      {
-	/* Decrement a register. */
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	mpc_sub_ui (FACT_cast_to_num (args[0])->value,
-		    FACT_cast_to_num (args[0])->value, 1);
-      }
-      END_SEG ();
-
-      SEG (DEF_N);
-      {
-	/* Declare a number variable. */
-	FACT_def_num (progm[CURR_IP] + 1, false);
-      }
-      END_SEG ();
-
-      SEG (DEF_S);
-      {
-	/* Declare a scope variable. */
-	FACT_def_scope (progm[CURR_IP] + 1, false);
-      }
-      END_SEG ();
-
-      SEG (DIV);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	  FACT_throw_error (CURR_THIS, "division by zero error");
-	mpc_div (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
-
-      SEG (DROP);
-      {
-	/* Remove the first item on the variable stack. */
-	if (curr_thread->vstackp >= curr_thread->vstack)
-	  pop_v (); /* Just pop and ignore. */
-      }
-      END_SEG ();
-
-      SEG (DUP);
-      {
-	/* Duplicate the first item on the stack. */
-	args[0] = *Furlow_register (R_TOP);
-	if (args[0].type == SCOPE_TYPE)
-	  /* To duplicate a scope we simply push it back onto the stack. */
-	  push_v (args[0]);
-	else
-	  {
-	    /* Copy the number and push it on to the stack. */
-	    args[1].ap = FACT_alloc_num ();
-	    FACT_set_num (args[1].ap, args[0].ap);
-	    args[1].type = NUM_TYPE;
-	    push_v (args[1]);
-	  }
-      }
-      END_SEG ();
-
-      SEG (ELEM);
-      {
-	/* Get an element of an array. */
-	args[0] = *Furlow_register (progm[CURR_IP][1]);
-	if (args[0].type == NUM_TYPE)
-	  FACT_get_num_elem (args[0].ap, progm[CURR_IP] + 2);
-	else
-	  FACT_get_scope_elem (args[0].ap, progm[CURR_IP] + 2);
-      }
-      END_SEG ();
-
-      SEG (EXIT);
-      {
-	/* Close any open trap regions. */
-	while (curr_thread->num_traps != 0
-	       && (curr_thread->traps[curr_thread->num_traps][1]
-		   == (curr_thread->cstackp - curr_thread->cstack + 1)))
-	  pop_t ();
-	
-	/* Exit the current scope. */
-	cs_arg = pop_c ();
-	CURR_IP = cs_arg.ip;
-	args[0].ap = cs_arg.this;
-	args[0].type = SCOPE_TYPE;
-	push_v (args[0]);
-      }
-      END_SEG ();
-
-      SEG (GOTO);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-	CURR_IP = *(FACT_cast_to_scope (args[0])->code) - 1;
-      }
-      END_SEG ();
-
-      SEG (HALT);
-      {
-	curr_thread->run_flag = T_DEAD; /* The thread is dead, for now. */
-	return; /* Exit. */
-      }
-      END_SEG ();
-
-      SEG (INC);
-      {
-	/* Increment a register. */
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	mpc_add_ui (FACT_cast_to_num (args[0])->value,
-		    FACT_cast_to_num (args[0])->value, 1);
-      }
-      END_SEG ();
-
-      SEG (IOR);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	if (((FACT_num_t) args[0].ap)->value->precision
-	    || ((FACT_num_t) args[1].ap)->value->precision)
-	  FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
-	mpc_ior (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
-	
-
-      SEG (IS_AUTO);
-      {
-	push_constant_ui (FACT_get_local (CURR_THIS, progm[CURR_IP] + 1) == NULL
-			  ? 0
-			  : 1);
-      }
-      END_SEG ();
-
-      SEG (IS_DEF);
-      {
-	push_constant_ui (FACT_get_global (CURR_THIS, progm[CURR_IP] + 1) == NULL
-			  ? 0
-			  : 1);
-      }
-      END_SEG ();
-
-      SEG (JMP);
-      {
-	/* Unconditional jump. */
-	CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
-      }
-      END_SEG ();
-
-      SEG (JMP_PNT);
-      {
-	/* Push a scope to the stack with code = to the address. */
-	args[0].ap = FACT_alloc_scope ();
-	*FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 1);
-	args[0].type = SCOPE_TYPE;
-	push_v (args[0]);
-      }
-      END_SEG ();
-
-      SEG (JIF);
-      {
-	/* Jump on false. */
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	  CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-      }
-      END_SEG ();
-
-      SEG (JIN);
-      {
-	/* Jump on type `number'. */
-	args[0] = *Furlow_register (progm[CURR_IP][1]);
-	if (args[0].type == NUM_TYPE)
-	  CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-      }
-      END_SEG ();
-
-      SEG (JIS);
-      {
-	/* Jump on type `scope'. */
-	args[0] = *Furlow_register (progm[CURR_IP][1]);
-	if (args[0].type == SCOPE_TYPE)
-	  CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-      }
-      END_SEG ();
-
-      SEG (JIT);
-      {
-	/* Jump on true. */
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	if (mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	  CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-      }
-      END_SEG ();
-
-      SEG (LAMBDA);
-      {
-	/* Push a lambda scope to the stack. */
-	args[0].ap = FACT_alloc_scope ();
-	args[0].type = SCOPE_TYPE;
-	push_v (args[0]);
-      }
-      END_SEG ();
-
-      SEG (MOD);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	  FACT_throw_error (CURR_THIS, "mod by zero error");
-	mpc_mod (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
-
-      SEG (MUL);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_mul (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
-
-      SEG (NEG);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	mpc_neg (FACT_cast_to_num (args[0])->value,
-		 FACT_cast_to_num (args[0])->value);
-      }
-      END_SEG ();
-
-      SEG (NEW_N);
-      {
-	/* Create a new anonymous number. */
-	FACT_def_num (progm[CURR_IP] + 1, true);
-      }
-      END_SEG ();
-
-      SEG (NEW_S);
-      {
-	/* Create a new anonymous scope. */
-	FACT_def_scope (progm[CURR_IP] + 1, true);
-      }
-      END_SEG ();
-
-      SEG (NOP);
-      {
-	/* Do nothing. */
-      }
-      END_SEG ();
-
-      SEG (PURGE);
-      {
-	/* Remove all items from the variable stack. */
-	if (curr_thread->vstackp >= curr_thread->vstack)
-	  {
-	    /* Only purge if there actually are items in the var stack. */
-	    FACT_free (curr_thread->vstack);
-	    curr_thread->vstackp = curr_thread->vstack = NULL;
-	  }
-      }
-      END_SEG ();
-
-      SEG (REF);
-      {
-	/* Set a register to the reference of another. */ 
-	reg_args[0] = Furlow_register (progm[CURR_IP][1]);
-	reg_args[1] = Furlow_register (progm[CURR_IP][2]);
-	reg_args[1]->type = reg_args[0]->type;
-	reg_args[1]->ap = reg_args[0]->ap;
-      }
-      END_SEG ();
-
-      SEG (RET);
-      {
-	/* Close any open trap regions. */
-	while (curr_thread->num_traps != 0
-	       && (curr_thread->traps[curr_thread->num_traps][1]
-		   == (curr_thread->cstackp - curr_thread->cstack + 1)))
-	  pop_t ();
-	/* Pop the call stack. */
-	pop_c ();
-      }
-      END_SEG ();
-
-      SEG (SET_C);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-	*FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 2);
-      }
-      END_SEG ();
-
-      SEG (SET_F);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
-	FACT_cast_to_scope (args[1])->code = FACT_cast_to_scope (args[0])->code;
-	FACT_cast_to_scope (args[1])->extrn_func = FACT_cast_to_scope (args[0])->extrn_func;
-      }
-      END_SEG ();
-
-      SEG (SET_N);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
-	FACT_cast_to_scope (args[1])->name = FACT_cast_to_scope (args[0])->name;
-      }
-      END_SEG ();
-
-      SEG (SPRT);
-      {
-	FACT_thread_t curr;
-
-	/* Gain control of threads. */
-	Furlow_lock_threads ();
-
-	/* Find the next open spot in the linked list. */
-	for (curr = threads; curr->next != NULL; curr = curr->next);
-
-	/* Allocate and initialize the new thread. */
-	curr->next = FACT_malloc (sizeof (struct FACT_thread));
-	curr = curr->next;
-	curr->thread_num = num_threads++;
-	curr->curr_err.what = DEF_ERR_MSG;
-	curr->cstack_size = 1;
-	curr->cstackp = curr->cstack = FACT_malloc (sizeof (struct cstack_t));
-	curr->root_message = NULL;
-	curr->num_messages = 0;
-	pthread_mutex_init (&curr->queue_lock, NULL);
-	pthread_cond_init (&curr->msg_block, NULL);
-	
-	/* Set the top scope and the IP of the thread. */
-	THIS_OF (curr) = FACT_alloc_scope ();
-	THIS_OF (curr)->name = "main<thread>";
-	IP_OF (curr) = CURR_IP + 1;
-
-	/* Add the build in functions to the top scope. */
-	FACT_add_BIFs (THIS_OF (curr));
-
-	/* Initialize the registers. */
-	for (i = 0; i < T_REGISTERS; i++)
-	  curr->registers[i].type = UNSET_TYPE;
-
-	/* Push the TID of the new thread to the var stack. */
-	push_constant_ui (curr->thread_num);
-	
-	/* Run the thread and give up control of threads. */
-	pthread_create (&curr->thread_id, NULL, Furlow_thread_mask, curr);
-	Furlow_unlock_threads ();
-
-	/* Jump. */
-	CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
-      }
-      END_SEG ();
-
-      SEG (STO);
-      {
-	/* STO,$A,$B : $B <- $A */
-	args[0] = *Furlow_register (progm[CURR_IP][1]);
-	args[1] = *Furlow_register (progm[CURR_IP][2]);
-	if (args[1].type == NUM_TYPE)
-	  {
-	    if (args[0].type == SCOPE_TYPE)
-	      FACT_throw_error (CURR_THIS, "cannot set a scope to a number");
-	    FACT_set_num (args[1].ap, args[0].ap);
-	  }
-	else
-	  {
-	    if (args[0].type == NUM_TYPE)
-	      FACT_throw_error (CURR_THIS, "cannot set a number to a scope");
-	    hold_name = ((FACT_scope_t) args[1].ap)->name;
-	    memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
-	    ((FACT_scope_t) args[1].ap)->name = hold_name;
-	  }
-      }
-      END_SEG ();
-
-      SEG (SUB);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	mpc_sub (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
-
-      SEG (SWAP);
-      {
-	/* Swap the first two elements on the var stack. */
-	if (curr_thread->vstackp >= curr_thread->vstack + 1)
-	  {
-	    /* Only swap if there are at least two elements on the var stack. We don't
-	     * throw an error otherwise, simply nothing occurs. Perhaps this shouldn't
-	     * be the case?
-	     */
-	    FACT_t hold;
-	    hold = *curr_thread->vstackp;
-	    *curr_thread->vstackp = *(curr_thread->vstackp - 1);
-	    *(curr_thread->vstackp - 1) = hold;
-	  }
-      }
-      END_SEG ();
-
-      SEG (THIS);
-      {
-	args[0].ap = CURR_THIS;
-	args[0].type = SCOPE_TYPE;
-	push_v (args[0]);
-      }
-      END_SEG ();
-
-      SEG (TRAP_B);
-      {
-	/* Set a new trap region. */
-	push_t (get_seg_addr (progm[CURR_IP] + 1),
-		(curr_thread->cstackp - curr_thread->cstack + 1));
-      }
-      END_SEG ();
-
-      SEG (TRAP_E);
-      {
-	/* End a trap region. */
-	pop_t ();
-      }
-      END_SEG ();
-
-      SEG (USE);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-	push_c (CURR_IP, args[0].ap);
-      }
-      END_SEG ();
-
-      SEG (VAR);
-      {
-	/* Load a variable. */
-	FACT_get_var (progm[CURR_IP] + 1);
-      }
-      END_SEG ();
-
-      SEG (XOR);
-      {
-	args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-	args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-	args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-	if (((FACT_num_t) args[0].ap)->value->precision
-	    || ((FACT_num_t) args[1].ap)->value->precision)
-	  FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
-	mpc_xor (((FACT_num_t) args[2].ap)->value,
-		 ((FACT_num_t) args[1].ap)->value,
-		 ((FACT_num_t) args[0].ap)->value);
-      }
-      END_SEG ();
+      cycles = 0;
     }
+    
+    /* Jump to the instruction. */
+    goto *inst_jump_table [progm[CURR_IP][0]];
+    
+    /* Instructions are divided into "segments." Each segment contains the
+     * code executed by one instruction. The macro SEG (n) creates a goto
+     * label for the instruction n, and the macro END_SEG jumps to the
+     * next instruction. Slightly confusing, but decently fast.
+     */
+    SEG (ADD);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_add (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+    
+    SEG (AND);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      if (((FACT_num_t) args[0].ap)->value->precision
+	  || ((FACT_num_t) args[1].ap)->value->precision)
+	FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
+      mpc_and (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+    
+    SEG (APPEND);
+    {
+      args[0] = *Furlow_register (progm[CURR_IP][1]);
+      args[1] = *Furlow_register (progm[CURR_IP][2]);
+      if (args[1].type == NUM_TYPE) {
+	if (args[0].type == SCOPE_TYPE)
+	  FACT_throw_error (CURR_THIS, "cannot append a scope to a number");
+	FACT_append_num (args[1].ap, args[0].ap);
+      } else {
+	if (args[0].type == NUM_TYPE)
+	  FACT_throw_error (CURR_THIS, "cannot append a number to a scope");
+	FACT_append_scope (args[1].ap, args[0].ap);
+      }
+    }
+    END_SEG ();
+    
+    SEG (CALL);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+      push_c (*(FACT_cast_to_scope (args[0])->code) - 1, args[0].ap);
+      
+      /* Check if extrn_func is set, and if so call it. */
+      if (FACT_cast_to_scope (args[0])->extrn_func == NULL)
+	continue;
+      FACT_cast_to_scope (args[0])->extrn_func ();
+      
+      /* Close any open trap regions. */
+      while (curr_thread->num_traps != 0
+	     && curr_thread->traps[curr_thread->num_traps][1] == curr_thread->cstack_size)
+	pop_t ();
+      
+      /* Pop the call stack. */
+      pop_c ();
+    }
+    END_SEG ();
+    
+    SEG (CEQ);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		  (FACT_compare_num (args[1].ap, args[0].ap) == 0
+		   ? 1
+		   : 0));
+    }
+    END_SEG ();
+    
+    SEG (CLE);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		  (FACT_compare_num (args[1].ap, args[0].ap) <= 0
+		   ? 1
+		   : 0));
+    }
+    END_SEG ();
+      
+    SEG (CLT);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		  (FACT_compare_num (args[1].ap, args[0].ap) < 0
+		   ? 1
+		   : 0));
+    }
+    END_SEG ();
+      
+    SEG (CME);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		  (FACT_compare_num (args[1].ap, args[0].ap) >= 0
+		   ? 1
+		   : 0));
+    }
+    END_SEG ();
+
+    SEG (CMT);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		  (FACT_compare_num (args[1].ap, args[0].ap) > 0
+		   ? 1
+		   : 0));
+    }
+    END_SEG ();
+	  
+    SEG (CNE);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		  (FACT_compare_num (args[1].ap, args[0].ap) != 0
+		   ? 1
+		   : 0));
+    }
+    END_SEG ();
+
+    SEG (CONST);
+    {
+      /* Push a constant value to the stack. */
+      push_constant_str (progm[CURR_IP] + 1);
+    }
+    END_SEG ();
+
+    SEG (DEC);
+    {
+      /* Decrement a register. */
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      mpc_sub_ui (FACT_cast_to_num (args[0])->value,
+		  FACT_cast_to_num (args[0])->value, 1);
+    }
+    END_SEG ();
+
+    SEG (DEF_N);
+    {
+      /* Declare a number variable. */
+      FACT_def_num (progm[CURR_IP] + 1, false);
+    }
+    END_SEG ();
+
+    SEG (DEF_S);
+    {
+      /* Declare a scope variable. */
+      FACT_def_scope (progm[CURR_IP] + 1, false);
+    }
+    END_SEG ();
+
+    SEG (DIV);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+	FACT_throw_error (CURR_THIS, "division by zero error");
+      mpc_div (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+
+    SEG (DROP);
+    {
+      /* Remove the first item on the variable stack. */
+      if (curr_thread->vstackp >= curr_thread->vstack)
+	pop_v (); /* Just pop and ignore. */
+    }
+    END_SEG ();
+
+    SEG (DUP);
+    {
+      /* Duplicate the first item on the stack. */
+      args[0] = *Furlow_register (R_TOP);
+      if (args[0].type == SCOPE_TYPE)
+	/* To duplicate a scope we simply push it back onto the stack. */
+	push_v (args[0]);
+      else
+	{
+	  /* Copy the number and push it on to the stack. */
+	  args[1].ap = FACT_alloc_num ();
+	  FACT_set_num (args[1].ap, args[0].ap);
+	  args[1].type = NUM_TYPE;
+	  push_v (args[1]);
+	}
+    }
+    END_SEG ();
+
+    SEG (ELEM);
+    {
+      /* Get an element of an array. */
+      args[0] = *Furlow_register (progm[CURR_IP][1]);
+      if (args[0].type == NUM_TYPE)
+	FACT_get_num_elem (args[0].ap, progm[CURR_IP] + 2);
+      else
+	FACT_get_scope_elem (args[0].ap, progm[CURR_IP] + 2);
+    }
+    END_SEG ();
+
+    SEG (EXIT);
+    {
+      /* Close any open trap regions. */
+      while (curr_thread->num_traps != 0
+	     && (curr_thread->traps[curr_thread->num_traps][1]
+		 == (curr_thread->cstackp - curr_thread->cstack + 1)))
+	pop_t ();
+	
+      /* Exit the current scope. */
+      cs_arg = pop_c ();
+      CURR_IP = cs_arg.ip;
+      args[0].ap = cs_arg.this;
+      args[0].type = SCOPE_TYPE;
+      push_v (args[0]);
+    }
+    END_SEG ();
+
+    SEG (GOTO);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+      CURR_IP = *(FACT_cast_to_scope (args[0])->code) - 1;
+    }
+    END_SEG ();
+
+    SEG (HALT);
+    {
+      curr_thread->run_flag = T_DEAD; /* The thread is dead, for now. */
+      return; /* Exit. */
+    }
+    END_SEG ();
+
+    SEG (INC);
+    {
+      /* Increment a register. */
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      mpc_add_ui (FACT_cast_to_num (args[0])->value,
+		  FACT_cast_to_num (args[0])->value, 1);
+    }
+    END_SEG ();
+
+    SEG (IOR);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      if (((FACT_num_t) args[0].ap)->value->precision
+	  || ((FACT_num_t) args[1].ap)->value->precision)
+	FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
+      mpc_ior (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+	
+
+    SEG (IS_AUTO);
+    {
+      push_constant_ui (FACT_get_local (CURR_THIS, progm[CURR_IP] + 1) == NULL
+			? 0
+			: 1);
+    }
+    END_SEG ();
+
+    SEG (IS_DEF);
+    {
+      push_constant_ui (FACT_get_global (CURR_THIS, progm[CURR_IP] + 1) == NULL
+			? 0
+			: 1);
+    }
+    END_SEG ();
+
+    SEG (JMP);
+    {
+      /* Unconditional jump. */
+      CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
+    }
+    END_SEG ();
+
+    SEG (JMP_PNT);
+    {
+      /* Push a scope to the stack with code = to the address. */
+      args[0].ap = FACT_alloc_scope ();
+      *FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 1);
+      args[0].type = SCOPE_TYPE;
+      push_v (args[0]);
+    }
+    END_SEG ();
+
+    SEG (JIF);
+    {
+      /* Jump on false. */
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+    }
+    END_SEG ();
+
+    SEG (JIN);
+    {
+      /* Jump on type `number'. */
+      args[0] = *Furlow_register (progm[CURR_IP][1]);
+      if (args[0].type == NUM_TYPE)
+	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+    }
+    END_SEG ();
+
+    SEG (JIS);
+    {
+      /* Jump on type `scope'. */
+      args[0] = *Furlow_register (progm[CURR_IP][1]);
+      if (args[0].type == SCOPE_TYPE)
+	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+    }
+    END_SEG ();
+
+    SEG (JIT);
+    {
+      /* Jump on true. */
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      if (mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+    }
+    END_SEG ();
+
+    SEG (LAMBDA);
+    {
+      /* Push a lambda scope to the stack. */
+      args[0].ap = FACT_alloc_scope ();
+      args[0].type = SCOPE_TYPE;
+      push_v (args[0]);
+    }
+    END_SEG ();
+
+    SEG (MOD);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+	FACT_throw_error (CURR_THIS, "mod by zero error");
+      mpc_mod (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+
+    SEG (MUL);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_mul (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+
+    SEG (NEG);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      mpc_neg (FACT_cast_to_num (args[0])->value,
+	       FACT_cast_to_num (args[0])->value);
+    }
+    END_SEG ();
+
+    SEG (NEW_N);
+    {
+      /* Create a new anonymous number. */
+      FACT_def_num (progm[CURR_IP] + 1, true);
+    }
+    END_SEG ();
+
+    SEG (NEW_S);
+    {
+      /* Create a new anonymous scope. */
+      FACT_def_scope (progm[CURR_IP] + 1, true);
+    }
+    END_SEG ();
+
+    SEG (NOP);
+    {
+      /* Do nothing. */
+    }
+    END_SEG ();
+
+    SEG (PURGE);
+    {
+      /* Remove all items from the variable stack. */
+      if (curr_thread->vstackp >= curr_thread->vstack)
+	{
+	  /* Only purge if there actually are items in the var stack. */
+	  FACT_free (curr_thread->vstack);
+	  curr_thread->vstackp = curr_thread->vstack = NULL;
+	}
+    }
+    END_SEG ();
+
+    SEG (REF);
+    {
+      /* Set a register to the reference of another. */ 
+      reg_args[0] = Furlow_register (progm[CURR_IP][1]);
+      reg_args[1] = Furlow_register (progm[CURR_IP][2]);
+      reg_args[1]->type = reg_args[0]->type;
+      reg_args[1]->ap = reg_args[0]->ap;
+    }
+    END_SEG ();
+
+    SEG (RET);
+    {
+      /* Close any open trap regions. */
+      while (curr_thread->num_traps != 0
+	     && (curr_thread->traps[curr_thread->num_traps][1]
+		 == (curr_thread->cstackp - curr_thread->cstack + 1)))
+	pop_t ();
+      /* Pop the call stack. */
+      pop_c ();
+    }
+    END_SEG ();
+
+    SEG (SET_C);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+      *FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 2);
+    }
+    END_SEG ();
+
+    SEG (SET_F);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
+      FACT_cast_to_scope (args[1])->code = FACT_cast_to_scope (args[0])->code;
+      FACT_cast_to_scope (args[1])->extrn_func = FACT_cast_to_scope (args[0])->extrn_func;
+    }
+    END_SEG ();
+
+    SEG (SET_N);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
+      FACT_cast_to_scope (args[1])->name = FACT_cast_to_scope (args[0])->name;
+    }
+    END_SEG ();
+
+    SEG (SPRT);
+    {
+      FACT_thread_t curr;
+
+      /* Gain control of threads. */
+      Furlow_lock_threads ();
+
+      /* Find the next open spot in the linked list. */
+      for (curr = threads; curr->next != NULL; curr = curr->next);
+
+      /* Allocate and initialize the new thread. */
+      curr->next = FACT_malloc (sizeof (struct FACT_thread));
+      curr = curr->next;
+      curr->thread_num = num_threads++;
+      curr->curr_err.what = DEF_ERR_MSG;
+      curr->cstack_size = 1;
+      curr->cstackp = curr->cstack = FACT_malloc (sizeof (struct cstack_t));
+      curr->root_message = NULL;
+      curr->num_messages = 0;
+      pthread_mutex_init (&curr->queue_lock, NULL);
+      pthread_cond_init (&curr->msg_block, NULL);
+	
+      /* Set the top scope and the IP of the thread. */
+      THIS_OF (curr) = FACT_alloc_scope ();
+      THIS_OF (curr)->name = "main<thread>";
+      IP_OF (curr) = CURR_IP + 1;
+
+      /* Add the build in functions to the top scope. */
+      FACT_add_BIFs (THIS_OF (curr));
+
+      /* Initialize the registers. */
+      for (i = 0; i < T_REGISTERS; i++)
+	curr->registers[i].type = UNSET_TYPE;
+
+      /* Push the TID of the new thread to the var stack. */
+      push_constant_ui (curr->thread_num);
+	
+      /* Run the thread and give up control of threads. */
+      pthread_create (&curr->thread_id, NULL, Furlow_thread_mask, curr);
+      Furlow_unlock_threads ();
+
+      /* Jump. */
+      CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
+    }
+    END_SEG ();
+
+    SEG (STO);
+    {
+      /* STO,$A,$B : $B <- $A */
+      args[0] = *Furlow_register (progm[CURR_IP][1]);
+      args[1] = *Furlow_register (progm[CURR_IP][2]);
+      if (args[1].type == NUM_TYPE) {
+	if (args[0].type == SCOPE_TYPE)
+	  FACT_throw_error (CURR_THIS, "cannot set a scope to a number");
+	FACT_set_num (args[1].ap, args[0].ap);
+      } else {
+	if (args[0].type == NUM_TYPE)
+	  FACT_throw_error (CURR_THIS, "cannot set a number to a scope");
+	hold_name = ((FACT_scope_t) args[1].ap)->name;
+	memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
+	((FACT_scope_t) args[1].ap)->name = hold_name;
+      }
+    }
+    END_SEG ();
+
+    SEG (SUB);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      mpc_sub (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+
+    SEG (SWAP);
+    {
+      /* Swap the first two elements on the var stack. */
+      if (curr_thread->vstackp >= curr_thread->vstack + 1) {
+	/* Only swap if there are at least two elements on the var stack. We don't
+	 * throw an error otherwise, simply nothing occurs. Perhaps this shouldn't
+	 * be the case?
+	 */
+	FACT_t hold;
+	hold = *curr_thread->vstackp;
+	*curr_thread->vstackp = *(curr_thread->vstackp - 1);
+	*(curr_thread->vstackp - 1) = hold;
+      }
+    }
+    END_SEG ();
+
+    SEG (THIS);
+    {
+      args[0].ap = CURR_THIS;
+      args[0].type = SCOPE_TYPE;
+      push_v (args[0]);
+    }
+    END_SEG ();
+
+    SEG (TRAP_B);
+    {
+      /* Set a new trap region. */
+      push_t (get_seg_addr (progm[CURR_IP] + 1),
+	      (curr_thread->cstackp - curr_thread->cstack + 1));
+    }
+    END_SEG ();
+
+    SEG (TRAP_E);
+    {
+      /* End a trap region. */
+      pop_t ();
+    }
+    END_SEG ();
+
+    SEG (USE);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+      push_c (CURR_IP, args[0].ap);
+    }
+    END_SEG ();
+
+    SEG (VAR);
+    {
+      /* Load a variable. */
+      FACT_get_var (progm[CURR_IP] + 1);
+    }
+    END_SEG ();
+
+    SEG (XOR);
+    {
+      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+      if (((FACT_num_t) args[0].ap)->value->precision
+	  || ((FACT_num_t) args[1].ap)->value->precision)
+	FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
+      mpc_xor (((FACT_num_t) args[2].ap)->value,
+	       ((FACT_num_t) args[1].ap)->value,
+	       ((FACT_num_t) args[0].ap)->value);
+    }
+    END_SEG ();
+  }
 }
 
-static inline size_t
-get_seg_addr (char *arg) /* Convert a segment address to a ulong. */
+static inline size_t get_seg_addr (char *arg) /* Convert a segment address to a ulong. */
 {
   size_t n;
 
@@ -997,35 +961,29 @@ get_seg_addr (char *arg) /* Convert a segment address to a ulong. */
   return n;
 }
 
-void *
-Furlow_thread_mask (void *new_thread)
+void *Furlow_thread_mask (void *new_thread)
 {
   struct cstack_t frame;
   
   /* Set the recover jmp buffer. */
-  if (setjmp (recover))
-    {
+  if (setjmp (recover)) {
 #ifdef DEBUG
-      /* Print out the error and a stack trace. */
-      fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
-      while (curr_thread->cstackp - curr_thread->cstack >= 0)
-	{
-	  frame = pop_c ();
-	  fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
-	}
+    /* Print out the error and a stack trace. */
+    fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
+    while (curr_thread->cstackp - curr_thread->cstack >= 0) {
+      frame = pop_c ();
+      fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
+    }
 #endif /* DEBUG */
-    }
-  else
-    {
-      /* Set curr_thread to new_thread and run the VM. */
-      curr_thread = new_thread;
-      Furlow_run ();
-    }
+  }  else {
+    /* Set curr_thread to new_thread and run the VM. */
+    curr_thread = new_thread;
+    Furlow_run ();
+  }
   return NULL;
 }
 
-void
-push_constant_str (char *cval) /* Push a constant number to the var stack. */
+void push_constant_str (char *cval) /* Push a constant number to the var stack. */
 {
   /* TODO: add caching, maybe */
   FACT_t push_val;
@@ -1042,8 +1000,7 @@ push_constant_str (char *cval) /* Push a constant number to the var stack. */
   push_v (push_val);
 }
 
-void
-push_constant_ui (unsigned long int n)
+void push_constant_ui (unsigned long int n)
 {
   FACT_t push_val;
 
@@ -1056,8 +1013,7 @@ push_constant_ui (unsigned long int n)
   push_v (push_val);
 }
 
-void
-push_constant_si (signed long int n)
+void push_constant_si (signed long int n)
 {
   FACT_t push_val;
 
@@ -1070,8 +1026,7 @@ push_constant_si (signed long int n)
   push_v (push_val);
 }
 
-void
-Furlow_init_vm (void) /* Create the main scope and thread. */
+void Furlow_init_vm (void) /* Create the main scope and thread. */
 {
   int i;
   
@@ -1104,8 +1059,7 @@ Furlow_destroy_vm (void) /* Deallocate everything and destroy every thread. */
 }
 
 #ifdef DEBUG
-void
-Furlow_disassemble (void) /* Print the byte code currently loaded into the VM. */
+void Furlow_disassemble (void) /* Print the byte code currently loaded into the VM. */
 {
   size_t i;
   int inst, ofs, j;
@@ -1113,35 +1067,33 @@ Furlow_disassemble (void) /* Print the byte code currently loaded into the VM. *
   if (progm == NULL)
     goto end;
 
-  for (i = 0; (inst = progm[i][0]) != HALT; i++)
-    {
-      /* print out the instruction and address. */
-      printf ("%zu:\t%s", i, Furlow_instructions[inst].token);
-      for (j = 0, ofs = 1; Furlow_instructions[inst].args[j] != 0; j++)
+  for (i = 0; (inst = progm[i][0]) != HALT; i++) {
+    /* print out the instruction and address. */
+    printf ("%zu:\t%s", i, Furlow_instructions[inst].token);
+    for (j = 0, ofs = 1; Furlow_instructions[inst].args[j] != 0; j++) {
+      switch (Furlow_instructions[inst].args[j])
 	{
-	  switch (Furlow_instructions[inst].args[j])
-	    {
-	    case 'r': /* Register. */
-	      printf (", %%%d", progm[i][ofs]);
-	      ofs++;
-	      break;
-
-	    case 's': /* String. */
-	      printf (", $%s", progm[i] + ofs);
-	      ofs += strlen (progm[i] + ofs);
-	      break;
-
-	    case 'a': /* Address. */
-	      printf (", @%zu", get_seg_addr (progm[i] + ofs));
-	      ofs += 4;
-	      break;
-
-	    default:
-	      abort ();
-	    }
+	case 'r': /* Register. */
+	  printf (", %%%d", progm[i][ofs]);
+	  ofs++;
+	  break;
+	  
+	case 's': /* String. */
+	  printf (", $%s", progm[i] + ofs);
+	  ofs += strlen (progm[i] + ofs);
+	  break;
+	  
+	case 'a': /* Address. */
+	  printf (", @%zu", get_seg_addr (progm[i] + ofs));
+	  ofs += 4;
+	  break;
+	  
+	default:
+	  abort ();
 	}
-      printf ("\n");
     }
+    printf ("\n");
+  }
  end:
   printf ("%zu:\thalt\n", (progm != NULL) ? i : 0);
 }
