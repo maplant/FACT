@@ -21,9 +21,9 @@
  * between them. The incomplete prompt is just one part preceded by
  * the length of the initial prompt minus two in spaces. 
  */  
-#define SHELL_START "("   /* The first part of the prompt. */
-#define SHELL_END   ")> " /* And the third part.           */
-#define SHELL_CONT  "| "
+#define SHELL_START "["   /* The first part of the prompt. */
+#define SHELL_END   "] " /* And the third part.           */
+#define SHELL_CONT  "  "
 
 #define REMEMBER_CMDS 100 
 
