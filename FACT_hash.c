@@ -60,10 +60,10 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
     table->num_buckets = START_NUM_ENTRIES;
     table->total_num_vars = 1;
   } else if (++table->total_num_vars / table->num_buckets == 2) {
-    printf ("Hit load factor: %d / %d\n", table->num_buckets, table->total_num_vars);
     /* If the load factor is 2, then double the number of buckets and rehash. */ 
     prev = table->buckets;
     table->buckets = FACT_malloc (sizeof (struct _entry) * table->num_buckets * 2);
+    /* Horrible little code. Could be improved tons. */
     for (i = 0; i < table->num_buckets; i++) {
       for (j = 0; j < prev[i].num_vars; j++) {
 	/* Add the item to the new table. */
