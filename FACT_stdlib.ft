@@ -1,11 +1,11 @@
 scope std = ({
-  scope print @ (num str) # Print a string. 
+  defunc print (num str) # Print a string. 
   {
     for (num i; i < size (str); i += 1)
       putchar (str[i]);
   }
 
-  scope cat @ (num op1, num op2) # Concatinate two strings
+  defunc cat (num op1, num op2) # Concatinate two strings
   {
     num arr_size;
 
@@ -40,7 +40,7 @@ scope std = ({
     return res;
   }
 
-  scope linked_list @ (num size)
+  defunc linked_list (num size)
   {
     for (scope curr = this:up; size > 0; size -= 1) {
       (curr: num n) = size;
@@ -59,13 +59,13 @@ scope std = ({
 
 # These two are sort of clever.
 
-  scope is_num @ (?n)
+  defunc is_num (?n)
   {
     catch n = 0; handle return 0;
     return 1;
   }
 
-  scope is_scope @ (?n)
+  defunc is_scope (?n)
   {
     catch n = 0; handle return 1;
     return 0;
@@ -77,10 +77,10 @@ scope std = ({
     # The value of PI. Haha, just kidding. 
     num PI = 3.1415926535897932;
 
-    scope sin @ (num x) 
+    defunc sin (num x) 
     {
       # We use recursion because that is great.
-      scope sin_inner @ (num n, num x, num lim) 
+      defunc sin_inner (num n, num x, num lim) 
       {
         if (n >= lim)
           return 1;
@@ -91,12 +91,12 @@ scope std = ({
 
     # We define the rest of the trig functions in terms of sine
 
-    scope cos @ (num x)
+    defunc cos (num x)
     {
       return sin (PI / 2 - x);
     }
 
-    scope tan @ (num x)
+    defunc tan (num x)
     {
       return sin (x) / cos (x);
     }

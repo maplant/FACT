@@ -110,6 +110,7 @@ opt_array ->   opt_array "[" assignment "]"
              ;
 
 func_dec ->   assignment "@" "(" func_opt_arg_dec ")" "{" stmt_list "}"
+            | "defunc" VAR "(" func_opt_arg_dec ")" "{" stmt_list "}"
             ;
 
 func_opt_arg_dec ->   "scope" VAR func_arg_dec

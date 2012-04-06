@@ -328,7 +328,7 @@ static void print_scope (FACT_scope_t val)
       }
     printf (" ]");
   } else {
-    printf ("{ %s:", val->name);
+    printf ("{ %s: ", val->name);
     FACT_table_digest (*val->vars);
     printf ("}");
     /*

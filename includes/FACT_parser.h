@@ -17,8 +17,7 @@
 #ifndef FACT_PARSER_H_
 #define FACT_PARSER_H_
 
-typedef struct FACT_tree
-{
+typedef struct FACT_tree {
   size_t line;                   /* Line token is on.                              */
   FACT_token_t id;               /* Token of the current node.                     */
   struct FACT_tree *next;        /* Used by stmt_list.                             */
