@@ -55,11 +55,13 @@ struct inter_node {
 };
 
 static char *strlen_dq (char *);
+static char *strlen_sq (char *);
 static struct inter_node *create_node ();
 static struct inter_node *compile_tree (FACT_tree_t, size_t, size_t, bool);
 static struct inter_node *compile_args (FACT_tree_t);
 static struct inter_node *compile_array_dec (FACT_tree_t);
 static struct inter_node *compile_str_dq (char *, size_t);
+static struct inter_node *compile_str_sq (char *, size_t);
 
 static struct inter_node *begin_temp_scope ();
 static struct inter_node *end_temp_scope ();
@@ -203,20 +205,25 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     res->node_val.inst.inst_val = CONST;
     res->node_val.inst.args[0] = str_arg (curr->id.lexem);
     break;
-    
+
+  case E_SQ:
   case E_DQ:
     res->node_type = GROUPING;
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
     
       /* Push the length of the string, as a string. */
-    add_instruction (res, CONST, str_arg (strlen_dq (curr->children[0]->id.lexem)), ignore (), ignore ());
+    add_instruction (res, CONST, str_arg ((curr->id.id == E_SQ)
+					  ? strlen_sq (curr->children[0]->id.lexem)
+					  : strlen_dq (curr->children[0]->id.lexem)), ignore (), ignore ());
     add_instruction (res, CONST, str_arg ("1")  , ignore ()    , ignore ()); /* Push one to the stack. */      
     add_instruction (res, NEW_N, reg_arg (R_POP), ignore ()    , ignore ()); /* Create an anonymous array. */      
     add_instruction (res, REF  , reg_arg (R_TOP), reg_arg (R_A), ignore ()); /* Set the A register to the array. */
     add_instruction (res, CONST, str_arg ("0")  , ignore ()    , ignore ()); /* Push the string index to the stack (used for setting the string). */
     
     /* Set the array to the string. */
-    set_child (res, compile_str_dq (curr->children[0]->id.lexem, 0));
+    set_child (res, ((curr->id.id == E_SQ)
+		     ? compile_str_sq (curr->children[0]->id.lexem, 0)
+		     : compile_str_dq (curr->children[0]->id.lexem, 0)));
     break;
     
   case E_LOCAL_CHECK:
@@ -699,7 +706,53 @@ static char *strlen_dq (char *str) /* Get the length of a string and return it a
   return res;
 }
 
-static struct inter_node *compile_str_dq (char *str, size_t i) /* Compile a string. */
+static char *strlen_sq (char *str) /* Get the length of a string and return it as a string of digits in base 10.
+				    * I know, that's pretty stupid.
+				    */
+{
+  size_t i, j;
+  size_t res_len;
+  char hold;
+  char *res;
+
+  res = FACT_malloc (2);
+  res_len = 2;
+  res[0] = '0';
+  res[1] = '\0';
+
+  for (i = 0; str[i] != '\0'; i++) {
+    /* Adjust for escape sequences. */
+    if (str[i] == '\\'
+	&& (str[i + 1] == '\'' || str[i + 1] == '\\'))
+      i++;
+    
+    /* Carry the one over. */ 
+    for (j = 0; j < res_len - 1; j++) {
+      if (res[j] != '9') {
+	res[j]++;
+	break;
+      } else
+	res[j] = '0'; /* Continue to carry over. */
+    }
+    if (j == res_len - 1) {
+      /* A new digit is needed. */
+      res = FACT_realloc (res, ++res_len);
+      res[j] = '1';
+      res[j + 1] = '\0';
+    }
+  }
+  
+  /* Reverse the string. */
+  for (i = 0, j = res_len - 2; i < j; i++, j--) {
+    hold = res[j];
+    res[j] = res[i];
+    res[i] = hold;
+  }
+  
+  return res;
+}
+
+static struct inter_node *compile_str_dq (char *str, size_t i) /* Compile a double-quotation string. */
 {
   char new;
   char *c_val;
@@ -762,7 +815,60 @@ static struct inter_node *compile_str_dq (char *str, size_t i) /* Compile a stri
   set_child (res, compile_str_dq (str, i + 1));
 
   return res;
-} 
+}
+
+static struct inter_node *compile_str_sq (char *str, size_t i) /* Compile a single-quotation string. */
+{
+  char new;
+  char *c_val;
+  struct inter_node *res;
+
+  if (str[i] == '\0') {
+    /* End of the string. Drop the index. */
+    res = create_node ();
+    res->node_type = INSTRUCTION;
+    res->node_val.inst.inst_val = DROP;
+    return res;
+  }
+  
+  if (str[i] == '\\') { /* Fix escape sequences. */
+    ++i;
+    switch (str[i]) {
+    case '\0':
+    default:
+      --i;
+      /* Fall through. */
+    case '\\':
+      new = '\\';
+      break;
+      
+    case '\'':
+      new = '\'';
+      break;
+    }
+  } else
+    new = str[i];
+
+  /* Convert the character value to a string. This is kind of dumb. */
+  c_val = FACT_malloc (4);
+  c_val[0] = (new / 100 % 10) + '0';
+  c_val[1] = (new / 10 % 10) + '0';
+  c_val[2] = (new % 10) + '0';
+  c_val[3] = '\0';
+  
+  res = create_node ();
+  res->node_type = GROUPING;
+  res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
+  add_instruction (res, DUP, ignore (), ignore (), ignore ());
+  add_instruction (res, ELEM, reg_arg (R_A), reg_arg (R_POP), ignore ());
+  add_instruction (res, CONST, str_arg (c_val), ignore (), ignore ());
+  add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_POP), ignore ());
+  add_instruction (res, INC, reg_arg (R_TOP), ignore (), ignore ());
+  /* Increase the index one and compile the next character. */
+  set_child (res, compile_str_sq (str, i + 1));
+
+  return res;
+}
 
 static struct inter_node *compile_array_dec (FACT_tree_t curr)
 {

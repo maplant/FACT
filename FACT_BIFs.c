@@ -29,7 +29,7 @@ FBIF_DEC (size);
 FBIF_DEC (error);
 FBIF_DEC (throw);
 FBIF_DEC (send);
-FBIF_DEC (recieve);
+FBIF_DEC (receive);
 FBIF_DEC (parcels);
 FBIF_DEC (exit);
 
@@ -44,7 +44,7 @@ static const struct {
   FBIF (error),
   FBIF (throw),
   FBIF (send),
-  FBIF (recieve),
+  FBIF (receive),
   FBIF (exit),
 };
 
@@ -141,7 +141,7 @@ static void FBIF_send (void) /* Send a message to a thread. */
   push_constant_ui (0);
 }
 
-static void FBIF_recieve (void) /* Pop the current thread's message queue. */
+static void FBIF_receive (void) /* Pop the current thread's message queue. */
 {
   FACT_t res;
 

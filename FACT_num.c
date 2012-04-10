@@ -112,6 +112,8 @@ void FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous nu
     dim_sizes = FACT_realloc (dim_sizes, sizeof (size_t *) * (i + 1));
     /* Pop the stack and get the value. */
     elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
+    if (elem_value->precision)
+      FACT_throw_error (CURR_THIS, "dimension size must be a positive integer");
     /* Check to make sure we aren't grossly out of range. */
     if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
 	|| mpz_sgn (elem_value->value) < 0)
@@ -141,6 +143,9 @@ void FACT_get_num_elem (FACT_num_t base, char *args)
   /* Get the element index. */
   elem_value[0] = *((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value;
 
+  if (elem_value->precision)
+    FACT_throw_error (CURR_THIS, "index value must be a positive integer");
+  
   /* Check to make sure we aren't out of bounds. */
   if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
       || mpz_sgn (elem_value->value) < 0
@@ -199,13 +204,20 @@ int FACT_compare_num (FACT_num_t op1, FACT_num_t op2) /* Return -1 if op1 is < o
 	return res;
     }
     
-      /* Now just go by whichever is the bigger array, or return 0. */
+    /* Now just go by whichever is the bigger array, or return 0. */
+    return ((op1->array_size > op2->array_size)
+	    ? 1
+	    : ((op1->array_size < op2->array_size)
+	       ? -1
+	       : 0));
+    /*
     if (op1->array_size > op2->array_size)
       return 1;
     else if (op1->array_size < op2->array_size)
       return -1;
     else
       return 0;
+    */
   }
 }     
 

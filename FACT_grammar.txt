@@ -153,5 +153,3 @@ else_clause ->   "else" stmt
 
 catch_stmt ->   "catch" stmt "handle" stmt
               ;
-
-                 
