@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,7 @@
 
 #include <FACT.h>
 
-int
-FACT_load_file (const char *file_name) /* Load a file into the VM. */
+int FACT_load_file (const char *file_name) /* Load a file into the VM. */
 {
   int c;
   FILE *fp;
@@ -30,36 +29,32 @@ FACT_load_file (const char *file_name) /* Load a file into the VM. */
   fp = fopen (file_name, "r"); /* Open the file for reading. */
   assert (fp != NULL);
 
-  for (file = NULL, i = 0; (c = getc (fp)) != EOF; i++)
-    {
-      if (c == '\0') /* Put some more bounds here. */
-	i--;
-      else
-	{
-	  file = FACT_realloc (file, (i + 2));
-	  file[i] = c;
-	}
+  for (file = NULL, i = 0; (c = getc (fp)) != EOF; i++) {
+    if (c == '\0') /* Put some more bounds here. */
+      i--;
+    else {
+      file = FACT_realloc (file, (i + 2));
+      file[i] = c;
     }
+  }
 
-  if (file != NULL)
-    {
-      /* NUL terminator. */
-      file[i] = '\0';
-      
-      /* Tokenize, parse, compile and load. */
-      tokenized = FACT_lex_string (file);
-      tokenized.line = 1;
-      
-      if (setjmp (tokenized.handle_err))
-	{
-	  /* There was a parsing error, print it and return fail. */
-	  printf ("=> Parsing error (%s:%zu): %s.\n", file_name, tokenized.line, tokenized.err);
-	  return -1;
-	}
-      
-      parsed = FACT_parse (&tokenized);
-      FACT_compile (parsed, file_name, false);
+  if (file != NULL) {
+    /* NUL terminator. */
+    file[i] = '\0';
+    
+    /* Tokenize, parse, compile and load. */
+    tokenized = FACT_lex_string (file);
+    tokenized.line = 1;
+    
+    if (setjmp (tokenized.handle_err)) {
+      /* There was a parsing error, print it and return fail. */
+      printf ("=> Parsing error (%s:%zu): %s.\n", file_name, tokenized.line, tokenized.err);
+      return -1;
     }
+    
+    parsed = FACT_parse (&tokenized);
+    FACT_compile (parsed, file_name, false);
+  }
   
   fclose (fp);
   return 0;

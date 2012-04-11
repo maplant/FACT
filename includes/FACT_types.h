@@ -36,7 +36,7 @@ typedef struct {
 
 /* The FACT_num structure expresses real numbers. */
 typedef struct FACT_num {
-  _Bool locked;               /* Locked variables are immutable.      */
+  bool locked;                /* Locked variables are immutable.      */
   mpc_t value;                /* value held by the variable.          */
   char *name;                 /* Name of the variable.                */
   size_t array_size;          /* Size of the current dimension.       */
@@ -47,27 +47,24 @@ typedef struct _var_table FACT_table_t;
 
 /* The FACT_scope structure expresses scopes and functions. */ 
 typedef struct FACT_scope {
-  _Bool *marked;      /* Prevents loops in variable searches. */
+  bool *marked;       /* Prevents loops in variable searches. */
   size_t *array_size; /* Size of the current dimension.       */
   size_t *code;       /* Location of the function's body.     */
 
   char *name; /* Declared name of the scope. */
 
-  FACT_table_t **vars;
-  //  FACT_t **var_table; /* Variables declared in the scope. */
-  // size_t *num_vars;   /* Number of variables.             */
+  FACT_table_t **vars; /* Table of variables declared in the scope. */
 
-  void (*extrn_func)(void); /* Used with external libraries. */
+  void (*extrn_func)(void); /* Used with external libraries and BIFs. */
 
   struct FACT_scope *up;         /* Points to the next scope up.    */
   struct FACT_scope *caller;     /* Points to the calling function. */
   struct FACT_scope ***array_up; /* The next dimension up.          */
 
-  /* FACT_mixed expresses a variadic argument list. */
-  struct FACT_mixed {
-    FACT_type curr_type;     /* The current node's type.     */
-    void *node_p;            /* Casted var or scope pointer. */ 
-    struct FACT_mixed *next; /* Next argument in the list.   */
+  /* FACT_va_list expresses a variadic argument list. */
+  struct FACT_va_list {
+    FACT_t var;                /* Node value.                */
+    struct FACT_va_list *next; /* Next argument in the list. */
   } *variadic;
 } *FACT_scope_t;
 

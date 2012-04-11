@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,29 +16,24 @@
 
 #include <FACT.h>
 
-char *
-FACT_natos (FACT_num_t arr) /* Number array to string. */
+char *FACT_natos (FACT_num_t arr) /* Number array to string. */
 {
   size_t i;
   char *res;
 
-  if (arr->array_size == 0)
-    {
-      res = FACT_malloc_atomic (1);
-      *res = (char) mpc_get_si (arr->value);
-    }
-  else
-    {
-      res = FACT_malloc_atomic (arr->array_size);
-      for (i = 0; i < arr->array_size; i++)
-	res[i] = (char) mpc_get_si (arr->array_up[i]->value);
-    }
+  if (arr->array_size == 0) {
+    res = FACT_malloc_atomic (1);
+    *res = (char) mpc_get_si (arr->value);
+  } else {
+    res = FACT_malloc_atomic (arr->array_size);
+    for (i = 0; i < arr->array_size; i++)
+      res[i] = (char) mpc_get_si (arr->array_up[i]->value);
+  }
 
   return res;
 }
 
-FACT_num_t 
-FACT_stona (char *str) /* String to number array. */
+FACT_num_t FACT_stona (char *str) /* String to number array. */
 {
   size_t i, len;
   FACT_num_t res;

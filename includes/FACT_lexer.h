@@ -76,6 +76,7 @@ typedef enum {
   E_FUNC_CALL,
   E_NEG,
   E_ARRAY_ELEM,
+  E_STR_CONST,
   E_END,
 } FACT_nterm_t; 
 

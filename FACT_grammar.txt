@@ -153,3 +153,13 @@ else_clause ->   "else" stmt
 
 catch_stmt ->   "catch" stmt "handle" stmt
               ;
+
+VAR ->   [a-zA-Z_]([a-zA-Z_]|[0-9])*
+       ;
+
+NUM ->   0[xX][a-fA-F0-9]+
+       | 0[0-9]+
+       | [0-9]+
+       | [0-9]*"."[0-9]+
+       | [0-9]+"."[0-9]*
+       ;

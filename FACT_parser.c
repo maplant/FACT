@@ -42,13 +42,23 @@ static inline void error (FACT_lexed_t *set, char *fmt, ...)
 
   longjmp (set->handle_err, 1); 
 }
+static bool is_ident_valid (char *);
+static bool is_num_valid (char *);
 
 static FACT_tree_t accept (FACT_lexed_t *set, FACT_nterm_t id) /* Accept a token. */
 {
   FACT_tree_t res;
   
-  if (set->tokens[set->curr].id == id) {
-    /* Token is of acceptable type, create a new node. */
+  if (set->tokens[set->curr].id == id
+      || id == E_STR_CONST) { /* Token is of acceptable type, create a new node. */
+    if (id != E_STR_CONST) {
+      if (id == E_VAR
+	  && !is_ident_valid (set->tokens[set->curr].lexem)) /* ID is invalid. */
+	error (set, "invalid identifier `%s'", set->tokens[set->curr].lexem);
+      else if (id == E_NUM
+	       && !is_num_valid (set->tokens[set->curr].lexem)) /* Number is invalid. */
+	error (set, "invalid numerical constant `%s'", set->tokens[set->curr].lexem);
+    }
     res = FACT_malloc (sizeof (struct FACT_tree));
     memset (res, 0, sizeof (struct FACT_tree));
     res->id = set->tokens[set->curr];
@@ -295,10 +305,10 @@ static FACT_tree_t factor (FACT_lexed_t *set)
     } else
       pn->children[0] = assignment (set);
   } else if ((pn = accept (set, E_DQ)) != NULL) {
-    pn->children[0] = accept (set, E_VAR);
+    pn->children[0] = accept (set, E_STR_CONST);
     expect (set, E_DQ);
   } else if ((pn = accept (set, E_SQ)) != NULL) {
-    pn->children[0] = accept (set, E_VAR);
+    pn->children[0] = accept (set, E_STR_CONST);
     expect (set, E_SQ);
   } else if ((pn = accept (set, E_OP_BRACK)) != NULL) { /* Anonymous array. */
     pn->children[0] = assignment (set);
@@ -520,7 +530,63 @@ static FACT_tree_t assignment (FACT_lexed_t *set)
   return ln;
 }
 
+/* is_ident_valid and is_num_valid should both be done in the lexing
+ * phase, but I'm putting them here for now to make things easier to
+ * code.  
+ */
+
+static bool is_ident_valid (char *ident)
+{
+  if (!isalpha (*ident) && *ident != '_')
+    return false;
+
+  for (ident++; *ident != '\0'; ident++) {
+    if (!isalpha (*ident) && *ident != '_' && !isdigit (*ident))
+      return false;
+  }
+
+  return true;
+}
+
+/* This is really kludgy. My bad. It could probably be simplified to
+ * a very large degree but I wrote this after very little sleep.
+ */
+static bool is_num_valid (char *num)
+{
+  bool decimal;
+
+  if (!isdigit (*num) && *num != '.')
+    return false;
+  if (*num == '0' && tolower (*(num + 1)) == 'x') {
+    num += 2;
+    if (!isdigit (*num) && (tolower (*num) < 'a' || tolower (*num) > 'f'))
+      return false;
+    for (num++; *num != '\0'; num++) {
+      if (!isdigit (*num) && (tolower (*num) < 'a' || tolower (*num) > 'f'))
+	return false;
+    }
+    return true;
+  }
+  if (*num == '.') {
+    if (!isdigit (*(num + 1)))
+      return false;
+    decimal = true;
+  } else
+    decimal = false;
+
+  for (num++; *num != '\0'; num++) {
+    if (*num == '.') {
+      if (decimal)
+	return false;
+      decimal = true;
+    } else if (!isdigit (*num))
+      return false;
+  }
+  return true;
+}
+
 FACT_tree_t FACT_parse (FACT_lexed_t *tokens) /* Just an alias for stmt_list. */
 {
   return stmt_list (tokens);
 }
+

@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,10 +56,6 @@ FACT_lexed_t FACT_lex_string (char *start) /* The main lexer routine. */
       continue;
     }
 
-    /* Check for EOI after the newlines. */
-    // if (*end == '\0' )
-    // goto alloc_token;
-
     /* Check for follow up characters. */
     if (follow1 != -1) {
       end++;
@@ -68,11 +64,32 @@ FACT_lexed_t FACT_lex_string (char *start) /* The main lexer routine. */
       goto alloc_token;
     }
 
-    /* Get variable names and numerical values. */
+    /* Get variable names and numerical values. Don't check for
+     * correctness.
+     */
+    if (isalnum (*end) || *end == '_' || *end == '.') {
+      for (end++; isalnum (*end) || *end == '_' || *end == '.'; end++)
+	;
+      goto alloc_token;
+    }
+    /*
+    if (isalpha (*end) || *end == '_') {
+      for (end++; isalnum (*end) || *end == '_'; end++)
+	;
+      goto alloc_token;
+    }
+    if (isdigit (*end) || *end == '.') {
+      for (end++; isdigit (*end) || (tolower (*end) >= 'a' && tolower (*end) <= 'f')
+	     || tolower (*end) == 'x' || *end == '.'; end++)
+	;
+      goto alloc_token;
+    }
+    /*
     if (isalnum (*end) || *end == '_' || *end == '.') {
       for (end++; isalnum (*end) || *end == '_' || *end == '.'; end++);
       goto alloc_token;
     }
+    */
       
     /* Operators and other things. */
     switch (*end) {
@@ -119,11 +136,8 @@ FACT_lexed_t FACT_lex_string (char *start) /* The main lexer routine. */
 
     case '#':
       /* Skip until a newline or nul terminator is reached. */
-      for (end++; *end != '\n' && *end != '\0'; end++);
-      /*
-	if (*end == '\n')
-	end++;
-      */
+      for (end++; *end != '\n' && *end != '\0'; end++)
+	;
       start = end;
       continue;
       
@@ -222,6 +236,7 @@ static const char *tags[] = {
   "function call",      /* E_FUNC_CALL  */
   "array subscription", /* E_ARRAY_ELEM */
   "unary `-'",          /* E_NEG        */
+  "string constant",    /* E_STR_CONST  */
   "end of statement",   /* E_END        */
 };
 
@@ -239,9 +254,12 @@ static FACT_nterm_t get_type (char *token)
       return i;
   }
 
+  return ((isdigit (*token) || *token == '.') ? E_NUM : E_VAR);
+  /*
   return (is_num (token)
 	  ? E_NUM
 	  : E_VAR);
+  */
 }
 
 static bool is_num (char *tok) /* Check if a token is a valid number. */

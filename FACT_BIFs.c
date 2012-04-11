@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ FBIF_DEC (send);
 FBIF_DEC (receive);
 FBIF_DEC (parcels);
 FBIF_DEC (exit);
+FBIF_DEC (load);
 
 static const struct {
   char *name;
@@ -46,6 +47,7 @@ static const struct {
   FBIF (send),
   FBIF (receive),
   FBIF (exit),
+  FBIF (load),
 };
 
 #define NUM_FBIF ((sizeof BIF_list) / (sizeof BIF_list[0]))
@@ -154,6 +156,12 @@ static void FBIF_receive (void) /* Pop the current thread's message queue. */
 static void FBIF_exit (void) /* Exit. */
 {
   exit (mpc_get_si (GET_ARG_NUM ()->value));
+}
+
+static void FBIF_load (void) /* Run a file in the current scope. */
+{
+  FACT_load_file (FACT_natos (GET_ARG_NUM ()));
+  push_constant_ui (0);
 }
 
 static void *get_arg (FACT_type type_of_arg) /* Get an argument. */

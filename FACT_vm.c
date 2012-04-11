@@ -219,8 +219,7 @@ FACT_t *Furlow_register (int reg_number) /* Access a Furlow machine register. */
   return &curr_thread->registers[reg_number];
 }
 
-void *
-Furlow_reg_val (int reg_number, FACT_type des) /* Safely access a register's value. */
+void *Furlow_reg_val (int reg_number, FACT_type des) /* Safely access a register's value. */
 {
   FACT_t *reg;
 
@@ -307,6 +306,7 @@ Furlow_run () /* Run the program until a HALT is reached. */
     ENTRY (TRAP_E),
     ENTRY (USE),
     ENTRY (VAR),
+    ENTRY (VA_ADD),
     ENTRY (XOR)
   };
   
@@ -930,6 +930,29 @@ Furlow_run () /* Run the program until a HALT is reached. */
     {
       /* Load a variable. */
       FACT_get_var (progm[CURR_IP] + 1);
+    }
+    END_SEG ();
+
+    SEG (VA_ADD);
+    {
+      struct FACT_va_list *curr;
+      
+      args[0] = *Furlow_register (progm[CURR_IP][1]);
+      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
+      
+      if (FACT_cast_to_scope (args[1])->variadic == NULL) {
+	curr = FACT_cast_to_scope (args[1])->variadic = FACT_malloc (sizeof (struct FACT_va_list));
+	curr->var = args[0];
+	curr->next = NULL;
+      } else {
+	for (curr = FACT_cast_to_scope (args[1])->variadic;
+	     curr->next != NULL;
+	     curr = curr->next)
+	  ;
+	curr->next = FACT_malloc (sizeof (struct FACT_va_list));
+	curr->next->var = args[0];
+	curr->next->next = NULL;
+      }
     }
     END_SEG ();
 
