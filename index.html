@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>FACT by rookieMP</title>
+    
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>FACT</h1>
+        <p>The FACT (Functions Are Classes Too) Programming Language</p>
+        <p class="view"><a href="https://github.com/rookieMP/FACT">View the Project on GitHub <small>rookieMP/FACT</small></a></p>
+        <ul>
+          <li><a href="https://github.com/rookieMP/FACT/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/rookieMP/FACT/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/rookieMP/FACT">Fork On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h3>What is FACT?</h3>
+
+<p>FACT is a new programming language that is designed to exploit the usefulness of mutable scopes (a.k.a. first class environments) to create a language that is both very simple and yet supports many complex paradigms (such as classes, inheritance, etc). FACT does not have any keywords such as "class" or "method," nor does it have special data types for objects (in the OOP sense that is). Indeed, classes and methods are easy to implement without such keywords, and there are only two data types: scopes and numbers (real numbers of arbitrary precision). </p>
+
+<h3>What does the name "FACT" stand for?</h3>
+
+<p>The name "FACT" stands for "Functions Are Classes Too," an allusion to the language's malleable nature. </p>
+
+<h3>What is FACT good for?</h3>
+
+<p>While it is a Turing complete programming language and theoretically could be used for a whole lot, especially in places where JavaScript is used (the languages are slightly similar). However, as the language is only in its infant stages, it really only excels as an arbitrary precision calculator. In the purely utilitarian sense right now it is essentially BC but nicer. </p>
+
+<h3>Can you give me some sample code?</h3>
+
+<p>Here are three ways to define a recursive factorial function in FACT:</p>
+
+<pre><code># Method one: 
+scope fact1 @ (num n) 
+{
+  if (n &gt; 1) 
+    return n * fact1 (n - 1);
+  return 1;
+}
+# Method two, using the "defunc" keyword:
+defunc fact2 (num n) 
+{
+  if (n &gt; 1) 
+    return n * fact2 (n - 1);
+  return 1;
+} 
+# Method three, using the "defunc" and "this" keyword:
+defunc fact3 (num n) 
+{
+  if (n &gt; 1) 
+    return n * this (n - 1);
+  return 1;
+}
+</code></pre>
+
+<p>FACT also has native support for threading. The following example, taken from the file thread_test.ft, illustrates how threading is done safely through message passing.</p>
+
+<pre><code># "${" runs its body in a new thread and returns the ID number of the new thread
+num thread_1 = ${
+  while (1) {
+    scope m = receive ();
+    if (m:message == "exit") {
+      print ("exit signal received by thread ");
+      print (m:sender);
+      break;
+    }
+    print ('Message "');
+    print (m:message);
+    print ('" received from thread ');
+    print (m:sender);
+  }
+  print ("Thread 1 exiting now.\n");
+  send (0, "done");
+};
+
+send (thread_1, "Hello there!");
+send (thread_1, "Im glad this works!");
+send (thread_1, "now lets complicate things even further...");
+
+num thread_2 = ${
+  # Wait for a message of a thread id, and then send a message to that thread.
+  while (1) {
+    scope m = receive ();
+    send (m:message, "exit");
+    break;
+  }
+  print ("Thread 2 exiting now.\n");
+};
+
+send (thread_1, "are you ready thread 1? Actually I dont care!");
+send (thread_2, thread_1);
+send (thread_1, "and we're done!");
+
+receive ();
+
+print ("and that's the show folks!\n");
+</code></pre>
+
+<h3>Authors and Contributors</h3>
+
+<p>FACT is written by Matthew Plant (<a href="https://github.com/rookieMP" class="user-mention">@rookieMP</a>). You can contact me via my email, rookie dot mp at gmail dot com. If you have any questions about FACT <strong>at all</strong>, feel free to contact me.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/rookieMP">rookieMP</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
