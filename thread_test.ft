@@ -1,24 +1,17 @@
 num thread_1 = ${
-  defunc print (num str) # Print a string. 
-  {
-    for (num i; i < size (str); i += 1)
-      putchar (str[i]);
-  }
-  while (1)
-  {
+  while (1) {
     scope m = receive ();
-    if (m:message == "exit")
-    {
+    if (m:message == "exit") {
       print ("exit signal received by thread ");
-      print_n (m:sender);
+      print (m:sender);
       break;
     }
-    print ("Message `");
+    print ('Message "');
     print (m:message);
-    print ("` received from thread ");
-    print_n (m:sender); # print_n is a BIF so it can be used in this scope. 
+    print ('" received from thread ');
+    print (m:sender);
   }
-  print ("Thread 1, dead.\n");
+  print ("Thread 1 exiting now.\n");
   send (0, "done");
 };
 
@@ -27,19 +20,13 @@ send (thread_1, "Im glad this works!");
 send (thread_1, "now lets complicate things even further...");
 
 num thread_2 = ${
-  defunc print (num str) # Print a string.  
-  {
-    for (num i; i < size (str); i += 1)
-      putchar (str[i]);
-  }
   # Wait for a message of a thread id, and then send a message to that thread.
-  while (1)
-  {
+  while (1) {
     scope m = receive ();
     send (m:message, "exit");
     break;
   }
-  print ("Thread 2, dead.\n");
+  print ("Thread 2 exiting now.\n");
 };
 
 send (thread_1, "are you ready thread 1? Actually I dont care!");
@@ -48,4 +35,4 @@ send (thread_1, "and we're done!");
 
 receive ();
 
-std:print ("and that's the show folks!\n");
+print ("and that's the show folks!\n");

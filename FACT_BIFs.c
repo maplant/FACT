@@ -23,8 +23,8 @@
 static void *get_arg (FACT_type);
 
 FBIF_DEC (floor);
-FBIF_DEC (print_n);
-FBIF_DEC (putchar);
+FBIF_DEC (print);
+FBIF_DEC (str);
 FBIF_DEC (size);
 FBIF_DEC (error);
 FBIF_DEC (throw);
@@ -39,8 +39,8 @@ static const struct {
   void (*phys)(void);
 } BIF_list[] = {
   FBIF (floor),
-  FBIF (print_n),
-  FBIF (putchar),
+  FBIF (print),
+  FBIF (str),
   FBIF (size),
   FBIF (error),
   FBIF (throw),
@@ -69,12 +69,6 @@ void FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope.
   /* Well that was pretty easy. */
 }
 
-static void FBIF_putchar (void)
-{
-  putchar (mpc_get_si (GET_ARG_NUM ()->value));
-  push_constant_ui (0);
-}
-
 static void FBIF_floor (void) /* Round a variable down. */
 {
   FACT_t push_val;
@@ -95,10 +89,29 @@ static void FBIF_floor (void) /* Round a variable down. */
   push_v (push_val);
 }
 
-static void FBIF_print_n (void) /* Print a number. */
+static void FBIF_print (void) /* Print an ASCII string or numerical value. */
 {
-  printf ("%s\n", mpc_get_str (GET_ARG_NUM ()->value));
-  push_constant_ui (0);
+  int len;
+  FACT_num_t arg;
+
+  arg = GET_ARG_NUM ();
+  /* If the argument is an array, print it as a string. Otherwise, print the
+   * numerical value.
+   */
+  if (arg->array_size == 0) /* Print a newline, as it is a number */
+    len = printf ("%s\n", mpc_get_str (arg->value)) - 1;
+  else
+    len = printf ("%s", FACT_natos (arg));
+  push_constant_ui (len);
+}
+
+static void FBIF_str (void) /* Convert a number to a string. */
+{
+  FACT_t push_val;
+
+  push_val.type = NUM_TYPE;
+  push_val.ap = FACT_stona (mpc_get_str (GET_ARG_NUM ()->value)); 
+  push_v (push_val);
 }
 
 static void FBIF_size (void) /* Return the size of an array. */

@@ -22,12 +22,14 @@ char *FACT_natos (FACT_num_t arr) /* Number array to string. */
   char *res;
 
   if (arr->array_size == 0) {
-    res = FACT_malloc_atomic (1);
+    res = FACT_malloc_atomic (2);
     *res = (char) mpc_get_si (arr->value);
+    *(res + 1) = '\0';
   } else {
-    res = FACT_malloc_atomic (arr->array_size);
+    res = FACT_malloc_atomic (arr->array_size + 1);
     for (i = 0; i < arr->array_size; i++)
       res[i] = (char) mpc_get_si (arr->array_up[i]->value);
+    res[i] = '\0';
   }
 
   return res;

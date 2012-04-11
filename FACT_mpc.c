@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACTx.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,8 +65,7 @@ void mpc_set_si (mpc_t rop, signed long op)
   mpz_set_si (rop->value, op);
 }
 
-static unsigned int
-get_prec (char *val)
+static unsigned int get_prec (char *val)
 {
   unsigned int i;
   
