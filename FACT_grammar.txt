@@ -154,6 +154,10 @@ else_clause ->   "else" stmt
 catch_stmt ->   "catch" stmt "handle" stmt
               ;
 
+const_dec ->   "const" VAR "=" assignment
+             | "const" VAR "(" func_opt_arg_dec ")" "{" stmt_list "}"
+	     ;
+
 VAR ->   [a-zA-Z_]([a-zA-Z_]|[0-9])*
        ;
 

@@ -25,16 +25,22 @@ FACT_num_t FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable
   size_t i;
   FACT_t new;
   FACT_t *check;
-  
+
+  if (curr->lock_stat != UNLOCKED)
+    FACT_throw_error (curr, "variables may not be defined in a locked scope");
+
   /* Check if the variable already exists. */
-  check = FACT_find_in_table (*curr->vars, name);
+  check = FACT_find_in_table (curr->vars, name);
   
   if (check != NULL) { /* The variable already exists. */
     if (check->type == NUM_TYPE) {
       /* It already exists as a number, clear and return it. */
       FACT_num_t temp;
-      
+
       temp = check->ap;
+      if (temp->locked)
+	FACT_throw_error (curr, "num %s already exists and is locked", name);
+
       mpc_set_ui (temp->value, 0);
 
       for (i = 0; i < temp->array_size; i++)
@@ -45,42 +51,14 @@ FACT_num_t FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable
       temp->array_size = 0;
       return temp;
     } else /* If it's already a scope, however, just throw an error. */
-      FACT_throw_error (curr, "local scope %s already exists; use \"del\" before redefining", name);
+      FACT_throw_error (curr, "local scope %s already exists", name);
   }
 
   new.ap = FACT_alloc_num ();
   new.type = NUM_TYPE;
   ((FACT_num_t) new.ap)->name = name;
-  FACT_add_to_table (*curr->vars, new);
-  return new.ap;
-  
-  /* Reallocate the var table and add the variable. */
-  /*
-  *curr->var_table = FACT_realloc (*curr->var_table, sizeof (FACT_t) * (*curr->num_vars + 1));
-  (*curr->var_table)[*curr->num_vars].ap = FACT_alloc_num ();
-  (*curr->var_table)[*curr->num_vars].type = NUM_TYPE;
-  ((FACT_num_t) (*curr->var_table)[*curr->num_vars].ap)->name = name;
-  */
-
-
-  /* Move the var its correct alphanumerical position. */
-		       /*
-  for (i = (*curr->num_vars)++; i > 0; i--)
-    {
-      if (strcmp (FACT_var_name ((*curr->var_table)[i - 1]), name) > 0)
-	{
-	  FACT_t hold;
-	  
-	  hold = (*curr->var_table)[i - 1];
-	  (*curr->var_table)[i - 1] = (*curr->var_table)[i];
-	  (*curr->var_table)[i] = hold;
-	}
-      else
-	break;
-    }
-
-  return (*curr->var_table)[i].ap;
-		       */
+  FACT_add_to_table (curr->vars, new);
+  return new.ap;  
 }
 
 void FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous number variable. */
@@ -258,7 +236,16 @@ void FACT_append_num (FACT_num_t op1, FACT_num_t op2)
     }
   */
 }
-  
+
+void FACT_lock_num (FACT_num_t root)
+{
+  size_t i;
+
+  root->locked = true;
+  for (i = 0; i < root->array_size; i++)
+    FACT_lock_num (root->array_up[i]);
+}
+
 static FACT_num_t *make_num_array (char *name, size_t dims, size_t *dim_sizes, size_t curr_dim)
 {
   size_t i;

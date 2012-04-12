@@ -122,10 +122,10 @@ FACT_scope_t FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   temp->marked = FACT_malloc_atomic (sizeof (bool));
   temp->array_size = FACT_malloc_atomic (sizeof (size_t));
   temp->code = FACT_malloc_atomic (sizeof (size_t));
-  temp->vars = FACT_malloc (sizeof (FACT_table_t *));
+  temp->vars = FACT_malloc (sizeof (FACT_table_t ));
   temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
   temp->name = "lambda";
-  *temp->vars = FACT_malloc (sizeof (FACT_table_t));
+  temp->lock_stat = UNLOCKED;
   
   /* Initialize the memory, if we need to. */
 #ifndef USE_GC

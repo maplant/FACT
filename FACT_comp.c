@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -384,15 +384,15 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     /* Compile the function being called. */
     set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
     /* Set the up variable of the lambda scope to it. */
-    add_instruction (res, REF, reg_arg (R_POP), reg_arg (R_A), ignore ());
-    add_instruction (res, USE, reg_arg (R_POP), ignore (), ignore ()); /* Briefly enter the scope to do so. */
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
-    add_instruction (res, DEF_S, reg_arg (R_POP), str_arg ("up"), ignore ());
-    add_instruction (res, STO, reg_arg (R_A), reg_arg (R_POP), ignore ());
-    add_instruction (res, EXIT, ignore (), ignore (), ignore ());
-    add_instruction (res, SET_F, reg_arg (R_A), reg_arg (R_TOP), ignore ()); /* Set the lambda scope's code address and call it. */
-    add_instruction (res, SET_N, reg_arg (R_A), reg_arg (R_TOP), ignore ()); /* Change the lambda scope's name to the function being called. */
-    add_instruction (res, CALL, reg_arg (R_POP), ignore (), ignore ());
+    add_instruction (res, REF  , reg_arg (R_POP), reg_arg (R_A)  , ignore ());
+    add_instruction (res, USE  , reg_arg (R_POP), ignore ()      , ignore ()); /* Briefly enter the scope to do so. */
+    add_instruction (res, CONST, str_arg ("0")  , ignore ()      , ignore ());
+    add_instruction (res, DEF_S, reg_arg (R_POP), str_arg ("up") , ignore ());
+    add_instruction (res, STO  , reg_arg (R_A)  , reg_arg (R_POP), ignore ());
+    add_instruction (res, EXIT , ignore ()      , ignore ()      , ignore ());
+    add_instruction (res, SET_F, reg_arg (R_A)  , reg_arg (R_TOP), ignore ()); /* Set the lambda scope's code address and call it. */
+    add_instruction (res, NAME , reg_arg (R_A)  , reg_arg (R_TOP), ignore ()); /* Change the lambda scope's name to the function being called. */
+    add_instruction (res, CALL , reg_arg (R_POP), ignore ()      , ignore ());
     break;
 
   case E_FUNC_DEF:
@@ -476,7 +476,6 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
     add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_TOP), ignore ());
     break;
-
       
   case E_NUM_DEF:
   case E_SCOPE_DEF:
@@ -515,7 +514,31 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     }
     add_instruction (res, curr->id.id == E_NUM_DEF ? DEF_N : DEF_S,
 		     reg_arg (R_POP), str_arg (curr->children[1]->id.lexem), ignore ());
-    break;  
+    break;
+
+  case E_CONST:
+    res->node_type = GROUPING;
+
+    if (curr->children[1] != NULL && curr->children[1]->id.id == E_SET) {
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
+      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, NEW_N, reg_arg (R_POP), ignore (), ignore ());
+      set_child (res, compile_tree (curr->children[2], 0, 0, set_rx));
+      add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_TOP), ignore ());
+    } else {
+      res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 10);
+      add_instruction (res, JMP, addr_arg (4), ignore (), ignore ());
+      set_child (res, compile_args (curr->children[1]));
+      set_child (res, compile_tree (curr->children[2], 1, 0, set_rx));
+      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, RET, ignore (), ignore (), ignore ());
+      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, NEW_S, reg_arg (R_POP), ignore (), ignore ());
+      add_instruction (res, SET_C, reg_arg (R_TOP), addr_arg (1), ignore ());
+    }
+    add_instruction (res, LOCK, reg_arg (R_TOP), ignore (), ignore ());
+    add_instruction (res, GLOBAL, reg_arg (R_TOP), str_arg (curr->children[0]->id.lexem), ignore ());      
+    break;
 
   case E_IF:
     res->node_type = GROUPING;

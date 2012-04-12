@@ -56,6 +56,7 @@ typedef enum {
   E_FUNC_DEF,
   E_BREAK,
   E_CATCH,
+  E_CONST,
   E_DEFUNC,
   E_ELSE,
   E_FOR,

@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 #ifndef FACT_BIFS_H_
 #define FACT_BIFS_H_
 
-void FACT_add_BIFs (FACT_scope_t);
+void FACT_add_BIFs (void);
+bool FACT_is_BIF (void *);
 
 #endif /* FACT_BIFS_H_ */

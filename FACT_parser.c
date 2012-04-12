@@ -198,7 +198,64 @@ static FACT_tree_t stmt_list (FACT_lexed_t *set)
   }
   return pn;
 }
- 
+
+static FACT_tree_t top_stmt_list (FACT_lexed_t *set)
+{
+  FACT_tree_t hold;
+  FACT_tree_t an, pn;
+
+  if ((pn = accept (set, E_CONST)) != NULL) { /* Constant declaration. */
+    pn->children[0] = expect (set, E_VAR);
+    if (!check (set, E_OP_PAREN) && !check (set, E_SET))
+      error (set, "expected \"=\" or \"(\" after constant declaration");
+    if ((pn->children[1] = accept (set, E_SET)) != NULL) {
+      /* Number constant. */
+      pn->children[2] = assignment (set);
+      pn->next = expect (set, E_SEMI);
+    } else {
+      /* Constant function. */
+      expect (set, E_OP_PAREN);
+      if ((an = accept (set, E_NUM_DEF)) != NULL
+	  || (an = accept (set, E_SCOPE_DEF)) != NULL
+	  || (an = accept (set, E_LOCAL_CHECK)) != NULL) {
+	an->children[0] = expect (set, E_VAR);
+	hold = an;
+	while (accept (set, E_COMMA) != NULL) {
+	  if ((an = accept (set, E_NUM_DEF)) == NULL
+	      && (an = accept (set, E_SCOPE_DEF)) == NULL
+	      && (an = accept (set, E_LOCAL_CHECK)) == NULL)
+	    error (set, "expected num, scope, or ? token after comma");
+	  an->children[0] = expect (set, E_VAR);      
+	  an->children[1] = hold;
+	  hold = an;
+	}
+      }
+
+      expect (set, E_CL_PAREN);
+      expect (set, E_OP_CURL);
+      pn->children[1] = an;
+
+      if (!check (set, E_CL_CURL))
+	pn->children[2] = stmt_list (set);
+  
+      expect (set, E_CL_CURL);
+      pn->next = FACT_malloc (sizeof (struct FACT_tree));
+      memset (pn->next, 0, sizeof (struct FACT_tree));
+      pn->next->id.id = E_SEMI;
+    }
+  } else
+    pn = stmt (set);
+
+  if (!check (set, E_END)
+      && !check (set, E_CL_CURL)) {
+    if (pn->next != NULL)
+      pn->next->next = top_stmt_list (set);
+    else
+      pn->next = top_stmt_list (set);
+  }
+  return pn;
+}
+
 static FACT_tree_t func_dec (FACT_lexed_t *set, bool imp_scope_dec)
 {
   FACT_tree_t an, pn;
@@ -585,8 +642,8 @@ static bool is_num_valid (char *num)
   return true;
 }
 
-FACT_tree_t FACT_parse (FACT_lexed_t *tokens) /* Just an alias for stmt_list. */
+FACT_tree_t FACT_parse (FACT_lexed_t *tokens) /* Just an alias for top_stmt_list. */
 {
-  return stmt_list (tokens);
+  return top_stmt_list (tokens);
 }
 

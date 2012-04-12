@@ -82,7 +82,7 @@ main (int argc, char **argv)
   /* Initialize the virtual machine. */
   Furlow_init_vm ();
   FACT_init_interrupt ();
-  FACT_add_BIFs (CURR_THIS);
+  FACT_add_BIFs ();
 
   q_size = 0;
   file_queue = NULL;
@@ -249,8 +249,10 @@ main (int argc, char **argv)
     fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
     while (curr_thread->cstackp - curr_thread->cstack >= 0) {
       frame = pop_c ();
-      /* Add some line numbers and stuff here eventually. Maybe up scope? */
-      fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
+      if (FACT_is_BIF (frame.this->extrn_func))
+	fprintf (stderr, "\tat built-in function %s\n", frame.this->name);
+      else
+	fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
     }
     /* Exit unsuccessully. */
     exit (1);
@@ -262,37 +264,31 @@ main (int argc, char **argv)
     stdlib_path = getenv ("FACTPATH");
     if (FACT_load_file ((stdlib_path == NULL) ? FACT_STDLIB_PATH : stdlib_path) == -1)
       goto exit;
-    /* ... */
   }
 
   /* Go through every file in the queue and run them. */
   for (i = 0; i < q_size; i++) {
     if (FACT_load_file (file_queue[i]) == -1)
       goto exit; /* There was an error. */
-    /*
-      if (res.type == ERROR_TYPE)
-      FACT_print_error (res.error);
-    */
   }
 
-  /* Start the shell, if it's desired. */
-  /* ... */
-  if (shell_on)
+  if (shell_on) {
+    if (load_stdlib || q_size > 0)
+      Furlow_run ();
     FACT_shell ();
-  else {      
-    /* Disassemble the VM's code if desired. */
-    if (disasm) {
-      printf ("---- BEGIN DISASSEMBLAGE ----\n");
-      Furlow_disassemble ();
-      printf ("---- END   DISASSEMBLAGE ----\n");
-    }
+  } else      
     Furlow_run ();
-  }
   
  exit:
   /* Clean up and exit. */
   if (file_queue != NULL)
     FACT_free (file_queue);
+
+  if (disasm) {
+    printf ("\n---- BEGIN DISASSEMBLAGE ----\n");
+    Furlow_disassemble ();
+    printf ("----- END DISASSEMBLAGE -----\n");
+  }
   
   exit (0);
 }

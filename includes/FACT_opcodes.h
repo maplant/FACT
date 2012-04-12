@@ -38,6 +38,7 @@ typedef enum Furlow_opcode {
   DUP,     /* Duplicate the first element on the var stack.  */ 
   ELEM,    /* Get the element of an array.                   */
   EXIT,    /* Like ret, except the ip is left unchanged.     */
+  GLOBAL,  /* Make a variable global.                        */
   GOTO,    /* Jump to a function but do not push.            */
   GROUP,   /* Group elements on the var stack into an array. */
   HALT,    /* Halt execution.                                */
@@ -52,8 +53,10 @@ typedef enum Furlow_opcode {
   JIS,     /* Jump on type `scope'.                          */
   JIT,     /* Jump on true.                                  */
   LAMBDA,  /* Push a lambda scope to the stack.              */
+  LOCK,    /* Make a variable immutable.                     */
   MOD,     /* Modulo.                                        */
   MUL,     /* Multiplication.                                */
+  NAME,    /* Set the name of a scope.                       */
   NEG,     /* Negative.                                      */
   NEW_N,   /* Allocate a num and push it to the var stack.   */
   NEW_S,   /* Allocate a scope and push it to the var stack. */
@@ -63,7 +66,6 @@ typedef enum Furlow_opcode {
   RET,     /* Pop the call stack.                            */
   SET_C,   /* Set the jump address of a function.            */
   SET_F,   /* Set the function data of a scope.              */
-  SET_N,   /* Set the name of a scope.                       */    
   SPRT,    /* Create a new thread and unconditionally jump.  */    
   STO,     /* Copy one var to the other.                     */
   SUB,     /* Subraction.                                    */    
@@ -105,6 +107,7 @@ static struct {
   { "dup"     , DUP     , ""    },
   { "elem"    , ELEM    , "rr"  },
   { "exit"    , EXIT    , ""    },
+  { "global"  , GLOBAL  , "rs"  },
   { "goto"    , GOTO    , "r"   },
   { "group"   , GROUP   , "r"   },
   { "halt"    , HALT    , ""    },
@@ -119,8 +122,10 @@ static struct {
   { "jis"     , JIS     , "ra"  },
   { "jit"     , JIT     , "ra"  },
   { "lambda"  , LAMBDA  , ""    },
+  { "lock"    , LOCK    , "r"   },
   { "mod"     , MOD     , "rrr" },
   { "mul"     , MUL     , "rrr" },
+  { "name"    , NAME    , "rr"  },
   { "neg"     , NEG     , "r"   },
   { "new_n"   , NEW_N   , "r"   },
   { "new_s"   , NEW_S   , "r"   },
@@ -130,7 +135,6 @@ static struct {
   { "ret"     , RET     , ""    },
   { "set_c"   , SET_C   , "ra"  },
   { "set_f"   , SET_F   , "rr"  },
-  { "set_n"   , SET_N   , "rr"  },
   { "sprt"    , SPRT    , "a"   },
   { "sto"     , STO     , "rr"  },
   { "sub"     , SUB     , "rrr" },
@@ -140,6 +144,7 @@ static struct {
   { "trap_e"  , TRAP_E  , ""    },
   { "use"     , USE     , "r"   },
   { "var"     , VAR     , "s"   },
+  { "va_add"  , VA_ADD  , "rr"  },
   { "xor"     , XOR     , "rrr" },
 };
 

@@ -21,21 +21,26 @@ static FACT_scope_t *make_scope_array (char *, size_t, size_t *, size_t);
 FACT_scope_t FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope. */
 {
   size_t i;
+  int pstat;
   char *hold_name;
   FACT_t new;
   FACT_t *check;
   FACT_scope_t up;
 
+  if (curr->lock_stat != UNLOCKED)
+    FACT_throw_error (curr, "variables may not be defined in a locked scope");
+  
   /* Check if the scope already exists. */
-  check = FACT_find_in_table (*curr->vars, name);
-  //  check = FACT_get_local (curr, name);
+  check = FACT_find_in_table (curr->vars, name);
   
   if (check != NULL) { /* It already exists. */
     if (check->type == SCOPE_TYPE) {
       /* If it does, reset the scope. Do not free any data. */
       FACT_scope_t temp;
-      temp = check->ap;
-      
+
+      temp = check->ap;      
+      if (temp->lock_stat == HARD_LOCK)
+	FACT_throw_error (curr, "scope %s already defined and is locked", name);      
       hold_name = temp->name;
       memset (check->ap, 0, sizeof (struct FACT_scope));
       
@@ -43,12 +48,9 @@ FACT_scope_t FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope
       temp->marked = FACT_malloc_atomic (sizeof (bool));
       temp->array_size = FACT_malloc_atomic (sizeof (size_t));
       temp->code = FACT_malloc_atomic (sizeof (size_t));
-      temp->vars = FACT_malloc (sizeof (FACT_table_t *));
-      *temp->vars = FACT_malloc (sizeof (FACT_table_t));
-      // temp->var_table = FACT_malloc (sizeof (FACT_t *));
-      //      temp->num_vars = FACT_malloc_atomic (sizeof (size_t));
+      temp->vars = FACT_malloc (sizeof (FACT_table_t));
       temp->array_up = FACT_malloc (sizeof (FACT_scope_t **));
-      
+      temp->lock_stat = UNLOCKED;
       temp->name = hold_name;
       
       /* Initialize the memory, if we need to. */
@@ -56,8 +58,6 @@ FACT_scope_t FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope
       *temp->array_size = 0;
       *temp->code = 0;
       *temp->marked = false;
-      //      *temp->var_table = NULL;
-      //      *temp->num_vars = 0;
       temp->extrn_func = NULL;
       temp->caller = NULL;
       *temp->array_up = NULL;
@@ -74,39 +74,14 @@ FACT_scope_t FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope
       
       return temp;
     } else /* It's already a number. Through an error. */ 
-      FACT_throw_error (curr, "local variable %s already exists; use \"del\" before redefining", name);
+      FACT_throw_error (curr, "local number %s already defined", name);
   }
 
   new.ap = FACT_alloc_scope ();
   new.type = SCOPE_TYPE;
   ((FACT_scope_t) new.ap)->name = name;
-  FACT_add_to_table (*curr->vars, new);
+  FACT_add_to_table (curr->vars, new);
   
-  /* Reallocate the var table and add the variable. */
-  /*
-  *curr->var_table = FACT_realloc (*curr->var_table, sizeof (FACT_t) * (*curr->num_vars + 1));
-  (*curr->var_table)[*curr->num_vars].ap = FACT_alloc_scope ();
-  (*curr->var_table)[*curr->num_vars].type = SCOPE_TYPE;
-  ((FACT_scope_t) (*curr->var_table)[*curr->num_vars].ap)->name = name;
-  */
-
-  /* Move the var to its correct alphanumerical position. */
-  /*
-  for (i = (*curr->num_vars)++; i > 0; i--)
-    {
-      if (strcmp (FACT_var_name ((*curr->var_table)[i - 1]), name) > 0)
-      {
-	  FACT_t hold;
-	  
-	  hold = (*curr->var_table)[i - 1];
-	  (*curr->var_table)[i - 1] = (*curr->var_table)[i];
-	  (*curr->var_table)[i] = hold;
-	}
-      else
-	break;
-    }
-  */
-
   /* Add the "up" scope here, unless we are already in the process of doing so. */
   if (strcmp (name, "up")) {
     up = FACT_add_scope (new.ap, "up");

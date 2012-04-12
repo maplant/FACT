@@ -29,4 +29,6 @@ int FACT_compare_num (FACT_num_t, FACT_num_t);
 
 void FACT_append_num (FACT_num_t, FACT_num_t);
 
+void FACT_lock_num (FACT_num_t);
+
 #endif /* FACT_NUM_H_ */

@@ -98,6 +98,9 @@ extern __thread FACT_thread_t curr_thread; /* Data specific to a thread. */
 extern __thread jmp_buf handle_err; /* Handles thrown errors. */ 
 extern __thread jmp_buf recover;    /* When no traps are set. */
 
+/* Global variables: */
+extern FACT_table_t Furlow_globals;
+
 #define THIS_OF(t) (t)->cstackp->this
 #define IP_OF(t)   (t)->cstackp->ip
 #define CURR_THIS  curr_thread->cstackp->this

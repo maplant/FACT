@@ -16,65 +16,36 @@
 
 #include <FACT.h>
 
-/**
- * FACT_get_local:
- * The following is adapted from the infamous Berkeley C library
- * bsearch function. It should be faster than the previous version.
- * The only thing that I will note is that: yes, I do know what a
- * register is and I'm not using the directive simply because it's
- * used in the original version.
- */
-
-/*
-FACT_t *FACT_get_local (FACT_scope_t env, char *name) 
-{
-  register int res;
-  register size_t lim;
-  register FACT_t *base, *p;
-
-  base = *env->var_table;
-
-  for (lim = *env->num_vars; lim != 0; lim >>= 1) {
-    p = base + (lim >> 1);
-    res = strcmp (name, FACT_var_name (*p));
-    
-    if (res == 0)
-      return p;
-    if (res > 0) {
-      base = p + 1;
-      lim--;
-    }
-  }
-
-  return NULL;
-}
-*/
-
 FACT_t *FACT_get_local (FACT_scope_t env, char *name)
 {
-  return FACT_find_in_table (*env->vars, name);
+  return FACT_find_in_table (env->vars, name);
 }
 
+/* Lexically global - not thread global. */
 FACT_t *FACT_get_global (FACT_scope_t env, char *name)
 {
   FACT_t *res;
-
+  
   if (env != NULL && !*env->marked) { /* Make sure that env isn't marked */
     /* Search for the variable. */
-    // res = FACT_find_in_buckets (*env->vars, name);
     res = FACT_get_local (env, name);
     
-    if (res == NULL) { /* No such variable exists in this scope. */
-      /* Mark the current environment and search the next scope up. */
-      *env->marked = true;
-      res = FACT_get_global (env->up, name);
-      /* Unmark the scope and return. */
-      *env->marked = false;	  
+    if (res == NULL) {
+      if (env->lock_stat == UNLOCKED) { /* No such variable exists in this scope. */
+	/* Mark the current environment and search the next scope up. */
+	*env->marked = true;
+	res = FACT_get_global (env->up, name);
+	/* Unmark the scope and return. */
+	*env->marked = false;  
+      } else /* Locked scopes cannot use variables not declared in themselves. */
+	goto check_globals;
     }
     return res;
   }
-  
-  return NULL;
+
+ check_globals:
+  /* As a last ditch effort, try the global variables table. */
+  return FACT_find_in_table (&Furlow_globals, name);
 }
 
 void FACT_get_var (char *name) /* Search all relevent scopes for a variable and push it to the stack. */

@@ -216,6 +216,7 @@ static const char *tags[] = {
   "@",
   "break",
   "catch",
+  "const", 
   "defunc",
   "else",
   "for",

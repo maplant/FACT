@@ -55,18 +55,36 @@ static const struct {
 #define GET_ARG_NUM() ((FACT_num_t) get_arg (NUM_TYPE))
 #define GET_ARG_SCOPE() ((FACT_scope_t) get_arg (SCOPE_TYPE))
 
-void FACT_add_BIFs (FACT_scope_t curr) /* Add the built-in functions to a scope. */
+void FACT_add_BIFs (void) /* Add the built-in functions to the global table. */
 {
   int i;
+  FACT_t tvar;
   FACT_scope_t temp;
 
+  tvar.type = SCOPE_TYPE;
+  
   /* Add each of the functions. */
   for (i = 0; i < NUM_FBIF; i++) {
-    temp = FACT_add_scope (curr, BIF_list[i].name);
+    temp = FACT_alloc_scope ();
+    temp->name = BIF_list[i].name;
+    temp->lock_stat = HARD_LOCK;
     temp->extrn_func = BIF_list[i].phys;
+    tvar.ap = temp;
+    FACT_add_to_table (&Furlow_globals, tvar);
   }
 
   /* Well that was pretty easy. */
+}
+
+bool FACT_is_BIF (void *func_addr)
+{
+  int i;
+
+  for (i = 0; i < NUM_FBIF; i++) {
+    if (BIF_list[i].phys == func_addr)
+      return true;
+  }
+  return false;
 }
 
 static void FBIF_floor (void) /* Round a variable down. */
@@ -142,7 +160,7 @@ static void FBIF_throw (void) /* Throw an error. */
   FACT_num_t msg;
 
   msg = GET_ARG_NUM ();
-  FACT_throw_error (CURR_THIS, FACT_natos (msg)); /* Should probably use "caller" instead. */
+  FACT_throw_error (CURR_THIS->caller, FACT_natos (msg)); 
 }
 
 static void FBIF_send (void) /* Send a message to a thread. */

@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,39 +18,33 @@
 
 /* Structure to map instruction address to files and line numbers. */
 static size_t num_maps = 0;
-struct map
-{
+struct map {
   size_t line;
   const char *file_name;
 } *addr_map = NULL;
-const struct map NO_MAP =
-  {
-    .line = 0,        /* Line cannot be 0 in any other context. */
-    .file_name = NULL /* Same goes for file_name.               */
-  };
+const struct map NO_MAP = {
+  .line = 0,        /* Line cannot be 0 in any other context. */
+  .file_name = NULL /* Same goes for file_name.               */
+};
 
-int
-FACT_add_line (const char *file, size_t line, size_t addr) /* Map an address to line number and file name. */ 
+int FACT_add_line (const char *file, size_t line, size_t addr) /* Map an address to line number and file name. */ 
 {
   size_t i;
   
   /* If the addr was already mapped, re-map it. */
-  if (addr < num_maps)
-    {
-      addr_map[addr].line = line;
-      addr_map[addr].file_name = file;
-      return -1; /* return -1 on re-map. */
-    }
+  if (addr < num_maps) {
+    addr_map[addr].line = line;
+    addr_map[addr].file_name = file;
+    return -1; /* return -1 on re-map. */
+  }
 
   /* Allocate or Reallocate the addr_map. */
-  if (num_maps == 0)
-    {
-      addr_map = FACT_malloc (sizeof (struct map) * (addr + 1));
-      num_maps = 1;
-    }
-  else
+  if (num_maps == 0) {
+    addr_map = FACT_malloc (sizeof (struct map) * (addr + 1));
+    num_maps = 1;
+  } else
     addr_map = FACT_realloc (addr_map, sizeof (struct map) * (addr + 1));
-
+  
   /* Set the new mapping. */
   addr_map[addr].line = line;
   addr_map[addr].file_name = file;
@@ -63,8 +57,7 @@ FACT_add_line (const char *file, size_t line, size_t addr) /* Map an address to 
   return 0; /* Return 0 on success. */
 }
 
-size_t
-FACT_get_line (size_t addr) /* Get a line number from an address. */
+size_t FACT_get_line (size_t addr) /* Get a line number from an address. */
 {
   if (addr >= num_maps)
     return 0; /* Return 0 on error. */
@@ -75,8 +68,7 @@ FACT_get_line (size_t addr) /* Get a line number from an address. */
   return addr_map[addr].line;
 }
 
-const char *
-FACT_get_file (size_t addr) /* Get a file name from an address. */
+const char *FACT_get_file (size_t addr) /* Get a file name from an address. */
 {
   if (addr >= num_maps)
     return NULL; /* Return NULL on error. */
@@ -89,8 +81,7 @@ FACT_get_file (size_t addr) /* Get a file name from an address. */
 	  : addr_map[addr].file_name);
 }
 
-void
-FACT_throw_error (FACT_scope_t scope, const char *fmt, ...)
+void FACT_throw_error (FACT_scope_t scope, const char *fmt, ...)
 /* Set curr_err and long jump back to the error handler. */
 {
   char *buff;
@@ -99,7 +90,7 @@ FACT_throw_error (FACT_scope_t scope, const char *fmt, ...)
 
   /* Allocate the buffer. Make sure to free it later. */
   buff = FACT_malloc_atomic (MAX_ERR_LEN + 1);
-
+  
   /* Get the formatted string. */
   va_start (args, fmt);
   vsnprintf (buff, MAX_ERR_LEN, fmt, args);

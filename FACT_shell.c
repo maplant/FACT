@@ -209,7 +209,7 @@ void FACT_shell (void)
   last_ip = 0;
 
   /* Print out some info and then set up the prompt. */
-  printf ("Furlow VM version %s\n", FACT_VERSION);
+  printf ("FACT version %s\n", FACT_VERSION);
 
   el = el_init ("/usr/bin/FACT", stdin, stdout, stderr);
   el_set (el, EL_PROMPT, &shell_prompt);
@@ -221,7 +221,10 @@ void FACT_shell (void)
     fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
     while (curr_thread->cstackp - curr_thread->cstack >= 0) {
       frame = pop_c ();
-      fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
+      if (FACT_is_BIF (frame.this->extrn_func))
+	fprintf (stderr, "\tat built-in function %s\n", frame.this->name);
+      else
+	fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
     }
     
     /* Push the main scope back on an move the ip two forward. Then, reset the
@@ -230,7 +233,7 @@ void FACT_shell (void)
     push_c (last_ip, frame.this);
     goto reset_error;
   }
-  
+   
   for (;;) { /* This can be simplified a lot I think. */
     new_stmt = true;
     input = NULL;
@@ -320,33 +323,15 @@ static void print_scope (FACT_scope_t val)
   
   if (*val->array_up != NULL) {
     printf (" [");
-    for (i = 0; i < *val->array_size; i++)
-      {
-	if (i)
-	  printf (", ");
-	print_scope ((*val->array_up)[i]);
-      }
+    for (i = 0; i < *val->array_size; i++) {
+      if (i)
+	printf (", ");
+      print_scope ((*val->array_up)[i]);
+    }
     printf (" ]");
   } else {
-    printf ("{ %s: ", val->name);
-    FACT_table_digest (*val->vars);
+    printf ("{ %s%s ", val->name, ((val->vars->total_num_vars == 0) ? "\0" : ":"));
+    FACT_table_digest (val->vars);
     printf ("}");
-    /*
-    printf (" { %s%s", val->name, *val->num_vars > 0 ? ":" : "");
-    *val->marked = true;
-    for (i = 0; i < *val->num_vars; i++)
-      {
-	if ((*val->var_table)[i].type == NUM_TYPE) {
-	  printf (" ( %s: ", ((FACT_num_t) (*val->var_table)[i].ap)->name); 
-	  print_num ((*val->var_table)[i].ap);
-	  printf (" )");
-	} else if ((*val->var_table)[i].type == SCOPE_TYPE)
-	  print_scope ((*val->var_table)[i].ap);
-	else
-	  printf (" <UNSET>");
-      }
-    *val->marked = false;
-    printf (" }");
-    */
   }
 }

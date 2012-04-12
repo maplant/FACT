@@ -27,7 +27,8 @@ int FACT_load_file (const char *file_name) /* Load a file into the VM. */
 
   /* Allocate the entire file into memory. */ 
   fp = fopen (file_name, "r"); /* Open the file for reading. */
-  assert (fp != NULL);
+  if (fp == NULL)
+    FACT_throw_error (CURR_THIS, "could not open file %s", file_name);
 
   for (file = NULL, i = 0; (c = getc (fp)) != EOF; i++) {
     if (c == '\0') /* Put some more bounds here. */
