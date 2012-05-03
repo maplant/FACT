@@ -106,28 +106,66 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   return dest->data + i;
 }
 
-static void bucket_digest (struct _entry bucket)
-{
-  size_t i;
-
-  for (i = 0; i < bucket.num_vars; i++)
-    printf ("%s ", FACT_var_name (bucket.data[i]));
-}
+static void sqsort (char **, size_t, size_t);
 
 void FACT_table_digest (FACT_table_t *table)
 {
-  int i;
+  char **items;
+  size_t i, j, k;
+  size_t num_items;
 
   if (table == NULL)
     return;
+
+  /* Get the total number of entries. */
+  for (i = num_items = 0; i < table->num_buckets; i++)
+    num_items += table->buckets[i].num_vars;
+
+  if (num_items == 0)
+    return;
   
-  for (i = 0; i < table->num_buckets; i++) {
-    if (table->buckets[i].num_vars != 0) {
-      printf ("[ ");
-      bucket_digest (table->buckets[i]);
-      printf ("] ");
+  items = FACT_malloc (sizeof (char *) * num_items);
+
+  /* Get all the items. */
+  for (i = k = 0; i < table->num_buckets; i++) {
+    for (j = 0; j < table->buckets[i].num_vars; j++, k++)
+      items[k] = FACT_var_name (table->buckets[i].data[j]);
+  }
+
+  /* Sort the entries. */
+  sqsort (items, 0, num_items - 1);
+
+  /* Print out the entries. */
+  for (i = 0; i < num_items - 1; i++)
+    printf ("%s, ", items[i]);
+  printf ("%s ", items[i]);
+}
+
+static void sqsort (char **v, size_t left, size_t right) /* Thanks K&R! */
+{
+  char *temp;
+  size_t i, last;
+
+  if (left >= right)
+    return;
+
+  temp = v[left];
+  v[left] = v[(left + right) / 2];
+  v[(left + right) / 2] = temp;
+  last = left;
+  for (i = left + 1; i <= right; i++) {
+    if (strcmp (v[i], v[left]) < 0) {
+      temp = v[++last];
+      v[last] = v[i];
+      v[i] = temp;
     }
   }
+  temp = v[left];
+  v[left] = v[last];
+  v[last] = temp;
+  if (last != 0)
+    sqsort (v, left, last - 1);
+  sqsort (v, last + 1, right);
 }
 
 /* DJBX33A, taken from PHP's Zend source code. */
