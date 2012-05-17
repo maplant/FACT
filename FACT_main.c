@@ -219,7 +219,9 @@ main (int argc, char **argv)
 
     case 6: /* version         */
       /* Print version and exit. */
-      printf ("FACT version %s\n", FACT_VERSION);
+      printf ("FACT version %s compiled on %s with %s\n"
+	      "sizeof struct FACT_scope: %zu\n"
+	      "sizeof struct FACT_num: %zu\n", FACT_VERSION, __TIMESTAMP__, __VERSION__, sizeof (struct FACT_scope), sizeof (struct FACT_num));
       if (opt_t != 2 || argv[i][1] == '\0')
 	goto exit;
       break;

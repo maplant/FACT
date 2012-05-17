@@ -29,7 +29,9 @@ typedef enum Furlow_opcode {
   CME,     /* More than, equal.                              */
   CMT,     /* More than.                                     */
   CNE,     /* Not equal.                                     */
-  CONST,   /* Retrieve a constant value and push it.         */
+  CONSTS,  /* Convert a string to a real and push it.        */
+  CONSTI,  /* Push a signed 32 bit integer to the stack.     */
+  CONSTU,  /* Push an unsigned 32 bit integer to the stack.  */
   DEC,     /* Decrement a register by 1.                     */
   DEF_N,   /* Define a new number in the this scope.         */
   DEF_S,   /* Define a new scope in the this scope.          */
@@ -98,7 +100,9 @@ static struct {
   { "cme"     , CME     , "rrr" },
   { "cmt"     , CMT     , "rrr" },
   { "cne"     , CNE     , "rrr" },
-  { "const"   , CONST   , "s"   },
+  { "consts"  , CONSTS  , "s"   },
+  { "consti"  , CONSTI  , "a"   },
+  { "constu"  , CONSTU  , "a"   },
   { "dec"     , DEC     , "r"   },
   { "def_n"   , DEF_N   , "rs"  },
   { "def_s"   , DEF_S   , "rs"  },

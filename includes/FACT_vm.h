@@ -44,7 +44,7 @@ struct cstack_t {
   FACT_scope_t this; /* 'this' scope being used.        */
 };
 
-#define CYCLES_ON_COLLECT 800 /* Garbage collect every n number of cycles. */ 
+#define CYCLES_ON_COLLECT 900 /* Garbage collect every n number of cycles. */ 
 
 /* Threading is handled on the program level in the Furlow VM, for the most
  * part. Each thread has its own stacks and instruction pointer. After an

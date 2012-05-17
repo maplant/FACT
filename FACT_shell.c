@@ -204,6 +204,8 @@ void FACT_shell (void)
   /* Editline variables. */
   int ignore;
   EditLine *el;
+  History *hist;
+  HistEvent hev;
 
   input = NULL;
   last_ip = 0;
@@ -213,6 +215,10 @@ void FACT_shell (void)
 
   el = el_init ("/usr/bin/FACT", stdin, stdout, stderr);
   el_set (el, EL_PROMPT, &shell_prompt);
+  el_set (el, EL_EDITOR, "emacs");
+  hist = history_init ();
+  history (hist, &hev, H_SETSIZE, REMEMBER_CMDS);
+  el_set (el, EL_HIST, history, hist);
 
   /* Set error recovery. */
  reset_error:
@@ -244,6 +250,7 @@ void FACT_shell (void)
       new_stmt = false;
       if (line != NULL && ignore > 0) {
 	i += strlen (line);
+	history (hist, &hev, H_ENTER, line);
 	if (input == NULL) {
 	  input = FACT_malloc_atomic (i);
 	  strcpy (input, line);
@@ -253,8 +260,7 @@ void FACT_shell (void)
 	}
       } else
 	break;
-    }
-    while (!is_complete (line));
+    } while (!is_complete (line));
     
     if (input == NULL)
       break;
@@ -288,6 +294,8 @@ void FACT_shell (void)
       printf ("%%");
       if (ret_val->type == NUM_TYPE)
 	print_num ((FACT_num_t) ret_val->ap);
+      else if (FACT_is_BIF (((FACT_scope_t) ret_val->ap)->extrn_func))
+	printf (" Built-in function %s", ((FACT_scope_t) ret_val->ap)->name);
       else
 	print_scope ((FACT_scope_t) ret_val->ap);
       printf ("\n");
@@ -295,6 +303,7 @@ void FACT_shell (void)
     }
   }
 
+  history_end (hist);
   el_end (el);
 }
 

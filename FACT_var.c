@@ -16,11 +16,6 @@
 
 #include <FACT.h>
 
-FACT_t *FACT_get_local (FACT_scope_t env, char *name)
-{
-  return FACT_find_in_table (env->vars, name);
-}
-
 /* Lexically global - not thread global. */
 FACT_t *FACT_get_global (FACT_scope_t env, char *name)
 {

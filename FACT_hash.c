@@ -18,7 +18,8 @@
 
 static inline ulong Zend_DJBX33A (char *, uint);
 
-static FACT_t *find_var (struct _entry table, char *name)
+#if 0
+static FACT_t *find_var (register struct _entry *p, char *name)
 {
   register int res;
   register size_t lim;
@@ -40,15 +41,78 @@ static FACT_t *find_var (struct _entry table, char *name)
 
   return NULL;
 }
+#endif
 
 FACT_t *FACT_find_in_table (FACT_table_t *table, char *key)
 {
-  return ((table->num_buckets == 0)
-	  ? NULL
-	  /* Strlenkey would be a great Russian name */
-	  : find_var (table->buckets[Zend_DJBX33A (key, strlen (key)) % table->num_buckets], key));
+  register struct _entry *p;
+
+  if (table->num_buckets == 0)
+    return NULL;
+
+  for (p = table->buckets + Zend_DJBX33A (key, strlen (key)) % table->num_buckets;
+       p != NULL && p->data->type != UNSET_TYPE;
+       p = p->next) {
+    if (!strcmp (key, FACT_var_name (*p->data)))
+      return p->data;
+  }
+
+  return NULL;
 }
 
+FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
+{
+  size_t i, d;
+  char *var_name;
+  FACT_t k;
+  struct _entry *p, *e;
+
+  if (table->buckets == NULL) {
+    table->buckets = FACT_malloc (sizeof (struct _entry) * START_NUM_ENTRIES);
+    table->num_buckets = START_NUM_ENTRIES;
+    table->total_num_vars = 1;
+    for (i = 0; i < START_NUM_ENTRIES; i++)
+      table->buckets[i].data->type = UNSET_TYPE;
+  } else if (++table->total_num_vars % table->num_buckets == 0 &&
+	     table->total_num_vars / table->num_buckets == 2) {
+    /* If the load factor is 2, then double the number of buckets and rehash. */
+    table->buckets = FACT_realloc (table->buckets, sizeof (struct _entry) * (table->num_buckets << 1));
+    for (i = 0; i < table->num_buckets; i++) {
+      for (p = table->buckets + i; p != NULL && p->data->type != UNSET_TYPE;) {
+	d = Zend_DJBX33A (FACT_var_name (*p->data), strlen (FACT_var_name (*p->data)))
+	  % (table->num_buckets << 1);
+	if (d != i) {
+	  for (e = table->buckets + d; e->data->type != UNSET_TYPE; e = e->next)
+	    ;
+	  *e->data = *p->data;
+	  e->next = FACT_malloc (sizeof (struct _entry));
+	  e->next->data->type = UNSET_TYPE;
+	  e->next->next = NULL;
+	  if (p->next != NULL) {
+	    *p->data = *p->next->data;
+	    p->next = p->next->next;
+	    continue;
+	  }
+	}
+	p = p->next;
+      }
+    }
+    table->num_buckets <<= 1;
+  }
+
+  var_name = FACT_var_name (key);
+  for (p = table->buckets + Zend_DJBX33A (var_name, strlen (var_name)) % table->num_buckets;
+       p->data->type != UNSET_TYPE;
+       p = p->next)
+    ;
+  *p->data = key;
+  p->next = FACT_malloc (sizeof (struct _entry));
+  p->next->data->type = UNSET_TYPE;
+  p->next->next = NULL;
+  return p->data;
+}
+
+#if 0
 FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
 {
   size_t i, j, k;
@@ -105,18 +169,26 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   }
   return dest->data + i;
 }
+#endif 
 
 static void sqsort (char **, size_t, size_t);
 
 void FACT_table_digest (FACT_table_t *table)
 {
+  size_t i, k;
   char **items;
-  size_t i, j, k;
-  size_t num_items;
+  struct _entry *p;
 
   if (table == NULL)
     return;
 
+  items = FACT_malloc (sizeof (char *) * table->total_num_vars);
+
+  for (i = k = 0; i < table->num_buckets; i++) {
+    for (p = table->buckets + i; p->data->type != UNSET_TYPE; p = p->next)
+      items[k++] = FACT_var_name (*p->data);
+  }
+#if 0
   /* Get the total number of entries. */
   for (i = num_items = 0; i < table->num_buckets; i++)
     num_items += table->buckets[i].num_vars;
@@ -131,12 +203,13 @@ void FACT_table_digest (FACT_table_t *table)
     for (j = 0; j < table->buckets[i].num_vars; j++, k++)
       items[k] = FACT_var_name (table->buckets[i].data[j]);
   }
+#endif
 
   /* Sort the entries. */
-  sqsort (items, 0, num_items - 1);
+  sqsort (items, 0, table->total_num_vars - 1);
 
   /* Print out the entries. */
-  for (i = 0; i < num_items - 1; i++)
+  for (i = 0; i < table->total_num_vars - 1; i++)
     printf ("%s, ", items[i]);
   printf ("%s ", items[i]);
 }

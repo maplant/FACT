@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,16 +16,14 @@
 
 #include <FACT.h>
 
-void
-FACT_handle_interrupt (int sig) /* Handle a signal. */
+void FACT_handle_interrupt (int sig) /* Handle a signal. */
 {
   FACT_throw_error (CURR_THIS, "Caught signal %d", sig);
   /* Just set the interrupt to exit. */
   signal (SIGINT, exit);
 }
 
-void
-FACT_init_interrupt (void) /* Initialize signal handling. */
+void FACT_init_interrupt (void) /* Initialize signal handling. */
 {
   signal (SIGINT, FACT_handle_interrupt);
 }

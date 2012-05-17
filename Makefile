@@ -1,7 +1,7 @@
 CC = gcc
 LIBS = -lgmp -lgc -ledit -ltermcap -lpthread -lm
 PROG = FACT
-CFLAGS = -c -g3 -I$(INCLUDE_DIR)
+CFLAGS = -c -g3 -I$(INCLUDE_DIR) -O2
 LDFLAGS = -rdynamic
 INCLUDE_DIR = ./includes 
 INSTALL_DIR = /usr/bin

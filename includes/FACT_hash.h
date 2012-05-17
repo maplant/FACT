@@ -21,8 +21,12 @@
 
 struct _var_table {
   struct _entry {
+#if 0
     FACT_t *data;
     size_t num_vars;
+#endif
+    FACT_t data[1];
+    struct _entry *next;
   } *buckets;
   size_t num_buckets;
   size_t total_num_vars;

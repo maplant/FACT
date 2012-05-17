@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,9 +64,10 @@ unsigned long int mpc_get_ui (mpc_t);
 signed long int mpc_get_si (mpc_t);
 char *mpc_get_str (mpc_t);
 
+static unsigned int pow_10 (unsigned int n) __attribute__((noinline));
+
 /* Simple unsigned long power of 10 function written is assembly. */   
-static unsigned int
-pow_10 (unsigned int n)
+static unsigned int pow_10 (unsigned int n)
 {
   /* TODO: if I'm going to write this in asm, I might as well 
    * optimize it.

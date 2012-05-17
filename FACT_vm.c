@@ -92,6 +92,7 @@ inline size_t Furlow_offset (void) /* Get the instruction offset. */
 FACT_t pop_v () /* Pop the variable stack. */
 {
   FACT_t res;
+  size_t diff;
 
 #ifdef SAFE
   /* Make sure that the stack is not empty. This can only occur due to an 
@@ -101,9 +102,17 @@ FACT_t pop_v () /* Pop the variable stack. */
     FACT_throw_error (CURR_THIS, "illegal POP on empty var stack");
 #endif /* SAFE */
 
+  diff = curr_thread->vstackp - curr_thread->vstack;
+  if (diff > 0 &&
+      curr_thread->vstack_size % diff == 0 &&
+      curr_thread->vstack_size / diff == 4) {
+    curr_thread->vstack_size >>= 1; /* Divide by two. */
+    curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * curr_thread->vstack_size);
+    curr_thread->vstackp = curr_thread->vstack + diff;
+  }
+
   res = *curr_thread->vstackp;
   curr_thread->vstackp->ap = NULL;
-  curr_thread->vstackp->type = UNSET_TYPE;
   curr_thread->vstackp--;
   
   return res;
@@ -111,12 +120,22 @@ FACT_t pop_v () /* Pop the variable stack. */
 
 struct cstack_t pop_c () /* Pop the current call stack. */
 {
+  size_t diff;
   struct cstack_t res;
 
 #ifdef SAFE
   if (curr_thread->cstackp < curr_thread->cstack)
     FACT_throw_error (CURR_THIS, "illegal POP on empty call stack");
 #endif /* SAFE */
+
+  diff = curr_thread->cstackp - curr_thread->cstack;
+  if (diff > 0 &&
+      curr_thread->cstack_size % diff == 0 &&
+      curr_thread->cstack_size / diff == 4) {
+    curr_thread->cstack_size >>= 1;
+    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * curr_thread->cstack_size);
+    curr_thread->cstackp = curr_thread->cstack + diff;
+  }
 
   res = *curr_thread->cstackp;
   curr_thread->cstackp->this = NULL;
@@ -177,7 +196,7 @@ void push_c (size_t nip, FACT_scope_t nthis) /* Push to the call stack. */
     /* Square the size of the call stack. The call stack should never be NULL. */
     //      printf ("ALLOCATION: %zu >= %zu\n", diff, curr_thread->cstack_size);
     curr_thread->cstack_size <<= 1;
-    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (FACT_t) * (curr_thread->cstack_size));
+    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * (curr_thread->cstack_size));
     curr_thread->cstackp = curr_thread->cstack + diff;
   }
   
@@ -246,17 +265,16 @@ void *Furlow_reg_val (int reg_number, FACT_type des) /* Safely access a register
 #define SEG(x) INST_##x: do { 0; } while (0)
 #define END_SEG() continue
 
-void
-Furlow_run () /* Run the program until a HALT is reached. */ 
+void Furlow_run () /* Run the program until a HALT is reached. */ 
 {
   int i;
   int cycles;
   char *hold_name;
   size_t tnum;
-  FACT_t args[4];      /* Maximum of three arguments plus the result per opcode. */
-  FACT_t *reg_args[4]; /* For register operations.                               */
   FACT_thread_t next;
   struct cstack_t cs_arg;
+  register FACT_t args[4];      /* Maximum of three arguments plus the result per opcode. */
+  register FACT_t *reg_args[4]; /* For register operations.                               */
   static const void *inst_jump_table[] = { /* Jump table to each instruction. */    
 #define ENTRY(n) [n] = &&INST_##n  
     ENTRY (ADD),
@@ -269,7 +287,9 @@ Furlow_run () /* Run the program until a HALT is reached. */
     ENTRY (CME),
     ENTRY (CMT),
     ENTRY (CNE),
-    ENTRY (CONST),
+    ENTRY (CONSTS),
+    ENTRY (CONSTI),
+    ENTRY (CONSTU),
     ENTRY (DEC),
     ENTRY (DEF_N),
     ENTRY (DEF_S),
@@ -341,13 +361,11 @@ Furlow_run () /* Run the program until a HALT is reached. */
   }
 
   for (cycles = 0;; CURR_IP++, cycles++) {
+#if CYCLES_ON_COLLECT != 0
     /* Run the garbage collector. */
-    if (cycles == CYCLES_ON_COLLECT) {
-#ifdef USE_GC
+    if (cycles % CYCLES_ON_COLLECT == 0)
       FACT_GC ();
-#endif /* USE_GC */
-      cycles = 0;
-    }
+#endif
     
     /* Jump to the instruction. */
     goto *inst_jump_table [progm[CURR_IP][0]];
@@ -506,10 +524,21 @@ Furlow_run () /* Run the program until a HALT is reached. */
     }
     END_SEG ();
 
-    SEG (CONST);
+    SEG (CONSTS);
     {
-      /* Push a constant value to the stack. */
       push_constant_str (progm[CURR_IP] + 1);
+    }
+    END_SEG ();
+
+    SEG (CONSTI);
+    {
+      push_constant_si (get_seg_addr (progm[CURR_IP] + 1));
+    }
+    END_SEG ();
+
+    SEG (CONSTU);
+    {
+      push_constant_ui (get_seg_addr (progm[CURR_IP] + 1));
     }
     END_SEG ();
 
@@ -1161,26 +1190,25 @@ void Furlow_disassemble (void) /* Print the byte code currently loaded into the 
     /* print out the instruction and address. */
     printf ("%zu:\t%s", i, Furlow_instructions[inst].token);
     for (j = 0, ofs = 1; Furlow_instructions[inst].args[j] != 0; j++) {
-      switch (Furlow_instructions[inst].args[j])
-	{
-	case 'r': /* Register. */
-	  printf (", %%%d", progm[i][ofs]);
-	  ofs++;
-	  break;
-	  
-	case 's': /* String. */
-	  printf (", $%s", progm[i] + ofs);
-	  ofs += strlen (progm[i] + ofs);
-	  break;
-	  
-	case 'a': /* Address. */
-	  printf (", @%zu", get_seg_addr (progm[i] + ofs));
-	  ofs += 4;
-	  break;
-	  
-	default:
-	  abort ();
-	}
+      switch (Furlow_instructions[inst].args[j]) {
+      case 'r': /* Register. */
+	printf (", %%%d", progm[i][ofs]);
+	ofs++;
+	break;
+	
+      case 's': /* String. */
+	printf (", $%s", progm[i] + ofs);
+	ofs += strlen (progm[i] + ofs);
+	break;
+	
+      case 'a': /* Address. */
+	printf (", @%zu", get_seg_addr (progm[i] + ofs));
+	ofs += 4;
+	break;
+	
+      default:
+	abort ();
+      }
     }
     printf ("\n");
   }

@@ -38,6 +38,7 @@ struct inter_node {
 	  NO_ARG = 0,
 	  REG_VAL,
 	  ADDR_VAL,
+	  INT_VAL,
 	  STR_VAL
 	} arg_type;
 	union {
@@ -71,6 +72,8 @@ static struct inter_node *set_return_val ();
 static void load (struct inter_node *, struct inter_node *, const char *);
 static size_t weight (struct inter_node *);
 static inline void spread (char *, size_t);
+
+static inline void push_const (struct inter_node *, char *);
 
 void FACT_compile (FACT_tree_t tree, const char *file_name, bool set_rx)
 {
@@ -138,6 +141,14 @@ static inline struct inst_arg addr_arg (size_t node_num) /* Address value. */
   return ret;
 }
 
+static inline struct inst_arg int_arg (size_t num) /* Integer value. */
+{
+  struct inst_arg ret;
+  ret.arg_type = INT_VAL;
+  ret.arg_val.addr = num; /* Just use addr. I'm so sleepy. */
+  return ret;
+}
+
 static inline struct inst_arg str_arg (char *str_val) /* String value. */
 {
   struct inst_arg ret;
@@ -201,9 +212,14 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     break;
 
   case E_NUM:
+#if 0
     res->node_type = INSTRUCTION;
-    res->node_val.inst.inst_val = CONST;
+    res->node_val.inst.inst_val = CONSTS;
     res->node_val.inst.args[0] = str_arg (curr->id.lexem);
+#endif
+    res->node_type = GROUPING;
+    res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *));
+    push_const (res, curr->id.lexem);
     break;
 
   case E_SQ:
@@ -211,14 +227,21 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     res->node_type = GROUPING;
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
     
-      /* Push the length of the string, as a string. */
+    /* Push the length of the string, as a string. */
+    /*
     add_instruction (res, CONST, str_arg ((curr->id.id == E_SQ)
-					  ? strlen_sq (curr->children[0]->id.lexem)
-					  : strlen_dq (curr->children[0]->id.lexem)), ignore (), ignore ());
-    add_instruction (res, CONST, str_arg ("1")  , ignore ()    , ignore ()); /* Push one to the stack. */      
+    ? strlen_sq (curr->children[0]->id.lexem)
+    : strlen_dq (curr->children[0]->id.lexem)), ignore (), ignore ());
+    */
+    push_const (res, ((curr->id.id == E_SQ)
+		      ? strlen_sq (curr->children[0]->id.lexem)
+		      : strlen_dq (curr->children[0]->id.lexem)));
+    //    add_instruction (res, CONSTS, str_arg ("1")  , ignore ()    , ignore ()); /* Push one to the stack. */
+    add_instruction (res, CONSTU, int_arg (1), ignore (), ignore ());
     add_instruction (res, NEW_N, reg_arg (R_POP), ignore ()    , ignore ()); /* Create an anonymous array. */      
     add_instruction (res, REF  , reg_arg (R_TOP), reg_arg (R_A), ignore ()); /* Set the A register to the array. */
-    add_instruction (res, CONST, str_arg ("0")  , ignore ()    , ignore ()); /* Push the string index to the stack (used for setting the string). */
+    //    add_instruction (res, CONST, str_arg ("0")  , ignore ()    , ignore ()); /* Push the string index to the stack (used for setting the string). */
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     
     /* Set the array to the string. */
     set_child (res, ((curr->id.id == E_SQ)
@@ -248,8 +271,9 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 4);
       
     /* Create a temporary variable. */
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
-
+    //    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
+    
     /* Compile the arguments. */
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
     set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
@@ -267,7 +291,8 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 4);
 
     /* Create a temporary variable. */
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    //    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
 
     /* Compile the arguments. */
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
@@ -290,25 +315,29 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
   case E_AND:
     res->node_type = GROUPING;
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 7);
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    // add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
     add_instruction (res, JIF, reg_arg (R_POP), addr_arg (6), ignore ());
     set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
     add_instruction (res, JIF  , reg_arg (R_POP), addr_arg (6), ignore ());
     add_instruction (res, DROP , ignore  ()     , ignore ()   , ignore ());
-    add_instruction (res, CONST, str_arg ("1")  , ignore ()   , ignore ());
+    //    add_instruction (res, CONST, str_arg ("1")  , ignore ()   , ignore ());
+    add_instruction (res, CONSTU, int_arg (1), ignore (), ignore ());
     break;
 
   case E_OR:
     res->node_type = GROUPING;
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 7);
-    add_instruction (res, CONST, str_arg ("1"), ignore (), ignore ());
+    //    add_instruction (res, CONST, str_arg ("1"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (1), ignore (), ignore ());
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
     add_instruction (res, JIT, reg_arg (R_POP), addr_arg (6), ignore ());
     set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
     add_instruction (res, JIT  , reg_arg (R_POP), addr_arg (6), ignore ());
     add_instruction (res, DROP , ignore ()      , ignore ()   , ignore ());
-    add_instruction (res, CONST, str_arg ("0")  , ignore ()   , ignore ());
+    //    add_instruction (res, CONST, str_arg ("0")  , ignore ()   , ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     break;
       
   case E_ARRAY_ELEM:
@@ -344,20 +373,23 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
 
     /* If the first element is a number: */
     add_instruction (res, JIS  , reg_arg (R_TOP), addr_arg (5), ignore ());
-    add_instruction (res, CONST, str_arg ("1")  , ignore ()   , ignore ());
+    // add_instruction (res, CONST, str_arg ("1")  , ignore ()   , ignore ());
+    add_instruction (res, CONSTU, int_arg (1), ignore (), ignore ());
     add_instruction (res, DUP  , ignore ()      , ignore ()   , ignore ());
     add_instruction (res, NEW_N, reg_arg (R_POP), ignore ()   , ignore ());
     add_instruction (res, JMP  , addr_arg (8)   , ignore ()   , ignore ());
 
     /* If the first element is a scope: */
-    add_instruction (res, CONST, str_arg ("1")  , ignore (), ignore ());
+    //    add_instruction (res, CONST, str_arg ("1")  , ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (1), ignore (), ignore ());
     add_instruction (res, DUP  , ignore ()      , ignore (), ignore ());
     add_instruction (res, NEW_S, reg_arg (R_POP), ignore (), ignore ());
 
     /* For all cases: */
     add_instruction (res, REF  , reg_arg (R_TOP), reg_arg (R_A)  , ignore ());
     add_instruction (res, SWAP , ignore ()      , ignore ()      , ignore ());
-    add_instruction (res, CONST, str_arg ("0")  , ignore ()      , ignore ());
+    // add_instruction (res, CONST, str_arg ("0")  , ignore ()      , ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, ELEM , reg_arg (R_A)  , reg_arg (R_POP), ignore ());
     add_instruction (res, SWAP , ignore ()      , ignore ()      , ignore ());
     add_instruction (res, STO  , reg_arg (R_POP), reg_arg (R_POP), ignore ());
@@ -386,7 +418,8 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     /* Set the up variable of the lambda scope to it. */
     add_instruction (res, REF  , reg_arg (R_POP), reg_arg (R_A)  , ignore ());
     add_instruction (res, USE  , reg_arg (R_POP), ignore ()      , ignore ()); /* Briefly enter the scope to do so. */
-    add_instruction (res, CONST, str_arg ("0")  , ignore ()      , ignore ());
+    //    add_instruction (res, CONST, str_arg ("0")  , ignore ()      , ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, DEF_S, reg_arg (R_POP), str_arg ("up") , ignore ());
     add_instruction (res, STO  , reg_arg (R_A)  , reg_arg (R_POP), ignore ());
     add_instruction (res, EXIT , ignore ()      , ignore ()      , ignore ());
@@ -401,7 +434,8 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     add_instruction (res, JMP, addr_arg (4), ignore (), ignore ());
     set_child (res, compile_args (curr->children[1]));
     set_child (res, compile_tree (curr->children[2], 1, 0, set_rx));
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    //    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, RET, ignore (), ignore (), ignore ());
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
     add_instruction (res, SET_C, reg_arg (R_TOP), addr_arg (1), ignore ());
@@ -414,9 +448,11 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     /* This is a little messed up because of how quick this was implemented. */
     set_child (res, compile_args (curr->children[0]->children[1]));
     set_child (res, compile_tree (curr->children[0]->children[2], 1, 0, set_rx));
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    // add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, RET, ignore (), ignore (), ignore ());
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    // add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, DEF_S, reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
     add_instruction (res, SET_C, reg_arg (R_TOP), addr_arg (1), ignore ());
     break;
@@ -487,7 +523,8 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     res->node_type = GROUPING;
     if (dims == 0) { /* If there are no dimensions. */
       res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 2);
-      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      //      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     } else {
       /* Convert dims to a string. */
       i = 0;
@@ -510,7 +547,8 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
       
       res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 3);
       set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
-      add_instruction (res, CONST, str_arg (dims_str), ignore (), ignore ());
+      //      add_instruction (res, CONST, str_arg (dims_str), ignore (), ignore ());
+      push_const (res, dims_str);
     }
     add_instruction (res, curr->id.id == E_NUM_DEF ? DEF_N : DEF_S,
 		     reg_arg (R_POP), str_arg (curr->children[1]->id.lexem), ignore ());
@@ -521,7 +559,8 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
 
     if (curr->children[1] != NULL && curr->children[1]->id.id == E_SET) {
       res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
-      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      //      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
       add_instruction (res, NEW_N, reg_arg (R_POP), ignore (), ignore ());
       set_child (res, compile_tree (curr->children[2], 0, 0, set_rx));
       add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_TOP), ignore ());
@@ -530,9 +569,11 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
       add_instruction (res, JMP, addr_arg (4), ignore (), ignore ());
       set_child (res, compile_args (curr->children[1]));
       set_child (res, compile_tree (curr->children[2], 1, 0, set_rx));
-      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      //      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
       add_instruction (res, RET, ignore (), ignore (), ignore ());
-      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      //      add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+      add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
       add_instruction (res, NEW_S, reg_arg (R_POP), ignore (), ignore ());
       add_instruction (res, SET_C, reg_arg (R_TOP), addr_arg (1), ignore ());
     }
@@ -831,7 +872,8 @@ static struct inter_node *compile_str_dq (char *str, size_t i) /* Compile a doub
   res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
   add_instruction (res, DUP, ignore (), ignore (), ignore ());
   add_instruction (res, ELEM, reg_arg (R_A), reg_arg (R_POP), ignore ());
-  add_instruction (res, CONST, str_arg (c_val), ignore (), ignore ());
+  //  add_instruction (res, CONST, str_arg (c_val), ignore (), ignore ());
+  push_const (res, c_val);
   add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_POP), ignore ());
   add_instruction (res, INC, reg_arg (R_TOP), ignore (), ignore ());
   /* Increase the index one and compile the next character. */
@@ -884,7 +926,8 @@ static struct inter_node *compile_str_sq (char *str, size_t i) /* Compile a sing
   res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
   add_instruction (res, DUP, ignore (), ignore (), ignore ());
   add_instruction (res, ELEM, reg_arg (R_A), reg_arg (R_POP), ignore ());
-  add_instruction (res, CONST, str_arg (c_val), ignore (), ignore ());
+  //  add_instruction (res, CONST, str_arg (c_val), ignore (), ignore ());
+  push_const (res, c_val);
   add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_POP), ignore ());
   add_instruction (res, INC, reg_arg (R_TOP), ignore (), ignore ());
   /* Increase the index one and compile the next character. */
@@ -923,7 +966,8 @@ static struct inter_node *begin_temp_scope (void) /* Create a temporary scope wi
   add_instruction (res, REF, reg_arg (R_POP), reg_arg (R_A), ignore ());
   add_instruction (res, LAMBDA, ignore (), ignore (), ignore ()); /* Create an anonymous scope. */
   add_instruction (res, USE, reg_arg (R_POP), ignore (), ignore ()); /* Push the scope to the call stack. */
-  add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ()); /* Create an "up" variable for the scope. */
+  //  add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ()); /* Create an "up" variable for the scope. */
+  add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
   add_instruction (res, DEF_S, reg_arg (R_POP), str_arg ("up"), ignore ());
   add_instruction (res, STO, reg_arg (R_A), reg_arg (R_POP), ignore ());
 
@@ -961,6 +1005,12 @@ static struct inter_node *set_return_val ()
   return res;
 }
 
+#if 0
+static sturct inter_node *check_args (size_t nargs)
+{
+}
+#endif
+
 static struct inter_node *compile_args (FACT_tree_t curr)
 {
   struct inter_node *res;
@@ -974,7 +1024,8 @@ static struct inter_node *compile_args (FACT_tree_t curr)
 
   if (curr->id.id == E_NUM_DEF
       || curr->id.id == E_SCOPE_DEF) { /* Statically typed argument. */
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    //    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, curr->id.id == E_NUM_DEF ? DEF_N : DEF_S,
 		     reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
   } else { /* Dynamically typed argument. */
@@ -986,10 +1037,12 @@ static struct inter_node *compile_args (FACT_tree_t curr)
      * def_s,%pop,var_name
      */ 
     add_instruction (res, JIS, reg_arg (R_TOP), addr_arg (3), ignore ());
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    //    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, DEF_N, reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
     add_instruction (res, JMP, addr_arg (5), ignore (), ignore ());
-    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
+    //    add_instruction (res, CONST, str_arg ("0"), ignore (), ignore ());
     add_instruction (res, DEF_S, reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
   }
   
@@ -1023,6 +1076,12 @@ static void load (struct inter_node *curr, struct inter_node *up, const char *fi
       case REG_VAL:
 	fmt = FACT_realloc (fmt, ++len);
 	fmt[len - 1] = curr->node_val.inst.args[i].arg_val.reg;
+	break;
+
+      case INT_VAL:
+	fmt = FACT_realloc (fmt, len + 4);
+	spread (fmt + len, curr->node_val.inst.args[i].arg_val.addr);
+	len += 4;
 	break;
 	
       case ADDR_VAL:
@@ -1103,4 +1162,21 @@ static struct inter_node *create_node ()
   memset (res, 0, sizeof (struct inter_node));
 
   return res;
+}
+
+static inline void push_const (struct inter_node *r, char *str)
+{
+  mpz_t temp;
+  
+  if (strchr (str, '.') != NULL)
+    add_instruction (r, CONSTS, str_arg (str), ignore (), ignore ());
+  else {
+    mpz_init (temp);
+    mpz_set_str (temp, str, 10);
+    if (mpz_cmp_ui (temp, UINT32_MAX) <= 0)
+      add_instruction (r, CONSTU, int_arg (mpz_get_ui (temp)), ignore (), ignore ());
+    else
+      add_instruction (r, CONSTS, str_arg (str), ignore (), ignore ());
+    mpz_clear (temp);
+  }
 }

@@ -1,4 +1,4 @@
-/* This file is part of FACTx.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ static unsigned int get_prec (char *val)
 void mpc_set_str (mpc_t rop, char *str, int base) /* Convert a string to an mpc type. */
 {
   char *cpy;
-  cpy = FACT_malloc (strlen (str) + 1);
+  cpy = FACT_malloc_atomic (strlen (str) + 1);
   strcpy (cpy, str);
   rop->precision = get_prec (cpy);
   mpz_set_str (rop->value, cpy, base);
