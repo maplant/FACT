@@ -179,7 +179,7 @@ void FACT_table_digest (FACT_table_t *table)
   char **items;
   struct _entry *p;
 
-  if (table == NULL)
+  if (table == NULL || table->total_num_vars == 0)
     return;
 
   items = FACT_malloc (sizeof (char *) * table->total_num_vars);

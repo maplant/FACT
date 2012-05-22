@@ -19,11 +19,20 @@
 /* Lexically global - not thread global. */
 FACT_t *FACT_get_global (FACT_scope_t env, char *name)
 {
-  FACT_t *res;
+  FACT_t *r;
+   
+  for (; env != NULL && env->lock_stat == UNLOCKED; env = env->up) {
+    if ((r = FACT_find_in_table (env->vars, name)) != NULL)
+      return r;
+  }
+  
+  /* As a last ditch effort, try the global variables table. */
+  return FACT_find_in_table (&Furlow_globals, name);    
+#if 0
   
   if (env != NULL && !*env->marked) { /* Make sure that env isn't marked */
     /* Search for the variable. */
-    res = FACT_get_local (env, name);
+    res = FACT_find_in_table (env->vars, name);
     
     if (res == NULL) {
       if (env->lock_stat == UNLOCKED) { /* No such variable exists in this scope. */
@@ -41,6 +50,7 @@ FACT_t *FACT_get_global (FACT_scope_t env, char *name)
  check_globals:
   /* As a last ditch effort, try the global variables table. */
   return FACT_find_in_table (&Furlow_globals, name);
+#endif
 }
 
 void FACT_get_var (char *name) /* Search all relevent scopes for a variable and push it to the stack. */
@@ -53,4 +63,18 @@ void FACT_get_var (char *name) /* Search all relevent scopes for a variable and 
     FACT_throw_error (CURR_THIS, "undefined variable: %s", name);
   /* Push the variable to the var stack. */
   push_v (*res);
+}
+
+bool FACT_is_circular (FACT_scope_t env)
+{
+  bool r;
+  
+  if (env == NULL)
+    return false;
+  if (*env->marked)
+    return true;
+  *env->marked = true;
+  r = FACT_is_circular (env->up);
+  *env->marked = false;
+  return r;
 }

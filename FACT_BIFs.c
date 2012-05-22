@@ -14,7 +14,12 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_mpc.h"
+#include "FACT_types.h"
+#include "FACT_vm.h"
+#include "FACT_error.h"
+#include "FACT_alloc"
 
 /* Macros for declaring FACT BIFs. */
 #define FBIF(name) { #name, &FBIF_##name }
@@ -90,20 +95,18 @@ bool FACT_is_BIF (void *func_addr)
 static void FBIF_floor (void) /* Round a variable down. */
 {
   FACT_t push_val;
-  FACT_num_t res;
+  FACT_num_t res, arg;
 
-  res = FACT_alloc_num ();
-  /* Get the argument. */
-  mpc_set (res->value, GET_ARG_NUM ()->value);
+  arg = GET_ARG_NUM ();
 
-  while (res->value->precision > 0) {
-    mpz_div_ui (res->value->value, res->value->value, 10);
-    res->value->precision--;
-  }
-
+  if (arg->value->fp) {
+    res = FACT_alloc_num ();
+    mpz_set_f (res->value->intv, arg->value->fltv);
+    push_val.ap = res;
+  } else
+    push_val.ap = arg;
+  
   push_val.type = NUM_TYPE;
-  push_val.ap = res;
-
   push_v (push_val);
 }
 

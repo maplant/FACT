@@ -90,11 +90,11 @@ void FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous nu
     dim_sizes = FACT_realloc (dim_sizes, sizeof (size_t *) * (i + 1));
     /* Pop the stack and get the value. */
     elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
-    if (elem_value->precision)
+    if (mpc_is_float (elem_value))
       FACT_throw_error (CURR_THIS, "dimension size must be a positive integer");
     /* Check to make sure we aren't grossly out of range. */
-    if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
-	|| mpz_sgn (elem_value->value) < 0)
+    if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0 ||
+	mpz_sgn (elem_value->intv) < 0)
       FACT_throw_error (CURR_THIS, "out of bounds error"); 
     dim_sizes[i] = mpc_get_ui (elem_value);
     if (dim_sizes[i] == 0) {
@@ -121,12 +121,12 @@ void FACT_get_num_elem (FACT_num_t base, char *args)
   /* Get the element index. */
   elem_value[0] = *((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value;
 
-  if (elem_value->precision)
+  if (mpc_is_float (elem_value))
     FACT_throw_error (CURR_THIS, "index value must be a positive integer");
   
   /* Check to make sure we aren't out of bounds. */
   if (mpc_cmp_ui (elem_value, ULONG_MAX) > 0
-      || mpz_sgn (elem_value->value) < 0
+      || mpz_sgn (elem_value->intv) < 0
       || base->array_size <= mpc_get_ui (elem_value))
     FACT_throw_error (CURR_THIS, "out of bounds error"); /* should elaborate here. */
 

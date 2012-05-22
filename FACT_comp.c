@@ -14,7 +14,11 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_opcodes.h"
+#include "FACT_parser.h"
+#include "FACT_lexer.h"
+#include "FACT_mpc.h"
 
 /* HC SVNT DRACONES
  * Let me elaborate: this code is really bad. A mix of gobbeldy gook and such.

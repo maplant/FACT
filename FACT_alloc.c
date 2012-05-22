@@ -14,17 +14,16 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_mpc.h"
+#include "FACT_types.h"
+#include "FACT_hash.c"
 
 inline void *FACT_malloc (size_t alloc_size)
 {
   void *temp;
 
-#ifdef USE_GC
   temp = GC_malloc (alloc_size);
-#else
-  temp = malloc (alloc_size);
-#endif /* USE_GC */
 
   /* Check for NULL pointer. */
   if (temp == NULL) {
@@ -35,7 +34,6 @@ inline void *FACT_malloc (size_t alloc_size)
   return temp;
 }
 
-#if (defined USE_GC && defined USE_ATOMIC)
 inline void *FACT_malloc_atomic (size_t alloc_size)
 {
   void *temp;
@@ -51,17 +49,12 @@ inline void *FACT_malloc_atomic (size_t alloc_size)
   memset (temp, 0, alloc_size);
   return temp;
 }
-#endif /* USE_GC */
 
 inline void *FACT_realloc (void *old, size_t new_size)
 {
   void *temp;
 
-#ifdef USE_GC
   temp = GC_realloc (old, new_size);
-#else
-  temp = realloc (old, new_size);
-#endif /* USE_GC */
 
   /* Check for NULL pointer. */
   if (temp == NULL) {
@@ -74,11 +67,7 @@ inline void *FACT_realloc (void *old, size_t new_size)
 
 inline void FACT_free (void *p)
 {
-#ifdef USE_GC
   GC_free (p);
-#else
-  free (p);
-#endif /* USE_GC */
 }
  
 FACT_num_t FACT_alloc_num (void) /* Allocate and initialize a num type. */
@@ -86,12 +75,6 @@ FACT_num_t FACT_alloc_num (void) /* Allocate and initialize a num type. */
   FACT_num_t temp;
 
   temp = FACT_malloc (sizeof (struct FACT_num));
-#ifndef USE_GC
-  /* GC automatically sets the data it allocates to 0, so we only have to
-   * memset if we aren't using it.
-   */
-  memset (temp, 0, sizeof (struct FACT_num));
-#endif /* USE_GC */
   mpc_init (temp->value);
 
   return temp;
@@ -127,18 +110,6 @@ FACT_scope_t FACT_alloc_scope (void) /* Allocate and initialize a scope type. */
   temp->name = "lambda";
   temp->lock_stat = UNLOCKED;
   
-  /* Initialize the memory, if we need to. */
-#ifndef USE_GC
-  *temp->array_size = 0;
-  *temp->code = 0;
-  *temp->marked = false;
-  temp->extrn_func = NULL;
-  temp->up = NULL;
-  temp->caller = NULL;
-  *temp->array_up = NULL;
-  temp->variadic = NULL;
-#endif /* USE_GC */
-
   return temp;
 }
 

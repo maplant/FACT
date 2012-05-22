@@ -261,14 +261,9 @@ void *Furlow_reg_val (int reg_number, FACT_type des) /* Safely access a register
   return reg->ap;
 }
 
-/* Define an instruction's code segment. */
-#define SEG(x) INST_##x: do { 0; } while (0)
-#define END_SEG() continue
-
 void Furlow_run () /* Run the program until a HALT is reached. */ 
 {
   int i;
-  int cycles;
   char *hold_name;
   size_t tnum;
   FACT_thread_t next;
@@ -339,6 +334,11 @@ void Furlow_run () /* Run the program until a HALT is reached. */
     ENTRY (XOR)
   };
   
+/* Define an instruction's code segment. */
+#define SEG(x) INST_##x: do { 0; } while (0)
+#define END_SEG() do { goto *inst_jump_table[progm[++CURR_IP][0]]; } while (0)
+#define NEXT_INST() END_SEG()
+
   curr_thread->run_flag = T_LIVE; /* The thread is now live. */
   
  eval:
@@ -360,712 +360,721 @@ void Furlow_run () /* Run the program until a HALT is reached. */
     goto eval; /* Go back to eval to reset the error handler. */
   }
 
-  for (cycles = 0;; CURR_IP++, cycles++) {
-#if CYCLES_ON_COLLECT != 0
-    /* Run the garbage collector. */
-    if (cycles % CYCLES_ON_COLLECT == 0)
-      FACT_GC ();
-#endif
+  /* Jump to the first instruction. */
+  goto *inst_jump_table [progm[CURR_IP][0]];
     
-    /* Jump to the instruction. */
-    goto *inst_jump_table [progm[CURR_IP][0]];
+  /* Instructions are divided into "segments." Each segment contains the
+   * code executed by one instruction. The macro SEG (n) creates a goto
+   * label for the instruction n, and the macro END_SEG jumps to the
+   * next instruction. Slightly confusing, but decently fast.
+   */
+  SEG (ADD);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_add (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
     
-    /* Instructions are divided into "segments." Each segment contains the
-     * code executed by one instruction. The macro SEG (n) creates a goto
-     * label for the instruction n, and the macro END_SEG jumps to the
-     * next instruction. Slightly confusing, but decently fast.
-     */
-    SEG (ADD);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_add (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
+  SEG (AND);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    if (mpc_is_float (((FACT_num_t) args[0].ap)->value) ||
+	mpc_is_float (((FACT_num_t) args[1].ap)->value))
+      FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
+    mpc_and (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
+    
+  SEG (APPEND);
+  {
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    args[1] = *Furlow_register (progm[CURR_IP][2]);
+    if (args[1].type == NUM_TYPE) {
+      if (args[0].type == SCOPE_TYPE)
+	FACT_throw_error (CURR_THIS, "cannot append a scope to a number");
+      FACT_append_num (args[1].ap, args[0].ap);
+    } else {
+      if (args[0].type == NUM_TYPE)
+	FACT_throw_error (CURR_THIS, "cannot append a number to a scope");
+      FACT_append_scope (args[1].ap, args[0].ap);
     }
-    END_SEG ();
+  }
+  END_SEG ();
     
-    SEG (AND);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      if (((FACT_num_t) args[0].ap)->value->precision
-	  || ((FACT_num_t) args[1].ap)->value->precision)
-	FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
-      mpc_and (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
-    }
-    END_SEG ();
-    
-    SEG (APPEND);
-    {
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
-      args[1] = *Furlow_register (progm[CURR_IP][2]);
-      if (args[1].type == NUM_TYPE) {
-	if (args[0].type == SCOPE_TYPE)
-	  FACT_throw_error (CURR_THIS, "cannot append a scope to a number");
-	FACT_append_num (args[1].ap, args[0].ap);
-      } else {
-	if (args[0].type == NUM_TYPE)
-	  FACT_throw_error (CURR_THIS, "cannot append a number to a scope");
-	FACT_append_scope (args[1].ap, args[0].ap);
-      }
-    }
-    END_SEG ();
-    
-    SEG (CALL);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-      push_c (*(FACT_cast_to_scope (args[0])->code) - 1, args[0].ap);
+  SEG (CALL);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+    push_c (*(FACT_cast_to_scope (args[0])->code) - 1, args[0].ap);
       
-      /* Check if extrn_func is set, and if so call it. */
-      if (FACT_cast_to_scope (args[0])->extrn_func == NULL)
-	continue;
-      FACT_cast_to_scope (args[0])->extrn_func ();
+    /* Check if extrn_func is set, and if so call it. */
+    if (FACT_cast_to_scope (args[0])->extrn_func == NULL)
+      NEXT_INST ();
+    FACT_cast_to_scope (args[0])->extrn_func ();
       
-      /* Close any open trap regions. */
-      while (curr_thread->num_traps != 0
-	     && curr_thread->traps[curr_thread->num_traps][1] == curr_thread->cstack_size)
-	pop_t ();
+    /* Close any open trap regions. */
+    while (curr_thread->num_traps != 0
+	   && curr_thread->traps[curr_thread->num_traps][1] == curr_thread->cstack_size)
+      pop_t ();
       
-      /* Pop the call stack. */
-      pop_c ();
-    }
-    END_SEG ();
+    /* Pop the call stack. */
+    pop_c ();
+  }
+  END_SEG ();
     
-    SEG (CEQ);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		  (FACT_compare_num (args[1].ap, args[0].ap) == 0
-		   ? 1
-		   : 0));
-    }
-    END_SEG ();
+  SEG (CEQ);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		(FACT_compare_num (args[1].ap, args[0].ap) == 0
+		 ? 1
+		 : 0));
+  }
+  END_SEG ();
     
-    SEG (CLE);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		  (FACT_compare_num (args[1].ap, args[0].ap) <= 0
-		   ? 1
-		   : 0));
-    }
-    END_SEG ();
+  SEG (CLE);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		(FACT_compare_num (args[1].ap, args[0].ap) <= 0
+		 ? 1
+		 : 0));
+  }
+  END_SEG ();
       
-    SEG (CLT);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		  (FACT_compare_num (args[1].ap, args[0].ap) < 0
-		   ? 1
-		   : 0));
-    }
-    END_SEG ();
+  SEG (CLT);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		(FACT_compare_num (args[1].ap, args[0].ap) < 0
+		 ? 1
+		 : 0));
+  }
+  END_SEG ();
       
-    SEG (CME);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		  (FACT_compare_num (args[1].ap, args[0].ap) >= 0
-		   ? 1
-		   : 0));
-    }
-    END_SEG ();
+  SEG (CME);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		(FACT_compare_num (args[1].ap, args[0].ap) >= 0
+		 ? 1
+		 : 0));
+  }
+  END_SEG ();
 
-    SEG (CMT);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		  (FACT_compare_num (args[1].ap, args[0].ap) > 0
-		   ? 1
-		   : 0));
-    }
-    END_SEG ();
+  SEG (CMT);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		(FACT_compare_num (args[1].ap, args[0].ap) > 0
+		 ? 1
+		 : 0));
+  }
+  END_SEG ();
 	  
-    SEG (CNE);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_set_ui (FACT_cast_to_num (args[2])->value,
-		  (FACT_compare_num (args[1].ap, args[0].ap) != 0
-		   ? 1
-		   : 0));
-    }
-    END_SEG ();
+  SEG (CNE);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_set_ui (FACT_cast_to_num (args[2])->value,
+		(FACT_compare_num (args[1].ap, args[0].ap) != 0
+		 ? 1
+		 : 0));
+  }
+  END_SEG ();
 
-    SEG (CONSTS);
-    {
-      push_constant_str (progm[CURR_IP] + 1);
-    }
-    END_SEG ();
+  SEG (CONSTS);
+  {
+    push_constant_str (progm[CURR_IP] + 1);
+  }
+  END_SEG ();
 
-    SEG (CONSTI);
-    {
-      push_constant_si (get_seg_addr (progm[CURR_IP] + 1));
-    }
-    END_SEG ();
+  SEG (CONSTI);
+  {
+    push_constant_si (get_seg_addr (progm[CURR_IP] + 1));
+  }
+  END_SEG ();
 
-    SEG (CONSTU);
-    {
-      push_constant_ui (get_seg_addr (progm[CURR_IP] + 1));
-    }
-    END_SEG ();
+  SEG (CONSTU);
+  {
+    push_constant_ui (get_seg_addr (progm[CURR_IP] + 1));
+  }
+  END_SEG ();
 
-    SEG (DEC);
-    {
-      /* Decrement a register. */
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      if (FACT_cast_to_num (args[0])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_sub_ui (FACT_cast_to_num (args[0])->value,
-		  FACT_cast_to_num (args[0])->value, 1);
-    }
-    END_SEG ();
+  SEG (DEC);
+  {
+    /* Decrement a register. */
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    if (FACT_cast_to_num (args[0])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_sub_ui (FACT_cast_to_num (args[0])->value,
+		FACT_cast_to_num (args[0])->value, 1);
+  }
+  END_SEG ();
 
-    SEG (DEF_N);
-    {
-      /* Declare a number variable. */
-      FACT_def_num (progm[CURR_IP] + 1, false);
-    }
-    END_SEG ();
+  SEG (DEF_N);
+  {
+    /* Declare a number variable. */
+    FACT_def_num (progm[CURR_IP] + 1, false);
+  }
+  END_SEG ();
 
-    SEG (DEF_S);
-    {
-      /* Declare a scope variable. */
-      FACT_def_scope (progm[CURR_IP] + 1, false);
-    }
-    END_SEG ();
+  SEG (DEF_S);
+  {
+    /* Declare a scope variable. */
+    FACT_def_scope (progm[CURR_IP] + 1, false);
+  }
+  END_SEG ();
 
-    SEG (DIV);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	FACT_throw_error (CURR_THIS, "division by zero error");
-      mpc_div (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
-    }
-    END_SEG ();
+  SEG (DIV);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+      FACT_throw_error (CURR_THIS, "division by zero error");
+    mpc_div (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
 
-    SEG (DROP);
-    {
-      /* Remove the first item on the variable stack. */
-      if (curr_thread->vstackp >= curr_thread->vstack)
-	pop_v (); /* Just pop and ignore. */
-    }
-    END_SEG ();
+  SEG (DROP);
+  {
+    /* Remove the first item on the variable stack. */
+    if (curr_thread->vstackp >= curr_thread->vstack)
+      pop_v (); /* Just pop and ignore. */
+  }
+  END_SEG ();
 
-    SEG (DUP);
-    {
-      /* Duplicate the first item on the stack. */
-      args[0] = *Furlow_register (R_TOP);
-      if (args[0].type == SCOPE_TYPE)
-	/* To duplicate a scope we simply push it back onto the stack. */
-	push_v (args[0]);
-      else {
-	/* Copy the number and push it on to the stack. */
-	args[1].ap = FACT_alloc_num ();
-	FACT_set_num (args[1].ap, args[0].ap);
-	args[1].type = NUM_TYPE;
-	push_v (args[1]);
-      }
-    }
-    END_SEG ();
-
-    SEG (ELEM);
-    {
-      /* Get an element of an array. */
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
-      if (args[0].type == NUM_TYPE)
-	FACT_get_num_elem (args[0].ap, progm[CURR_IP] + 2);
-      else
-	FACT_get_scope_elem (args[0].ap, progm[CURR_IP] + 2);
-    }
-    END_SEG ();
-
-    SEG (EXIT);
-    {
-      /* Close any open trap regions. */
-      while (curr_thread->num_traps != 0
-	     && (curr_thread->traps[curr_thread->num_traps][1]
-		 == (curr_thread->cstackp - curr_thread->cstack + 1)))
-	pop_t ();
-	
-      /* Exit the current scope. */
-      cs_arg = pop_c ();
-      CURR_IP = cs_arg.ip;
-      args[0].ap = cs_arg.this;
-      args[0].type = SCOPE_TYPE;
+  SEG (DUP);
+  {
+    /* Duplicate the first item on the stack. */
+    args[0] = *Furlow_register (R_TOP);
+    if (args[0].type == SCOPE_TYPE)
+      /* To duplicate a scope we simply push it back onto the stack. */
       push_v (args[0]);
+    else {
+      /* Copy the number and push it on to the stack. */
+      args[1].ap = FACT_alloc_num ();
+      FACT_set_num (args[1].ap, args[0].ap);
+      args[1].type = NUM_TYPE;
+      push_v (args[1]);
     }
-    END_SEG ();
+  }
+  END_SEG ();
 
-    SEG (GLOBAL);
-    {
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
-      if (progm[CURR_IP][2] != '\0') {
-	if (args[0].type == NUM_TYPE)
-	  FACT_cast_to_num (args[0])->name = progm[CURR_IP] + 2;
-	else
-	  FACT_cast_to_scope (args[0])->name = progm[CURR_IP] + 2;
-      }
-      FACT_add_to_table (&Furlow_globals, args[0]);
+  SEG (ELEM);
+  {
+    /* Get an element of an array. */
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    if (args[0].type == NUM_TYPE)
+      FACT_get_num_elem (args[0].ap, progm[CURR_IP] + 2);
+    else
+      FACT_get_scope_elem (args[0].ap, progm[CURR_IP] + 2);
+  }
+  END_SEG ();
+
+  SEG (EXIT);
+  {
+    /* Close any open trap regions. */
+    while (curr_thread->num_traps != 0
+	   && (curr_thread->traps[curr_thread->num_traps][1]
+	       == (curr_thread->cstackp - curr_thread->cstack + 1)))
+      pop_t ();
+	
+    /* Exit the current scope. */
+    cs_arg = pop_c ();
+    CURR_IP = cs_arg.ip;
+    args[0].ap = cs_arg.this;
+    args[0].type = SCOPE_TYPE;
+    push_v (args[0]);
+  }
+  END_SEG ();
+
+  SEG (GLOBAL);
+  {
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    if (progm[CURR_IP][2] != '\0') {
+      if (args[0].type == NUM_TYPE)
+	FACT_cast_to_num (args[0])->name = progm[CURR_IP] + 2;
+      else
+	FACT_cast_to_scope (args[0])->name = progm[CURR_IP] + 2;
     }
-    END_SEG ();
+    FACT_add_to_table (&Furlow_globals, args[0]);
+  }
+  END_SEG ();
     
-    SEG (GOTO);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-      CURR_IP = *(FACT_cast_to_scope (args[0])->code) - 1;
-    }
-    END_SEG ();
+  SEG (GOTO);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+    CURR_IP = *(FACT_cast_to_scope (args[0])->code) - 1;
+  }
+  END_SEG ();
 
-    SEG (HALT);
-    {
-      curr_thread->run_flag = T_DEAD; /* The thread is dead, for now. */
-      return; /* Exit. */
-    }
-    END_SEG ();
+  SEG (HALT);
+  {
+    curr_thread->run_flag = T_DEAD; /* The thread is dead, for now. */
+    return; /* Exit. */
+  }
+  END_SEG ();
 
-    SEG (INC);
-    {
-      /* Increment a register. */
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      if (FACT_cast_to_num (args[0])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_add_ui (FACT_cast_to_num (args[0])->value,
-		  FACT_cast_to_num (args[0])->value, 1);
-    }
-    END_SEG ();
+  SEG (INC);
+  {
+    /* Increment a register. */
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    if (FACT_cast_to_num (args[0])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_add_ui (FACT_cast_to_num (args[0])->value,
+		FACT_cast_to_num (args[0])->value, 1);
+  }
+  END_SEG ();
 
-    SEG (IOR);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      if (((FACT_num_t) args[0].ap)->value->precision
-	  || ((FACT_num_t) args[1].ap)->value->precision)
-	FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
-      mpc_ior (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
-    }
-    END_SEG ();
+  SEG (IOR);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    if (mpc_is_float (((FACT_num_t) args[0].ap)->value) ||
+	mpc_is_float (((FACT_num_t) args[1].ap)->value))
+      /*
+	if (((FACT_num_t) args[0].ap)->value->precision
+	|| ((FACT_num_t) args[1].ap)->value->precision) */
+      FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
+    mpc_ior (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
 	
 
-    SEG (IS_AUTO);
-    {
-      push_constant_ui (FACT_get_local (CURR_THIS, progm[CURR_IP] + 1) == NULL
-			? 0
-			: 1);
-    }
-    END_SEG ();
+  SEG (IS_AUTO);
+  {
+    push_constant_ui (FACT_get_local (CURR_THIS, progm[CURR_IP] + 1) == NULL
+		      ? 0
+		      : 1);
+  }
+  END_SEG ();
 
-    SEG (IS_DEF);
-    {
-      push_constant_ui (FACT_get_global (CURR_THIS, progm[CURR_IP] + 1) == NULL
-			? 0
-			: 1);
-    }
-    END_SEG ();
+  SEG (IS_DEF);
+  {
+    push_constant_ui (FACT_get_global (CURR_THIS, progm[CURR_IP] + 1) == NULL
+		      ? 0
+		      : 1);
+  }
+  END_SEG ();
 
-    SEG (JMP);
-    {
-      /* Unconditional jump. */
-      CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
-    }
-    END_SEG ();
+  SEG (JMP);
+  {
+    /* Unconditional jump. */
+    CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
+  }
+  END_SEG ();
 
-    SEG (JMP_PNT);
-    {
-      /* Push a scope to the stack with code = to the address. */
-      args[0].ap = FACT_alloc_scope ();
-      *FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 1);
-      args[0].type = SCOPE_TYPE;
-      push_v (args[0]);
-    }
-    END_SEG ();
+  SEG (JMP_PNT);
+  {
+    /* Push a scope to the stack with code = to the address. */
+    args[0].ap = FACT_alloc_scope ();
+    *FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 1);
+    args[0].type = SCOPE_TYPE;
+    push_v (args[0]);
+  }
+  END_SEG ();
 
-    SEG (JIF);
-    {
-      /* Jump on false. */
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-    }
-    END_SEG ();
+  SEG (JIF);
+  {
+    /* Jump on false. */
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+      CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+  }
+  END_SEG ();
 
-    SEG (JIN);
-    {
-      /* Jump on type `number'. */
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
-      if (args[0].type == NUM_TYPE)
-	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-    }
-    END_SEG ();
+  SEG (JIN);
+  {
+    /* Jump on type `number'. */
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    if (args[0].type == NUM_TYPE)
+      CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+  }
+  END_SEG ();
 
-    SEG (JIS);
-    {
-      /* Jump on type `scope'. */
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
+  SEG (JIS);
+  {
+    /* Jump on type `scope'. */
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    if (args[0].type == SCOPE_TYPE)
+      CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+  }
+  END_SEG ();
+
+  SEG (JIT);
+  {
+    /* Jump on true. */
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    if (mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+      CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
+  }
+  END_SEG ();
+
+  SEG (LAMBDA);
+  {
+    /* Push a lambda scope to the stack. */
+    args[0].ap = FACT_alloc_scope ();
+    args[0].type = SCOPE_TYPE;
+    push_v (args[0]);
+  }
+  END_SEG ();
+
+  SEG (LOCK);
+  {
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    if (args[0].type == NUM_TYPE)
+      FACT_lock_num (args[0].ap);
+    else
+      FACT_cast_to_scope (args[0])->lock_stat = HARD_LOCK;
+  }
+  END_SEG ();
+
+  SEG (MOD);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
+      FACT_throw_error (CURR_THIS, "mod by zero error");
+    mpc_mod (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
+
+  SEG (MUL);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_mul (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
+
+  SEG (NAME);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
+    FACT_cast_to_scope (args[1])->name = FACT_cast_to_scope (args[0])->name;
+  }
+  END_SEG ();
+
+  SEG (NEG);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    if (FACT_cast_to_num (args[0])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_neg (FACT_cast_to_num (args[0])->value,
+	     FACT_cast_to_num (args[0])->value);
+  }
+  END_SEG ();
+
+  SEG (NEW_N);
+  {
+    /* Create a new anonymous number. */
+    FACT_def_num (progm[CURR_IP] + 1, true);
+  }
+  END_SEG ();
+
+  SEG (NEW_S);
+  {
+    /* Create a new anonymous scope. */
+    FACT_def_scope (progm[CURR_IP] + 1, true);
+  }
+  END_SEG ();
+
+  SEG (NOP);
+  {
+    /* Do nothing. */
+  }
+  END_SEG ();
+
+  SEG (PURGE);
+  {
+    /* Remove all items from the variable stack. */
+    if (curr_thread->vstackp >= curr_thread->vstack) {
+      /* Only purge if there actually are items in the var stack. */
+      FACT_free (curr_thread->vstack);
+      curr_thread->vstackp = curr_thread->vstack = NULL;
+    }
+  }
+  END_SEG ();
+
+  SEG (REF);
+  {
+    /* Set a register to the reference of another. */ 
+    reg_args[0] = Furlow_register (progm[CURR_IP][1]);
+    reg_args[1] = Furlow_register (progm[CURR_IP][2]);
+    reg_args[1]->type = reg_args[0]->type;
+    reg_args[1]->ap = reg_args[0]->ap;
+  }
+  END_SEG ();
+
+  SEG (RET);
+  {
+    /* Close any open trap regions. */
+    while (curr_thread->num_traps != 0
+	   && (curr_thread->traps[curr_thread->num_traps][1]
+	       == (curr_thread->cstackp - curr_thread->cstack + 1)))
+      pop_t ();
+    /* Pop the call stack. */
+    pop_c ();
+  }
+  END_SEG ();
+
+  SEG (SET_C);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+    *FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 2);
+  }
+  END_SEG ();
+
+  SEG (SET_F);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
+    FACT_cast_to_scope (args[1])->code = FACT_cast_to_scope (args[0])->code;
+    FACT_cast_to_scope (args[1])->extrn_func = FACT_cast_to_scope (args[0])->extrn_func;
+  }
+  END_SEG ();
+
+  SEG (SPRT);
+  {
+    FACT_thread_t curr;
+
+    /* Gain control of threads. */
+    Furlow_lock_threads ();
+
+    /* Find the next open spot in the linked list. */
+    for (curr = threads; curr->next != NULL; curr = curr->next);
+
+    /* Allocate and initialize the new thread. */
+    curr->next = FACT_malloc (sizeof (struct FACT_thread));
+    curr = curr->next;
+    curr->thread_num = num_threads++;
+    curr->curr_err.what = DEF_ERR_MSG;
+    curr->cstack_size = 1;
+    curr->cstackp = curr->cstack = FACT_malloc (sizeof (struct cstack_t));
+    curr->root_message = NULL;
+    curr->num_messages = 0;
+    pthread_mutex_init (&curr->queue_lock, NULL);
+    pthread_cond_init (&curr->msg_block, NULL);
+	
+    /* Set the top scope and the IP of the thread. */
+    THIS_OF (curr) = FACT_alloc_scope ();
+    THIS_OF (curr)->name = "main<thread>";
+    IP_OF (curr) = CURR_IP + 1;
+
+    /* Initialize the registers. */
+    for (i = 0; i < T_REGISTERS; i++)
+      curr->registers[i].type = UNSET_TYPE;
+
+    /* Push the TID of the new thread to the var stack. */
+    push_constant_ui (curr->thread_num);
+	
+    /* Run the thread and give up control of threads. */
+    pthread_create (&curr->thread_id, NULL, Furlow_thread_mask, curr);
+    Furlow_unlock_threads ();
+
+    /* Jump. */
+    CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
+  }
+  END_SEG ();
+
+  SEG (STO);
+  {
+    /* STO,$A,$B : $B <- $A */
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    args[1] = *Furlow_register (progm[CURR_IP][2]);
+    if (args[1].type == NUM_TYPE) {
       if (args[0].type == SCOPE_TYPE)
-	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-    }
-    END_SEG ();
-
-    SEG (JIT);
-    {
-      /* Jump on true. */
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      if (mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	CURR_IP = get_seg_addr (progm[CURR_IP] + 2) - 1;
-    }
-    END_SEG ();
-
-    SEG (LAMBDA);
-    {
-      /* Push a lambda scope to the stack. */
-      args[0].ap = FACT_alloc_scope ();
-      args[0].type = SCOPE_TYPE;
-      push_v (args[0]);
-    }
-    END_SEG ();
-
-    SEG (LOCK);
-    {
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
+	FACT_throw_error (CURR_THIS, "cannot set a number to a scope");
+      if (FACT_cast_to_num (args[1])->locked)
+	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+      FACT_set_num (args[1].ap, args[0].ap);
+    } else {
+      struct FACT_scope temp[1];
+      
       if (args[0].type == NUM_TYPE)
-	FACT_lock_num (args[0].ap);
-      else
-	FACT_cast_to_scope (args[0])->lock_stat = HARD_LOCK;
-    }
-    END_SEG ();
-
-    SEG (MOD);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
+	FACT_throw_error (CURR_THIS, "cannot set a scope to a number");
+      if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
 	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
-	FACT_throw_error (CURR_THIS, "mod by zero error");
-      mpc_mod (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
-    }
-    END_SEG ();
-
-    SEG (MUL);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_mul (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
-    }
-    END_SEG ();
-
-    SEG (NAME);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
-      FACT_cast_to_scope (args[1])->name = FACT_cast_to_scope (args[0])->name;
-    }
-    END_SEG ();
-
-    SEG (NEG);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      if (FACT_cast_to_num (args[0])->locked)
-	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_neg (FACT_cast_to_num (args[0])->value,
-	       FACT_cast_to_num (args[0])->value);
-    }
-    END_SEG ();
-
-    SEG (NEW_N);
-    {
-      /* Create a new anonymous number. */
-      FACT_def_num (progm[CURR_IP] + 1, true);
-    }
-    END_SEG ();
-
-    SEG (NEW_S);
-    {
-      /* Create a new anonymous scope. */
-      FACT_def_scope (progm[CURR_IP] + 1, true);
-    }
-    END_SEG ();
-
-    SEG (NOP);
-    {
-      /* Do nothing. */
-    }
-    END_SEG ();
-
-    SEG (PURGE);
-    {
-      /* Remove all items from the variable stack. */
-      if (curr_thread->vstackp >= curr_thread->vstack) {
-	/* Only purge if there actually are items in the var stack. */
-	FACT_free (curr_thread->vstack);
-	curr_thread->vstackp = curr_thread->vstack = NULL;
-      }
-    }
-    END_SEG ();
-
-    SEG (REF);
-    {
-      /* Set a register to the reference of another. */ 
-      reg_args[0] = Furlow_register (progm[CURR_IP][1]);
-      reg_args[1] = Furlow_register (progm[CURR_IP][2]);
-      reg_args[1]->type = reg_args[0]->type;
-      reg_args[1]->ap = reg_args[0]->ap;
-    }
-    END_SEG ();
-
-    SEG (RET);
-    {
-      /* Close any open trap regions. */
-      while (curr_thread->num_traps != 0
-	     && (curr_thread->traps[curr_thread->num_traps][1]
-		 == (curr_thread->cstackp - curr_thread->cstack + 1)))
-	pop_t ();
-      /* Pop the call stack. */
-      pop_c ();
-    }
-    END_SEG ();
-
-    SEG (SET_C);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-      *FACT_cast_to_scope (args[0])->code = get_seg_addr (progm[CURR_IP] + 2);
-    }
-    END_SEG ();
-
-    SEG (SET_F);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
-      FACT_cast_to_scope (args[1])->code = FACT_cast_to_scope (args[0])->code;
-      FACT_cast_to_scope (args[1])->extrn_func = FACT_cast_to_scope (args[0])->extrn_func;
-    }
-    END_SEG ();
-
-    SEG (SPRT);
-    {
-      FACT_thread_t curr;
-
-      /* Gain control of threads. */
-      Furlow_lock_threads ();
-
-      /* Find the next open spot in the linked list. */
-      for (curr = threads; curr->next != NULL; curr = curr->next);
-
-      /* Allocate and initialize the new thread. */
-      curr->next = FACT_malloc (sizeof (struct FACT_thread));
-      curr = curr->next;
-      curr->thread_num = num_threads++;
-      curr->curr_err.what = DEF_ERR_MSG;
-      curr->cstack_size = 1;
-      curr->cstackp = curr->cstack = FACT_malloc (sizeof (struct cstack_t));
-      curr->root_message = NULL;
-      curr->num_messages = 0;
-      pthread_mutex_init (&curr->queue_lock, NULL);
-      pthread_cond_init (&curr->msg_block, NULL);
-	
-      /* Set the top scope and the IP of the thread. */
-      THIS_OF (curr) = FACT_alloc_scope ();
-      THIS_OF (curr)->name = "main<thread>";
-      IP_OF (curr) = CURR_IP + 1;
-
-      /* Initialize the registers. */
-      for (i = 0; i < T_REGISTERS; i++)
-	curr->registers[i].type = UNSET_TYPE;
-
-      /* Push the TID of the new thread to the var stack. */
-      push_constant_ui (curr->thread_num);
-	
-      /* Run the thread and give up control of threads. */
-      pthread_create (&curr->thread_id, NULL, Furlow_thread_mask, curr);
-      Furlow_unlock_threads ();
-
-      /* Jump. */
-      CURR_IP = get_seg_addr (progm[CURR_IP] + 1) - 1;
-    }
-    END_SEG ();
-
-    SEG (STO);
-    {
-      /* STO,$A,$B : $B <- $A */
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
-      args[1] = *Furlow_register (progm[CURR_IP][2]);
-      if (args[1].type == NUM_TYPE) {
-	if (args[0].type == SCOPE_TYPE)
-	  FACT_throw_error (CURR_THIS, "cannot set a number to a scope");
-	if (FACT_cast_to_num (args[1])->locked)
-	  FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-	FACT_set_num (args[1].ap, args[0].ap);
-      } else {
-	if (args[0].type == NUM_TYPE)
-	  FACT_throw_error (CURR_THIS, "cannot set a scope to a number");
-	if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
-	  FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-	hold_name = ((FACT_scope_t) args[1].ap)->name;
+      hold_name = ((FACT_scope_t) args[1].ap)->name;
+      if (hold_name != NULL && !strcmp ("up", hold_name)) { /* We're setting the up scope. */
+	memcpy (temp, args[1].ap, sizeof (struct FACT_scope));
 	memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
-	if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
-	  FACT_cast_to_scope (args[1])->lock_stat = SOFT_LOCK;
+	((FACT_scope_t) args[1].ap)->name = hold_name;
+	if (FACT_is_circular (args[1].ap)) { /* Circular scope link. */
+	  memcpy (args[1].ap, temp, sizeof (struct FACT_scope));
+	  FACT_throw_error (CURR_THIS, "assignment makes circularly linked scopes");
+	}
+      } else {
+	memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
 	((FACT_scope_t) args[1].ap)->name = hold_name;
       }
+      if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
+	FACT_cast_to_scope (args[1])->lock_stat = SOFT_LOCK;
     }
-    END_SEG ();
-
-    SEG (SUB);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	  FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      mpc_sub (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
-    }
-    END_SEG ();
-
-    SEG (SWAP);
-    {
-      /* Swap the first two elements on the var stack. */
-      if (curr_thread->vstackp >= curr_thread->vstack + 1) {
-	/* Only swap if there are at least two elements on the var stack. We don't
-	 * throw an error otherwise, simply nothing occurs. Perhaps this shouldn't
-	 * be the case?
-	 */
-	FACT_t hold;
-	hold = *curr_thread->vstackp;
-	*curr_thread->vstackp = *(curr_thread->vstackp - 1);
-	*(curr_thread->vstackp - 1) = hold;
-      }
-    }
-    END_SEG ();
-
-    SEG (THIS);
-    {
-      args[0].ap = CURR_THIS;
-      args[0].type = SCOPE_TYPE;
-      push_v (args[0]);
-    }
-    END_SEG ();
-
-    SEG (TRAP_B);
-    {
-      /* Set a new trap region. */
-      push_t (get_seg_addr (progm[CURR_IP] + 1),
-	      (curr_thread->cstackp - curr_thread->cstack + 1));
-    }
-    END_SEG ();
-
-    SEG (TRAP_E);
-    {
-      /* End a trap region. */
-      pop_t ();
-    }
-    END_SEG ();
-
-    SEG (USE);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
-      push_c (CURR_IP, args[0].ap);
-    }
-    END_SEG ();
-
-    SEG (VAR);
-    {
-      /* Load a variable. */
-      FACT_get_var (progm[CURR_IP] + 1);
-    }
-    END_SEG ();
-
-    SEG (VA_ADD);
-    {
-      struct FACT_va_list *curr;
-      
-      args[0] = *Furlow_register (progm[CURR_IP][1]);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
-      
-      if (FACT_cast_to_scope (args[1])->variadic == NULL) {
-	curr = FACT_cast_to_scope (args[1])->variadic = FACT_malloc (sizeof (struct FACT_va_list));
-	curr->var = args[0];
-	curr->next = NULL;
-      } else {
-	for (curr = FACT_cast_to_scope (args[1])->variadic;
-	     curr->next != NULL;
-	     curr = curr->next)
-	  ;
-	curr->next = FACT_malloc (sizeof (struct FACT_va_list));
-	curr->next->var = args[0];
-	curr->next->next = NULL;
-      }
-    }
-    END_SEG ();
-
-    SEG (XOR);
-    {
-      args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
-      args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
-      args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
-      if (FACT_cast_to_num (args[2])->locked)
-	  FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-      if (((FACT_num_t) args[0].ap)->value->precision
-	  || ((FACT_num_t) args[1].ap)->value->precision)
-	FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
-      mpc_xor (((FACT_num_t) args[2].ap)->value,
-	       ((FACT_num_t) args[1].ap)->value,
-	       ((FACT_num_t) args[0].ap)->value);
-    }
-    END_SEG ();
   }
+  END_SEG ();
+
+  SEG (SUB);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    mpc_sub (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
+
+  SEG (SWAP);
+  {
+    /* Swap the first two elements on the var stack. */
+    if (curr_thread->vstackp >= curr_thread->vstack + 1) {
+      /* Only swap if there are at least two elements on the var stack. We don't
+       * throw an error otherwise, simply nothing occurs. Perhaps this shouldn't
+       * be the case?
+       */
+      FACT_t hold;
+      hold = *curr_thread->vstackp;
+      *curr_thread->vstackp = *(curr_thread->vstackp - 1);
+      *(curr_thread->vstackp - 1) = hold;
+    }
+  }
+  END_SEG ();
+
+  SEG (THIS);
+  {
+    args[0].ap = CURR_THIS;
+    args[0].type = SCOPE_TYPE;
+    push_v (args[0]);
+  }
+  END_SEG ();
+
+  SEG (TRAP_B);
+  {
+    /* Set a new trap region. */
+    push_t (get_seg_addr (progm[CURR_IP] + 1),
+	    (curr_thread->cstackp - curr_thread->cstack + 1));
+  }
+  END_SEG ();
+
+  SEG (TRAP_E);
+  {
+    /* End a trap region. */
+    pop_t ();
+  }
+  END_SEG ();
+
+  SEG (USE);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], SCOPE_TYPE);
+    push_c (CURR_IP, args[0].ap);
+  }
+  END_SEG ();
+
+  SEG (VAR);
+  {
+    /* Load a variable. */
+    FACT_get_var (progm[CURR_IP] + 1);
+  }
+  END_SEG ();
+
+  SEG (VA_ADD);
+  {
+    struct FACT_va_list *curr;
+      
+    args[0] = *Furlow_register (progm[CURR_IP][1]);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], SCOPE_TYPE);
+      
+    if (FACT_cast_to_scope (args[1])->variadic == NULL) {
+      curr = FACT_cast_to_scope (args[1])->variadic = FACT_malloc (sizeof (struct FACT_va_list));
+      curr->var = args[0];
+      curr->next = NULL;
+    } else {
+      for (curr = FACT_cast_to_scope (args[1])->variadic;
+	   curr->next != NULL;
+	   curr = curr->next)
+	;
+      curr->next = FACT_malloc (sizeof (struct FACT_va_list));
+      curr->next->var = args[0];
+      curr->next->next = NULL;
+    }
+  }
+  END_SEG ();
+
+  SEG (XOR);
+  {
+    args[0].ap = Furlow_reg_val (progm[CURR_IP][1], NUM_TYPE);
+    args[1].ap = Furlow_reg_val (progm[CURR_IP][2], NUM_TYPE);
+    args[2].ap = Furlow_reg_val (progm[CURR_IP][3], NUM_TYPE);
+    if (FACT_cast_to_num (args[2])->locked)
+      FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+    if (mpc_is_float (((FACT_num_t) args[0].ap)->value) ||
+	mpc_is_float (((FACT_num_t) args[1].ap)->value))/*
+							  if (((FACT_num_t) args[0].ap)->value->precision
+							  || ((FACT_num_t) args[1].ap)->value->precision) */
+      FACT_throw_error (CURR_THIS, "arguments to bitwise operators cannot be floating point");
+    mpc_xor (((FACT_num_t) args[2].ap)->value,
+	     ((FACT_num_t) args[1].ap)->value,
+	     ((FACT_num_t) args[0].ap)->value);
+  }
+  END_SEG ();
 }
 
 static inline size_t get_seg_addr (char *arg) /* Convert a segment address to a ulong. */

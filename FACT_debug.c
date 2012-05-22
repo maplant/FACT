@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
 
 static void pretty_print_num (FACT_num_t, size_t);
 static void pretty_print_scope (FACT_scope_t, size_t);
