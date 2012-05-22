@@ -14,11 +14,24 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_STRS_H_
-#define FACT_STRS_H_
+#ifndef FACT_NUM_H_
+#define FACT_NUM_H_
 
-/* String conversion functions:                            */
-char *FACT_natos (FACT_num_t);  /* Number array to string. */
-FACT_num_t FACT_stona (char *); /* String to number array. */
+typedef struct FACT_num *FACT_num_t;
+typedef struct FACT_scope *FACT_scope_t;
 
-#endif /* FACT_STRS_H_ */
+FACT_num_t FACT_get_local_num (FACT_scope_t, char *);
+FACT_num_t FACT_add_num (FACT_scope_t, char *);
+
+void FACT_def_num (char *, bool);
+void FACT_get_num_elem (FACT_num_t, char *);
+
+void FACT_set_num (FACT_num_t, FACT_num_t);
+
+int FACT_compare_num (FACT_num_t, FACT_num_t);
+
+void FACT_append_num (FACT_num_t, FACT_num_t);
+
+void FACT_lock_num (FACT_num_t);
+
+#endif /* FACT_NUM_H_ */

@@ -14,7 +14,11 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_types.h"
+#include "FACT_hash.h"
+#include "FACT_vm.h"
+#include "FACT_error.h"
 
 /* Lexically global - not thread global. */
 FACT_t *FACT_get_global (FACT_scope_t env, char *name)
@@ -28,29 +32,6 @@ FACT_t *FACT_get_global (FACT_scope_t env, char *name)
   
   /* As a last ditch effort, try the global variables table. */
   return FACT_find_in_table (&Furlow_globals, name);    
-#if 0
-  
-  if (env != NULL && !*env->marked) { /* Make sure that env isn't marked */
-    /* Search for the variable. */
-    res = FACT_find_in_table (env->vars, name);
-    
-    if (res == NULL) {
-      if (env->lock_stat == UNLOCKED) { /* No such variable exists in this scope. */
-	/* Mark the current environment and search the next scope up. */
-	*env->marked = true;
-	res = FACT_get_global (env->up, name);
-	/* Unmark the scope and return. */
-	*env->marked = false;  
-      } else /* Locked scopes cannot use variables not declared in themselves. */
-	goto check_globals;
-    }
-    return res;
-  }
-
- check_globals:
-  /* As a last ditch effort, try the global variables table. */
-  return FACT_find_in_table (&Furlow_globals, name);
-#endif
 }
 
 void FACT_get_var (char *name) /* Search all relevent scopes for a variable and push it to the stack. */

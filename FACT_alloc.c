@@ -16,9 +16,19 @@
 
 #include "FACT.h"
 #include "FACT_mpc.h"
+#include "FACT_num.h"
+#include "FACT_scope.h"
 #include "FACT_types.h"
-#include "FACT_hash.c"
+#include "FACT_hash.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define GC_THREADS
+#include <gc/gc.h>
+#include <assert.h>
+
+#ifndef VALGRIND_DEBUG
 inline void *FACT_malloc (size_t alloc_size)
 {
   void *temp;
@@ -27,7 +37,7 @@ inline void *FACT_malloc (size_t alloc_size)
 
   /* Check for NULL pointer. */
   if (temp == NULL) {
-    fprintf (stderr, "Failed to allocate block of size %d, aborting.\n", alloc_size);
+    fprintf (stderr, "Failed to allocate block of size %zu, aborting.\n", alloc_size);
     abort ();
   }
 
@@ -42,7 +52,7 @@ inline void *FACT_malloc_atomic (size_t alloc_size)
 
   /* Check for NULL pointer. */
   if (temp == NULL) {
-    fprintf (stderr, "Failed to allocate block of size %d, aborting.\n", alloc_size);
+    fprintf (stderr, "Failed to allocate block of size %zu, aborting.\n", alloc_size);
     abort ();
   }
   
@@ -58,7 +68,7 @@ inline void *FACT_realloc (void *old, size_t new_size)
 
   /* Check for NULL pointer. */
   if (temp == NULL) {
-    fprintf (stderr, "Failed to reallocate block of size %d, aborting.\n", new_size);
+    fprintf (stderr, "Failed to reallocate block of size %zu, aborting.\n", new_size);
     abort ();
   }
 
@@ -69,6 +79,9 @@ inline void FACT_free (void *p)
 {
   GC_free (p);
 }
+#else
+# include "FACT_alloc.h"
+#endif
  
 FACT_num_t FACT_alloc_num (void) /* Allocate and initialize a num type. */
 {

@@ -14,7 +14,11 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_mpc.h"
+
+#include <string.h>
+#include <gmp.h>
 
 static inline mpf_init_set_z (mpf_t rop, mpz_t op)
 {

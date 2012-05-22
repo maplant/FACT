@@ -17,6 +17,9 @@
 #ifndef FACT_VAR_H_
 #define FACT_VAR_H_
 
+#include "FACT_hash.h"
+#include "FACT_types.h"
+
 /* Retrieving variables:                                                                           */
 void FACT_get_var (char *);                     /* Search for a variable and push it to the stack. */
 FACT_t *FACT_get_global (FACT_scope_t, char *); /* Search for a global variable.                   */

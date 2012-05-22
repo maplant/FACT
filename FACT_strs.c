@@ -14,7 +14,10 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT_types.h"
+#include "FACT_alloc.h"
+
+#include <string.h>
 
 char *FACT_natos (FACT_num_t arr) /* Number array to string. */
 {

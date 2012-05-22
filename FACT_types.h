@@ -17,6 +17,9 @@
 #ifndef FACT_TYPES_H_
 #define FACT_TYPES_H_
 
+#include "FACT.h"
+#include "FACT_mpc.h"
+
 /* Data in FACT is either a number or a scope. */
 typedef enum {
   UNSET_TYPE = -1,  /* Default type for registers. */

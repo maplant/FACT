@@ -22,17 +22,21 @@
  * GMP/MPC calling conventions.
  */
 
-/* The mpc_t is used for arbitrary precision arithmetic. */
-typedef struct 
-{
-  mpz_t value;      /* Arbitray-length integer.                  */
-  size_t precision; /* Number of digits after the decimal point. */
+#include "FACT.h"
+#include <gmp.h>
+
+typedef struct {
+  struct {
+    _Bool fp : 1; /* Floating point. */
+    unsigned int pad : 7;
+  };
+  union {
+    mpz_t intv; /* Integer value. */
+    mpf_t fltv; /* Float value. */
+  };
 } __mpc_struct;
 
 typedef __mpc_struct mpc_t[1];
-
-void mpc_set_default_prec (unsigned long);
-unsigned long mpc_get_default_prec (void);
 
 void mpc_init (mpc_t);
 void mpc_clear (mpc_t);
@@ -64,46 +68,32 @@ unsigned long int mpc_get_ui (mpc_t);
 signed long int mpc_get_si (mpc_t);
 char *mpc_get_str (mpc_t);
 
-static unsigned int pow_10 (unsigned int n) __attribute__((noinline));
-
-/* Simple unsigned long power of 10 function written is assembly. */   
-static unsigned int pow_10 (unsigned int n)
+static inline void mpc_add_ui (mpc_t rop, mpc_t op1, unsigned long int op2)
 {
-  /* TODO: if I'm going to write this in asm, I might as well 
-   * optimize it.
-   */
-  asm ("movl $0, %%edi    \n\t"
-       "movl $1, %%eax    \n\t"
-       "movl $10, %%ebx   \n\t"
-       "loop:             \n\t"
-       "cmpl %0, %%edi    \n\t"
-       "je done           \n\t"
-       "incl %%edi        \n\t"
-       "imul %%ebx, %%eax \n\t"
-       "jmp loop          \n\t"
-       "done:             \n\t" 
-       "movl %%eax, %1        " /* Store the result in n */
-       : "=r" (n)
-       : "r" (n)
-       : "edi", "eax", "ebx"
-       );
-  return n;
+  mpc_set (rop, op1);
+  if (rop->fp)
+    mpf_add_ui (rop->fltv, rop->fltv, op2);
+  else
+    mpz_add_ui (rop->intv, rop->intv, op2);
 }
 
-/* Inline functions to add *_ui functionality to arithmetic functions. */
-static inline void
-mpc_add_ui (mpc_t rop, mpc_t op1, unsigned int op2)
+static inline void mpc_sub_ui (mpc_t rop, mpc_t op1, unsigned long int op2)
 {
-  op2 *= pow_10 (op1->precision);
-  mpz_add_ui (rop->value, op1->value, op2);
-  rop->precision = op1->precision;
+  mpc_set (rop, op1);
+  if (rop->fp)
+    mpf_sub_ui (rop->fltv, rop->fltv, op2);
+  else
+    mpz_sub_ui (rop->intv, rop->intv, op2);
 }
 
-static inline void
-mpc_sub_ui (mpc_t rop, mpc_t op1, unsigned int op2)
+static inline bool mpc_is_float (mpc_t n)
 {
-  op2 *= pow_10 (op1->precision);
-  mpz_sub_ui (rop->value, op1->value, op2);
-  rop->precision = op1->precision;
+  return n->fp;
 }
+
+static inline bool mpc_is_int (mpc_t n)
+{
+  return !n->fp;
+}
+
 #endif /* FACT_MPC_H_ */

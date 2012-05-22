@@ -14,7 +14,12 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_vm.h"
+#include "FACT_error.h"
+
+#include <signal.h>
+#include <stdlib.h>
 
 void FACT_handle_interrupt (int sig) /* Handle a signal. */
 {

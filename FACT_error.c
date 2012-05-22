@@ -18,6 +18,9 @@
 #include "FACT_types.h"
 #include "FACT_alloc.h"
 #include "FACT_vm.h"
+#include "FACT_error.h"
+
+#include <stdarg.h>
 
 /* Structure to map instruction address to files and line numbers. */
 static size_t num_maps = 0;
@@ -104,8 +107,7 @@ void FACT_throw_error (FACT_scope_t scope, const char *fmt, ...)
   longjmp (handle_err, 1); /* Jump back. */
 }
 
-void
-FACT_print_error (FACT_error_t err) /* Print out an error to stderr. */
+void FACT_print_error (FACT_error_t err) /* Print out an error to stderr. */
 {
   /* ... */
 }

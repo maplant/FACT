@@ -14,7 +14,15 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_types.h"
+#include "FACT_alloc.h"
+#include "FACT_vm.h"
+#include "FACT_error.h"
+#include "FACT_mpc.h"
+#include "FACT_num.h"
+
+#include <pthread.h>
 
 void FACT_send_message (FACT_num_t msg, size_t dest) /* Add a message to a thread's queue. */
 {

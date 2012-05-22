@@ -17,6 +17,12 @@
 #ifndef FACT_VM_H_
 #define FACT_VM_H_
 
+#include "FACT.h"
+#include "FACT_types.h"
+
+#include <setjmp.h>
+#include <pthread.h>
+
 /* Register specifications:                                   */
 #define T_REGISTERS 256 /* Total number of registers (G + S). */
 #define G_REGISTERS 253 /* General registers.                 */

@@ -1,4 +1,4 @@
-/* This file is part of FACT.
+/* This file is part of Furlow VM.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,26 +14,14 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_HASH_H_
-#define FACT_HASH_H_
+#ifndef FACT_THREADS_H_
+#define FACT_THREADS_H_
 
-#define START_NUM_ENTRIES 256
+#include "FACT.h"
 
-struct _var_table {
-  struct _entry {
-#if 0
-    FACT_t *data;
-    size_t num_vars;
-#endif
-    FACT_t data[1];
-    struct _entry *next;
-  } *buckets;
-  size_t num_buckets;
-  size_t total_num_vars;
-};
+typedef struct FACT_num *FACT_num_t;
 
-FACT_t *FACT_find_in_table (FACT_table_t *, char *);
-FACT_t *FACT_add_to_table (FACT_table_t *, FACT_t);
-void FACT_table_digest (FACT_table_t *);
+void FACT_send_message (FACT_num_t, size_t); /* Send a message. */
+FACT_scope_t FACT_get_next_message (void); /* Recieve a message. */
 
-#endif /* FACT_HASH_H_ */
+#endif /* FACT_THREADS_H_ */

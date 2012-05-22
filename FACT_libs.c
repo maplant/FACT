@@ -14,7 +14,13 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_vm.h"
+#include "FACT_error.h"
+#include "FACT_types.h"
+#include "FACT_scope.h"
+
+#include <dlfcn.h>
 
 /**
  * FACT_load_lib:
@@ -35,14 +41,14 @@ void FACT_load_lib (char *lib_name)
 
   lib = dlopen (lib_name, RTLD_LAZY);
   if (lib == NULL)
-    FACT_throw_error ("could not load library \"%s\"", lib_name);
+    FACT_throw_error (CURR_THIS, "could not load library \"%s\"", lib_name);
 
   map = (struct mapping *) dlsym (lib, "MOD_MAP");
   if (map == NULL)
-    FACT_throw_error ("could not find MOD_MAP symbol in library \"%s\"", lib_name);
+    FACT_throw_error (CURR_THIS, "could not find MOD_MAP symbol in library \"%s\"", lib_name);
 
   for (i = 0; map[i].func_name != NULL && map[i].func != NULL; i++) {
-    temp = FACT_add_scope (CURR_THIS, map[i].func_name);
+    temp = FACT_add_scope (CURR_THIS, (char *) map[i].func_name);
     temp->extrn_func = map[i].func;
   }
 }

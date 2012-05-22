@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,17 +14,12 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_PARSER_H_
-#define FACT_PARSER_H_
+#ifndef FACT_COMP_H_
+#define FACT_COMP_H_
 
-typedef struct FACT_tree {
-  size_t line;                   /* Line token is on.                              */
-  FACT_token_t id;               /* Token of the current node.                     */
-  struct FACT_tree *next;        /* Used by stmt_list.                             */
-  struct FACT_tree *children[4]; /* Each node can have a maximum of four children. */
-} *FACT_tree_t;
+#include "FACT_parser.h"
 
-/* Add more functions to handle errors. */
-FACT_tree_t FACT_parse (FACT_lexed_t *); /* Parse a set of tokens. Thread safe. */
+void FACT_compile (FACT_tree_t, const char *, bool); /* Compile a tree and load into the VM. */
 
-#endif /* FACT_PARSER_H_ */
+#endif /* FACT_COMP_H_ */
+

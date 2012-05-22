@@ -17,19 +17,16 @@
 #ifndef FACT_H_
 #define FACT_H_
 
-#define SAFE                 /* Use extra caution.               */
-#define DEBUG                /* Print extra debug info.          */
-#define USE_GC               /* Use the BDW garbage collector.   */
-#define USE_ATOMIC           /* Improves speed a small amount.   */
-// #define VM_DEBUG             /* Print out extra debug data.      */
 #define FACT_VERSION "0.0.1" /* Furlow VM version number.        */
 #define FACT_STDLIB_PATH "/usr/share/FACT/FACT_stdlib.ft"
 
-#ifdef USE_GC
-# define GC_THREADS
-# include <gc/gc.h>
-#endif
+#include <stdint.h>
+#include <limits.h>
+#include <stddef.h>
+#include <stdbool.h>
 
+#if 0
+#include <gc/gc.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -72,5 +69,6 @@
 #include <FACT_BIFs.h>    /* Built In Functions.             */
 #include <FACT_debug.h>   /* Print debug information.        */ 
 #include <FACT_shell.h>   /* Terminal interface.             */
+#endif
 
 #endif /* FACT_H_ */

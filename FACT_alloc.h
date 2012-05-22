@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,19 +17,33 @@
 #ifndef FACT_ALLOC_H_
 #define FACT_ALLOC_H_
 
-/* Functions used to allocate memory, they either wrap libc or GC malloc. */
-inline void *FACT_malloc (size_t);
-#if (defined USE_GC && defined USE_ATOMIC) 
-inline void *FACT_malloc_atomic (size_t);
+#include "FACT.h"
+
+#ifdef VALGRIND_DEBUG
+# include <stdlib.h>
+# include <string.h>
+static void *FACT_malloc (size_t s)
+{
+  void *t = malloc (s);
+  memset (t, 0, s);
+}
+# define FACT_malloc_atomic malloc
+# define FACT_realloc realloc
+# define FACT_free free
+# define FACT_GC ((void) 0)
 #else
-# define FACT_malloc_atomic FACT_malloc
-#endif /* USE_GC && USE_ATOMIC */
+# define GC_THREADS
+# include <gc/gc.h>
+inline void *FACT_malloc (size_t);
+inline void *FACT_malloc_atomic (size_t);
 inline void *FACT_realloc (void *, size_t);
 inline void FACT_free (void *);
+# define FACT_GC() GC_gcollect ()
+#endif
 
-#define FACT_GC() GC_gcollect ()
+typedef struct FACT_num *FACT_num_t;
+typedef struct FACT_scope *FACT_scope_t;
 
-/* FACT type allocation functions:                                              */
 FACT_num_t FACT_alloc_num (void);              /* Allocate a number.            */
 FACT_num_t *FACT_alloc_num_array (size_t);     /* Allocate an array of numbers. */
 FACT_scope_t FACT_alloc_scope (void);          /* Allocate a scope.             */

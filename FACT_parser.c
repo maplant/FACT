@@ -14,7 +14,14 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_lexer.h"
+#include "FACT_parser.h"
+#include "FACT_alloc.h"
+#include "FACT_error.h"
+
+#include <string.h>
+#include <stdarg.h>
 
 /* Most of these functions are static as they need not be used by
  * any other file.

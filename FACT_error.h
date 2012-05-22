@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,21 +14,21 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_NUM_H_
-#define FACT_NUM_H_
+#ifndef FACT_ERROR_H_
+#define FACT_ERROR_H_
 
-FACT_num_t FACT_get_local_num (FACT_scope_t, char *);
-FACT_num_t FACT_add_num (FACT_scope_t, char *);
+#include "FACT.h"
+#include "FACT_types.h"
 
-void FACT_def_num (char *, bool);
-void FACT_get_num_elem (FACT_num_t, char *);
+#define MAX_ERR_LEN 100 /* Maximum number of characters in an error string. */
 
-void FACT_set_num (FACT_num_t, FACT_num_t);
+/* Error line handling: */
+int FACT_add_line (const char *file_name, size_t line, size_t addr);
+size_t FACT_get_line (size_t addr);
+const char *FACT_get_file (size_t addr);
 
-int FACT_compare_num (FACT_num_t, FACT_num_t);
+/* Error handling:                                                          */
+void FACT_throw_error (FACT_scope_t, const char *, ...); /* Throw an error. */
+void FACT_print_error (FACT_error_t);                    /* Print an error. */
 
-void FACT_append_num (FACT_num_t, FACT_num_t);
-
-void FACT_lock_num (FACT_num_t);
-
-#endif /* FACT_NUM_H_ */
+#endif /* FACT_ERROR_H_ */

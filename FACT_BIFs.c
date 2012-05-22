@@ -19,7 +19,13 @@
 #include "FACT_types.h"
 #include "FACT_vm.h"
 #include "FACT_error.h"
-#include "FACT_alloc"
+#include "FACT_alloc.h"
+#include "FACT_hash.h"
+#include "FACT_threads.h"
+#include "FACT_strs.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 /* Macros for declaring FACT BIFs. */
 #define FBIF(name) { #name, &FBIF_##name }

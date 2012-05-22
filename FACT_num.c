@@ -14,7 +14,14 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_vm.h"
+#include "FACT_hash.h"
+#include "FACT_error.h"
+#include "FACT_types.h"
+#include "FACT_alloc.h"
+
+#include <string.h>
 
 static FACT_num_t *make_num_array (char *, size_t, size_t *, size_t);
 static FACT_num_t copy_num (FACT_num_t);

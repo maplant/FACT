@@ -14,18 +14,9 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_ERROR_H_
-#define FACT_ERROR_H_
+#ifndef FACT_FILE_H_
+#define FACT_FILE_H_
 
-#define MAX_ERR_LEN 100 /* Maximum number of characters in an error string. */
+int FACT_load_file (const char *); /* Compile a file and load it into the VM. */
 
-/* Error line handling: */
-int FACT_add_line (const char *file_name, size_t line, size_t addr);
-size_t FACT_get_line (size_t addr);
-const char *FACT_get_file (size_t addr);
-
-/* Error handling:                                                          */
-void FACT_throw_error (FACT_scope_t, const char *, ...); /* Throw an error. */
-void FACT_print_error (FACT_error_t);                    /* Print an error. */
-
-#endif /* FACT_ERROR_H_ */
+#endif /* FACT_FILE_H_ */

@@ -14,7 +14,19 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_vm.h"
+#include "FACT_opcodes.h"
+#include "FACT_types.h"
+#include "FACT_hash.h"
+#include "FACT_alloc.h"
+#include "FACT_var.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <gmp.h>
 
 static void *Furlow_thread_mask (void *);
 static inline size_t get_seg_addr (char *);

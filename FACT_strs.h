@@ -1,4 +1,4 @@
-/* This file is part of FACT.
+/* This file is part of Furlow VM.
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,13 +14,13 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FACT_SCOPE_H_
-#define FACT_SCOPE_H_
+#ifndef FACT_STRS_H_
+#define FACT_STRS_H_
 
-FACT_scope_t FACT_get_local_scope (FACT_scope_t, char *);
-FACT_scope_t FACT_add_scope (FACT_scope_t, char *);
+#include "FACT_types.h"
 
-void FACT_def_scope (char *, bool);
-void FACT_append_scope (FACT_scope_t, FACT_scope_t);
+/* String conversion functions:                            */
+char *FACT_natos (FACT_num_t);  /* Number array to string. */
+FACT_num_t FACT_stona (char *); /* String to number array. */
 
-#endif /* FACT_SCOPE_H_ */
+#endif /* FACT_STRS_H_ */

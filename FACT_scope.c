@@ -14,7 +14,14 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_vm.h"
+#include "FACT_hash.h"
+#include "FACT_error.h"
+#include "FACT_types.h"
+#include "FACT_alloc.h"
+
+#include <string.h>
 
 static FACT_scope_t *make_scope_array (char *, size_t, size_t *, size_t);
 
@@ -53,17 +60,6 @@ FACT_scope_t FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope
       temp->lock_stat = UNLOCKED;
       temp->name = hold_name;
       
-      /* Initialize the memory, if we need to. */
-#ifndef USE_GC
-      *temp->array_size = 0;
-      *temp->code = 0;
-      *temp->marked = false;
-      temp->extrn_func = NULL;
-      temp->caller = NULL;
-      *temp->array_up = NULL;
-      temp->variadic = NULL;
-#endif /* USE_GC */
-
       /* Add the "up" scope here, unless we are already in the process of doing so. */
       if (strcmp (name, "up")) {
 	up = FACT_add_scope (temp, "up");

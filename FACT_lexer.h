@@ -17,6 +17,11 @@
 #ifndef FACT_LEXER_H_
 #define FACT_LEXER_H_
 
+#include "FACT.h"
+#include "FACT_error.h"
+
+#include <setjmp.h>
+
 /* Operator type. */
 typedef enum {
   E_NE = 0,
@@ -83,9 +88,9 @@ typedef enum {
 
 /* FACT_token_t - represents a single terminal. */
 typedef struct {
-  FACT_nterm_t id; /* Type of the token.                */
-  size_t lines;    /* Number of lines before the token. */
   char *lexem;     /* Actual token's string.            */
+  size_t lines;    /* Number of lines before the token. */
+  FACT_nterm_t id; /* Type of the token.                */
 } FACT_token_t;
 
 /* FACT_lexed_t - set of tokens (represented by FACT_token struct) and other information
@@ -93,10 +98,10 @@ typedef struct {
  */
 typedef struct {
   FACT_token_t *tokens;      /* Set of tokens.                               */
+  jmp_buf handle_err;        /* For parser error handling.                   */
   size_t curr;               /* Current one being analyzed.                  */
   size_t line;               /* The current line number, for error handling. */
   char err[MAX_ERR_LEN + 1]; /* Error message, if there is one.              */
-  jmp_buf handle_err;        /* For parser error handling.                   */
 } FACT_lexed_t;
 
 FACT_lexed_t FACT_lex_string (char *);     /* The lexer.                   */

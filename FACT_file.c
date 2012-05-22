@@ -14,7 +14,14 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_vm.h"
+#include "FACT_error.h"
+#include "FACT_alloc.h"
+#include "FACT_comp.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 int FACT_load_file (const char *file_name) /* Load a file into the VM. */
 {

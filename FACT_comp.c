@@ -15,10 +15,17 @@
  */
 
 #include "FACT.h"
+#include "FACT_vm.h"
 #include "FACT_opcodes.h"
 #include "FACT_parser.h"
 #include "FACT_lexer.h"
 #include "FACT_mpc.h"
+#include "FACT_alloc.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include <assert.h>
 
 /* HC SVNT DRACONES
  * Let me elaborate: this code is really bad. A mix of gobbeldy gook and such.

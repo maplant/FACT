@@ -1,9 +1,8 @@
 CC = gcc
 LIBS = -lgmp -lgc -ledit -ltermcap -lpthread -lm
 PROG = FACT
-CFLAGS = -c -I$(INCLUDE_DIR) -O2  -pg # -g3 
-LDFLAGS =  -pg # -rdynamic -pg
-INCLUDE_DIR = ./includes 
+CFLAGS = -c -g3
+LDFLAGS = 
 INSTALL_DIR = /usr/bin
 SRCS =	FACT_alloc.c FACT_shell.c FACT_vm.c  FACT_mpc.c    \
 	FACT_num.c FACT_scope.c FACT_error.c FACT_BIFs.c   \

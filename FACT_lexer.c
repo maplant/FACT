@@ -14,7 +14,11 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_lexer.h"
+#include "FACT_alloc.h"
+
+#include <string.h>
 
 static FACT_nterm_t get_type (char *);
 static bool is_num (char *);

@@ -14,36 +14,39 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_shell.h"
+#include "FACT_alloc.h"
+#include "FACT_types.h"
+#include "FACT_vm.h"
+#include "FACT_file.h"
+#include "FACT_error.h"
 
-void *
-gmp_realloc_wrapper (void *op1, size_t uop, size_t op2)
+#include <stdio.h>
+#include <stdlib.h>
+#include <gc/gc.h>
+
+void *gmp_realloc_wrapper (void *op1, size_t uop, size_t op2)
 {
   /* Ignore uop. */
   return FACT_realloc (op1, op2);
 }
 
-void
-gmp_free_wrapper (void *op1, size_t op2)
+void gmp_free_wrapper (void *op1, size_t op2)
 {
   /* Ignore op2. */
   FACT_free (op1);
 }
 
-void
-cleanup (void)
+void cleanup (void)
 {
-  /* ... */
-#ifdef USE_GC
   GC_gcollect ();
-#endif /* USE_GC */
 }
 
-int
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
   int i, j;
-  bool shell_on, load_stdlib, disasm;
+  bool shell_on, load_stdlib;
   FACT_t res;
   unsigned long q_size;
   char *stdlib_path;
@@ -60,16 +63,16 @@ main (int argc, char **argv)
     { 'f', "file"            }, /* 4 */
     { 'h', "help"            }, /* 5 */
     { 'v', "version"         }, /* 6 */
-    { 'd', "disassemble"     }, /* 7 */
   };
 
   /* Set exit routines. */
   atexit (cleanup);
-  
-#ifdef USE_GC 
+
+#ifndef VALGRIND_DEBUG
   /* Start the garbage collector */
   GC_INIT ();
   //  GC_set_warn_proc (&GC_ignore_warnings);
+#endif
 
   /* Set the GMP memory allocation functions to the GC
    * allocation functions.
@@ -77,7 +80,6 @@ main (int argc, char **argv)
   mp_set_memory_functions (&FACT_malloc,
 			   &gmp_realloc_wrapper,
 			   &gmp_free_wrapper);
-#endif /* USE_GC */
 
   /* Initialize the virtual machine. */
   Furlow_init_vm ();
@@ -92,7 +94,6 @@ main (int argc, char **argv)
   argc--;
 
   /* Set the default values to shell_on, load_stdlib, and disasm. */
-  disasm = false;
   load_stdlib = true;
   shell_on = ((argc == 0)
 	      ? true
@@ -226,10 +227,6 @@ main (int argc, char **argv)
 	goto exit;
       break;
 
-    case 7: /* disassemble     */
-      disasm = true;
-      continue;
-	  
     default: /* DOESNOTREACH   */
       abort ();
       break;
@@ -285,12 +282,6 @@ main (int argc, char **argv)
   /* Clean up and exit. */
   if (file_queue != NULL)
     FACT_free (file_queue);
-
-  if (disasm) {
-    printf ("\n---- BEGIN DISASSEMBLAGE ----\n");
-    Furlow_disassemble ();
-    printf ("----- END DISASSEMBLAGE -----\n");
-  }
   
   exit (0);
 }

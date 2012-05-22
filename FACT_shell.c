@@ -14,7 +14,22 @@
  * along with FACT. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <FACT.h>
+#include "FACT.h"
+#include "FACT_shell.h"
+#include "FACT_types.h"
+#include "FACT_lexer.h"
+#include "FACT_parser.h"
+#include "FACT_comp.h"
+#include "FACT_vm.h"
+#include "FACT_error.h"
+#include "FACT_mpc.h"
+#include "FACT_alloc.h"
+#include "FACT_hash.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <histedit.h>
 
 static void print_num (FACT_num_t);
 static void print_scope (FACT_scope_t);
