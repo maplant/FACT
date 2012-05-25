@@ -27,7 +27,7 @@
 #include <limits.h>
 #include <assert.h>
 
-/* HC SVNT DRACONES
+/* HIC SVNT DRACONES
  * Let me elaborate: this code is really bad. A mix of gobbeldy gook and such.
  * I'm guessing it's almost impossible to understand. Someday I'll fix it.
  * Hopefully.
@@ -88,18 +88,14 @@ static inline void push_const (struct inter_node *, char *);
 
 void FACT_compile (FACT_tree_t tree, const char *file_name, bool set_rx)
 {
-#ifdef ADVANCED_THREADING
   /* Lock the program for offset consistency. */
   Furlow_lock_program ();
-#endif /* ADVANCED_THREADING */
 
   /* Compile and load. */
   load (compile_tree (tree, 1, 0, set_rx), NULL, file_name);
 
-#ifdef ADVANCED_THREADING
   /* Unlock the program. */
   Furlow_unlock_program ();
-#endif /* ADVANCED_THREADING */
 }
 
 static inline void add_instruction (struct inter_node *group, int inst,
@@ -614,35 +610,35 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 10);
 
     /* Set the break point. */
-    add_instruction (res, JMP_PNT, addr_arg (6), ignore (), ignore ());
-    set_child (res, begin_temp_scope ());
-    set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
+    add_instruction (res, JMP_PNT, addr_arg (6), ignore (), ignore ());     /* 0 */
+    set_child (res, begin_temp_scope ());                                   /* 1 */
+    set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));        /* 2 */
 
     if (curr->children[0] == NULL)
-      set_child (res, NULL);
+      set_child (res, NULL);                                                /* 3 */
     else
-      add_instruction (res, JIF, reg_arg (R_POP), addr_arg (6), ignore ());
+      add_instruction (res, JIF, reg_arg (R_POP), addr_arg (6), ignore ()); /* 3 */
       
     /* Do not create a new scope for brackets. */
     if (curr->children[1] == NULL) {
-      set_child (res, NULL);
-      set_child (res, NULL);
+      set_child (res, NULL);                                                /* 4 */
+      set_child (res, NULL);                                                /* 5 */
     } else if (curr->children[1]->id.id == E_OP_CURL) {
-      set_child (res, compile_tree (curr->children[1]->children[0],
-				    s_count + 1, s_count + 1, set_rx));
-      set_child (res, NULL);
+      set_child (res, compile_tree (curr->children[1]->children[0],         /* 4 */
+				    s_count + 1, s_count + 1, set_rx)); 
+      set_child (res, NULL);                                                /* 5 */
       
     } else {
-      set_child (res, compile_tree (curr->children[1],
+      set_child (res, compile_tree (curr->children[1],                      /* 4 */
 				    s_count + 1, s_count + 1, set_rx));
       /* Drop the return value of every statement. */
-      add_instruction (res, DROP, ignore (), ignore (), ignore ());
+      add_instruction (res, DROP, ignore (), ignore (), ignore ());         /* 5 */
     }
 
-    add_instruction (res, JMP, addr_arg (2), ignore (), ignore ());
-    add_instruction (res, DROP, ignore (), ignore (), ignore ());
-    set_child (res, end_temp_scope ());
-    set_child (res, set_return_val ());
+    add_instruction (res, JMP, addr_arg (2), ignore (), ignore ());         /* 6 */
+    add_instruction (res, DROP, ignore (), ignore (), ignore ());           /* 7 */
+    set_child (res, end_temp_scope ());                                     /* 8 */
+    set_child (res, set_return_val ());                                     /* 9 */
     break;
       
   case E_FOR:
@@ -670,9 +666,13 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
       set_child (res, compile_tree (curr->children[3], s_count + 1, s_count + 1, set_rx));
 
     set_child (res, compile_tree (curr->children[2], 0, 0, set_rx));
-      
-    /* Drop the return value of every statement. */
-    add_instruction (res, DROP, ignore (), ignore (), ignore ());
+
+    if (curr->children[2] != NULL) 
+      /* Drop the return value of every statement. */
+      add_instruction (res, DROP, ignore (), ignore (), ignore ());
+    else
+      set_child (res, NULL);
+    
     add_instruction (res, JMP, addr_arg (3), ignore (), ignore ());
     add_instruction (res, DROP, ignore (), ignore (), ignore ());
     set_child (res, end_temp_scope ());

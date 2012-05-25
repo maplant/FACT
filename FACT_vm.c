@@ -107,9 +107,6 @@ FACT_t pop_v () /* Pop the variable stack. */
   size_t diff;
 
 #ifdef SAFE
-  /* Make sure that the stack is not empty. This can only occur due to an 
-   * error in user-created BAS code, so we do not make it a required check.
-   */
   if (curr_thread->vstackp < curr_thread->vstack)
     FACT_throw_error (CURR_THIS, "illegal POP on empty var stack");
 #endif /* SAFE */
@@ -226,31 +223,28 @@ void push_t (size_t n1, size_t n2) /* Push to the trap stack. */
 
 FACT_t *Furlow_register (int reg_number) /* Access a Furlow machine register. */
 {
-  /* Check for special registers. */
-  if (reg_number < S_REGISTERS) {
-    switch (reg_number) {
-    case R_POP:
-      /* Store the result in the registers array. */
-      curr_thread->registers[R_POP] = pop_v ();
-      break;
-      
-    case R_TOP:
-      if (curr_thread->vstackp < curr_thread->vstack)
-	FACT_throw_error (CURR_THIS, "illegal TOP on empty stack");
-      return curr_thread->vstackp;
-      
-    case R_TID:
-      if (curr_thread->registers[R_TID].type != NUM_TYPE) {
-	curr_thread->registers[R_TID].type = NUM_TYPE;
-	curr_thread->registers[R_TID].ap = FACT_alloc_num ();
-      }
-      mpc_set_ui (((FACT_num_t) curr_thread->registers[R_TID].ap)->value,
-		  curr_thread - threads);
-      break;
-      
-    default: /* NOTREACHED */
-      abort ();
+  switch (reg_number) {
+  case R_POP:
+    /* Store the result in the registers array. */
+    curr_thread->registers[R_POP] = pop_v ();
+    break;
+    
+  case R_TOP:
+    if (curr_thread->vstackp < curr_thread->vstack)
+      FACT_throw_error (CURR_THIS, "illegal TOP on empty stack");
+    return curr_thread->vstackp;
+    
+  case R_TID:
+    if (curr_thread->registers[R_TID].type != NUM_TYPE) {
+      curr_thread->registers[R_TID].type = NUM_TYPE;
+      curr_thread->registers[R_TID].ap = FACT_alloc_num ();
     }
+    mpc_set_ui (((FACT_num_t) curr_thread->registers[R_TID].ap)->value,
+		curr_thread - threads);
+    break;
+    
+  default: /* NOTREACHED */
+    break;
   }
 
   /* Probably best to add some extra checks here. */

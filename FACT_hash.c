@@ -24,7 +24,8 @@
 #include "FACT_types.h"
 #include "FACT_var.h"
 
-static inline ulong Zend_DJBX33A (char *, uint);
+static inline size_t jenkins_hash (char *, size_t);
+// static inline ulong Zend_DJBX33A (char *, uint);
 
 FACT_t *FACT_find_in_table (FACT_table_t *table, char *key)
 {
@@ -33,7 +34,7 @@ FACT_t *FACT_find_in_table (FACT_table_t *table, char *key)
   if (table->num_buckets == 0)
     return NULL;
 
-  for (p = table->buckets + Zend_DJBX33A (key, strlen (key)) % table->num_buckets;
+  for (p = table->buckets + jenkins_hash (key, strlen (key)) % table->num_buckets;
        p != NULL && p->data->type != UNSET_TYPE;
        p = p->next) {
     if (!strcmp (key, FACT_var_name (*p->data)))
@@ -45,9 +46,9 @@ FACT_t *FACT_find_in_table (FACT_table_t *table, char *key)
 
 FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
 {
+  FACT_t k;
   size_t i, d;
   char *var_name;
-  FACT_t k;
   struct _entry *p, *e;
 
   if (table->buckets == NULL) {
@@ -60,9 +61,12 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
 	     table->total_num_vars / table->num_buckets == 2) {
     /* If the load factor is 2, then double the number of buckets and rehash. */
     table->buckets = FACT_realloc (table->buckets, sizeof (struct _entry) * (table->num_buckets << 1));
+    /* Set all the new buckets' starting entries. */
+    for (i = table->num_buckets; i < table->num_buckets << 1; i++)
+      table->buckets[i].data->type = UNSET_TYPE;
     for (i = 0; i < table->num_buckets; i++) {
       for (p = table->buckets + i; p != NULL && p->data->type != UNSET_TYPE;) {
-	d = Zend_DJBX33A (FACT_var_name (*p->data), strlen (FACT_var_name (*p->data)))
+	d = jenkins_hash (FACT_var_name (*p->data), strlen (FACT_var_name (*p->data)))
 	  % (table->num_buckets << 1);
 	if (d != i) {
 	  for (e = table->buckets + d; e->data->type != UNSET_TYPE; e = e->next)
@@ -84,7 +88,7 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   }
 
   var_name = FACT_var_name (key);
-  for (p = table->buckets + Zend_DJBX33A (var_name, strlen (var_name)) % table->num_buckets;
+  for (p = table->buckets + jenkins_hash (var_name, strlen (var_name)) % table->num_buckets;
        p->data->type != UNSET_TYPE;
        p = p->next)
     ;
@@ -99,6 +103,7 @@ static void sqsort (char **, size_t, size_t);
 
 void FACT_table_digest (FACT_table_t *table)
 {
+  //  size_t n;
   size_t i, k;
   char **items;
   struct _entry *p;
@@ -109,8 +114,10 @@ void FACT_table_digest (FACT_table_t *table)
   items = FACT_malloc (sizeof (char *) * table->total_num_vars);
 
   for (i = k = 0; i < table->num_buckets; i++) {
-    for (p = table->buckets + i; p->data->type != UNSET_TYPE; p = p->next)
+    // n = 0;
+    for (p = table->buckets + i; p->data->type != UNSET_TYPE; p = p->next)//, n++)
       items[k++] = FACT_var_name (*p->data);
+    // printf ("(%zu) ", n);
   }
 
   /* Sort the entries. */
@@ -149,6 +156,21 @@ static void sqsort (char **v, size_t left, size_t right) /* Thanks K&R! */
   sqsort (v, last + 1, right);
 }
 
+static inline size_t jenkins_hash (char *k, size_t l)
+{
+  size_t h;
+  for (h = 0; l > 0; l--, k++) {
+    h += *k;
+    h += h << 10;
+    h ^= h >> 6;
+  }
+  h += h << 3;
+  h ^= h >> 11;
+  h += h << 15;
+  return h;
+}
+
+#if 0
 /* DJBX33A, taken from PHP's Zend source code. */
 static inline ulong Zend_DJBX33A (char *arKey, uint nKeyLength)
 {
@@ -179,3 +201,4 @@ static inline ulong Zend_DJBX33A (char *arKey, uint nKeyLength)
   }
   return hash;
 }
+#endif

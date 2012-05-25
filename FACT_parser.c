@@ -124,8 +124,12 @@ static FACT_tree_t stmt (FACT_lexed_t *set)
   } else if ((pn = accept (set, E_WHILE)) != NULL) {
     /* While loop. */
     expect (set, E_OP_PAREN);
-    pn->children[0] = assignment (set);
-    expect (set, E_CL_PAREN);
+    if (accept (set, E_CL_PAREN) != NULL)
+      pn->children[0] = NULL;
+    else {
+      pn->children[0] = assignment (set);
+      expect (set, E_CL_PAREN);
+    }
     pn->children[1] = ((accept (set, E_SEMI) != NULL)
 		       ? NULL
 		       : stmt (set));
