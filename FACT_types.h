@@ -27,14 +27,17 @@ typedef enum {
   SCOPE_TYPE = 1
 } FACT_type;
 
+typedef struct _var_table FACT_table_t;
+
 /* FACT_t is the "ambigious" structure, and is used to pass either a
  * scope or number arbitrarily across internal functions. It's really
  * annoying casting ap every time I want to use it. Perhaps use a union
  * instead.
  */
 typedef struct {
-  FACT_type type; /* Type of the passed data.      */
   void *ap;       /* Casted num or scope pointer.  */
+  FACT_table_t *home; /* For unset types. */
+  FACT_type type; /* Type of the passed data.      */
 } FACT_t;
 
 /* The FACT_num structure expresses real numbers. */
@@ -45,8 +48,6 @@ typedef struct FACT_num {
   size_t array_size;          /* Size of the current dimension.       */
   struct FACT_num **array_up; /* Points to the next dimension.        */
 } *FACT_num_t;
-
-typedef struct _var_table FACT_table_t;
 
 /* The FACT_scope structure expresses scopes and functions. */ 
 typedef struct FACT_scope {

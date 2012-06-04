@@ -25,50 +25,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#if 0
-#include <gc/gc.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdbool.h>
-#include <setjmp.h>
-#include <assert.h>
-#include <stdarg.h>
-#include <signal.h>
-#include <limits.h>
-#include <pthread.h>
-#include <math.h>
-
-#include <gmp.h>
-#include <dlfcn.h>
-#include <pthread.h>
-#include <histedit.h>
-
-/* Source header files. */
-#include <FACT_mpc.h>
-#include <FACT_types.h>
-#include <FACT_hash.h>
-#include <FACT_error.h>   /* Error handling.                 */
-#include <FACT_lexer.h>   /* Lexer functions.                */
-#include <FACT_parser.h>  /* Parser of the FACT grammar.     */
-#include <FACT_comp.h>    /* Bytecode compiling and parsing. */
-#include <FACT_signals.h> /* Interrupt/signal handling.      */
-#include <FACT_file.h>    /* File interface.                 */
-#include <FACT_alloc.h>   /* Memory allocation.              */
-#include <FACT_strs.h>    /* String utility functions.       */               
-#include <FACT_opcodes.h> /* Instruction listings.           */
-#include <FACT_scope.h>   /* Scope handling routines.        */
-#include <FACT_num.h>     /* Number handling routines.       */
-#include <FACT_var.h>     /* Variable look-ups.              */
-#include <FACT_vm.h>      /* Virtual machine functions.      */
-#include <FACT_threads.h> /* Thread handling.                */
-#include <FACT_basm.h>    /* Bytecode assembler routines.    */
-#include <FACT_libs.h>    /* Module loading.                 */
-#include <FACT_BIFs.h>    /* Built In Functions.             */
-#include <FACT_debug.h>   /* Print debug information.        */ 
-#include <FACT_shell.h>   /* Terminal interface.             */
-#endif
+#define Max(o1, o2) ((o1) > (o2) ? (o1) : (o2))
+#define Min(o1, o2) ((o1) < (o2) ? (o1) : (o2))
 
 #endif /* FACT_H_ */

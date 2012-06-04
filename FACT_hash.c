@@ -24,17 +24,31 @@
 #include "FACT_types.h"
 #include "FACT_var.h"
 
-static inline size_t jenkins_hash (char *, size_t);
-// static inline ulong Zend_DJBX33A (char *, uint);
-
-FACT_t *FACT_find_in_table (FACT_table_t *table, char *key)
+FACT_t *FACT_find_in_table_nohash (FACT_table_t *table, char *key)
 {
   register struct _entry *p;
 
   if (table->num_buckets == 0)
     return NULL;
 
-  for (p = table->buckets + jenkins_hash (key, strlen (key)) % table->num_buckets;
+  for (p = table->buckets + FACT_get_hash (key, strlen (key)) % table->num_buckets;
+       p != NULL && p->data->type != UNSET_TYPE;
+       p = p->next) {
+    if (!strcmp (key, FACT_var_name (*p->data)))
+      return p->data;
+  }
+
+  return NULL;
+}
+
+FACT_t *FACT_find_in_table (FACT_table_t *table, char *key, size_t hash)
+{
+  register struct _entry *p;
+
+  if (table->num_buckets == 0)
+    return NULL;
+
+  for (p = table->buckets + hash % table->num_buckets;
        p != NULL && p->data->type != UNSET_TYPE;
        p = p->next) {
     if (!strcmp (key, FACT_var_name (*p->data)))
@@ -66,7 +80,7 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
       table->buckets[i].data->type = UNSET_TYPE;
     for (i = 0; i < table->num_buckets; i++) {
       for (p = table->buckets + i; p != NULL && p->data->type != UNSET_TYPE;) {
-	d = jenkins_hash (FACT_var_name (*p->data), strlen (FACT_var_name (*p->data)))
+	d = FACT_get_hash (FACT_var_name (*p->data), strlen (FACT_var_name (*p->data)))
 	  % (table->num_buckets << 1);
 	if (d != i) {
 	  for (e = table->buckets + d; e->data->type != UNSET_TYPE; e = e->next)
@@ -88,7 +102,7 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   }
 
   var_name = FACT_var_name (key);
-  for (p = table->buckets + jenkins_hash (var_name, strlen (var_name)) % table->num_buckets;
+  for (p = table->buckets + FACT_get_hash (var_name, strlen (var_name)) % table->num_buckets;
        p->data->type != UNSET_TYPE;
        p = p->next)
     ;
@@ -98,6 +112,7 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   p->next->next = NULL;
   return p->data;
 }
+
 
 static void sqsort (char **, size_t, size_t);
 
@@ -156,7 +171,7 @@ static void sqsort (char **v, size_t left, size_t right) /* Thanks K&R! */
   sqsort (v, last + 1, right);
 }
 
-static inline size_t jenkins_hash (char *k, size_t l)
+inline size_t FACT_get_hash (char *k, size_t l) /* Jenkin's hash function. */
 {
   size_t h;
   for (h = 0; l > 0; l--, k++) {

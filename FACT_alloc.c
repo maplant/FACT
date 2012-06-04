@@ -97,7 +97,6 @@ FACT_num_t *FACT_alloc_num_array (size_t n)
 {
   FACT_num_t *temp;
 
-  assert (n != 0);
   temp = FACT_malloc (sizeof (FACT_num_t) * n); /* Allocate the nodes. */
 
   /* Initialize all the nodes. */
@@ -130,7 +129,6 @@ FACT_scope_t *FACT_alloc_scope_array (size_t n)
 {
   FACT_scope_t *temp;
 
-  assert (n != 0);
   temp = FACT_malloc (sizeof (FACT_scope_t) * n); /* Allocate the nodes. */
 
   /* Initialize all the nodes. */

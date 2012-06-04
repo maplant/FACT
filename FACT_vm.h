@@ -118,9 +118,9 @@ struct cstack_t pop_c (void);       /* Pop the call stack.                     *
 void push_v (FACT_t);               /* Push to the var stack.                  */
 void push_c (size_t, FACT_scope_t); /* Push to the call stack.                 */
 /* Push a constant value to the var stack: */
-void push_constant_str (char *);
-void push_constant_ui  (unsigned long int);
-void push_constant_si  (  signed long int);
+inline void push_constant_str (char *);
+inline void push_constant_ui  (unsigned long int);
+inline void push_constant_si  (  signed long int);
 
 /* Register functions:                                              */
 FACT_t *Furlow_register (int);         /* Access a register.        */
@@ -138,8 +138,6 @@ inline void Furlow_lock_program ();   /* Wait for a chance and lock.        */
 inline void Furlow_unlock_program (); /* Unlock the program.                */
 inline size_t Furlow_offset ();       /* Get the instruction offset.        */
 
-#ifdef DEBUG
 void Furlow_disassemble (void);
-#endif /* DEBUG */
 
 #endif /* FACT_VM_H_ */

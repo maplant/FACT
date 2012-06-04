@@ -23,15 +23,12 @@ typedef struct FACT_scope *FACT_scope_t;
 FACT_num_t FACT_get_local_num (FACT_scope_t, char *);
 FACT_num_t FACT_add_num (FACT_scope_t, char *);
 
-void FACT_def_num (char *, bool);
-void FACT_get_num_elem (FACT_num_t, char *);
-
-void FACT_set_num (FACT_num_t, FACT_num_t);
-
 int FACT_compare_num (FACT_num_t, FACT_num_t);
 
+void FACT_def_num (char *, bool);
+void FACT_get_num_elem (FACT_num_t, char *);
+void FACT_set_num (FACT_num_t, FACT_num_t);
 void FACT_append_num (FACT_num_t, FACT_num_t);
-
 void FACT_lock_num (FACT_num_t);
 
 #endif /* FACT_NUM_H_ */

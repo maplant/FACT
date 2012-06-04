@@ -48,6 +48,8 @@ __thread jmp_buf recover;    /* When there are no other options. */
 static char **progm;     /* Program being run.          */
 static char **next_inst; /* Next available instruction. */
 
+static void print_var_stack ();
+
 /* Global variables: */
 FACT_table_t Furlow_globals = {
   .buckets = NULL,
@@ -185,7 +187,7 @@ void push_v (FACT_t n) /* Push to the variable stack. */
   if (diff >= curr_thread->vstack_size) {
     if (curr_thread->vstack_size == 0) {
       curr_thread->vstack_size = 1;
-      diff--;
+      diff = 0;
     } else
       curr_thread->vstack_size <<= 1; /* Square the size of the var stack. */
     curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_size));
@@ -223,9 +225,39 @@ void push_t (size_t n1, size_t n2) /* Push to the trap stack. */
 
 FACT_t *Furlow_register (int reg_number) /* Access a Furlow machine register. */
 {
+  static const void *jmp_table[] = {
+    &&h_rPOP,
+    &&h_rTOP,
+    &&h_rTID,
+    &&h_rGEN
+  };
+
+  goto *jmp_table[Min (reg_number, R_I)]; /* R_I is the first general register. */
+
+ h_rPOP:
+  curr_thread->registers[R_POP] = pop_v ();
+  return &curr_thread->registers[R_POP];
+
+ h_rTOP:
+  if (curr_thread->vstackp < curr_thread->vstack)
+    FACT_throw_error (CURR_THIS, "illegal TOP on empty stack");
+  return curr_thread->vstackp;
+
+ h_rTID:
+  if (curr_thread->registers[R_TID].type != NUM_TYPE) {
+    curr_thread->registers[R_TID].type = NUM_TYPE;
+    curr_thread->registers[R_TID].ap = FACT_alloc_num ();
+  }
+  mpc_set_ui (((FACT_num_t) curr_thread->registers[R_TID].ap)->value,
+	      curr_thread - threads);
+  /* Fall through. */
+
+ h_rGEN:
+  return &curr_thread->registers[reg_number];
+  
+#if 0
   switch (reg_number) {
   case R_POP:
-    /* Store the result in the registers array. */
     curr_thread->registers[R_POP] = pop_v ();
     break;
     
@@ -243,12 +275,13 @@ FACT_t *Furlow_register (int reg_number) /* Access a Furlow machine register. */
 		curr_thread - threads);
     break;
     
-  default: /* NOTREACHED */
+  default:
     break;
   }
 
   /* Probably best to add some extra checks here. */
   return &curr_thread->registers[reg_number];
+#endif
 }
 
 void *Furlow_reg_val (int reg_number, FACT_type des) /* Safely access a register's value. */
@@ -864,6 +897,7 @@ void Furlow_run () /* Run the program until a HALT is reached. */
     reg_args[1] = Furlow_register (progm[CURR_IP][2]);
     reg_args[1]->type = reg_args[0]->type;
     reg_args[1]->ap = reg_args[0]->ap;
+    reg_args[1]->home = reg_args[0]->home;
   }
   END_SEG ();
 
@@ -943,32 +977,62 @@ void Furlow_run () /* Run the program until a HALT is reached. */
     /* STO,$A,$B : $B <- $A */
     args[0] = *Furlow_register (progm[CURR_IP][1]);
     args[1] = *Furlow_register (progm[CURR_IP][2]);
+
+    if (args[1].type == UNSET_TYPE) {
+      FACT_t v;
+      if (args[0].type == UNSET_TYPE) {
+	FACT_t *t;
+	if ((t = FACT_find_in_table_nohash (args[0].home, args[0].ap)) == NULL)
+	  FACT_throw_error (CURR_THIS, "value is unset");
+	args[0] = *t;
+      }
+      args[1].type = args[0].type;
+      if (args[0].type == NUM_TYPE) {
+	FACT_num_t t = FACT_alloc_num ();
+	t->name = args[1].ap;
+	args[1].ap = t;
+      } else {
+	FACT_scope_t t = FACT_alloc_scope ();
+	t->name = args[1].ap;
+	args[1].ap = t;
+      }
+      FACT_add_to_table (args[1].home, args[1]);
+    }
     if (args[1].type == NUM_TYPE) {
+      if (args[0].type == UNSET_TYPE) {
+	FACT_t *t;
+	if ((t = FACT_find_in_table_nohash (args[0].home, args[0].ap)) == NULL)
+	  FACT_throw_error (CURR_THIS, "value is unset");
+	args[0] = *t;
+      }
+
       if (args[0].type == SCOPE_TYPE)
 	FACT_throw_error (CURR_THIS, "cannot set a number to a scope");
+
       if (FACT_cast_to_num (args[1])->locked)
 	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+
       FACT_set_num (args[1].ap, args[0].ap);
     } else {
       struct FACT_scope temp[1];
-      
+    
+      if (args[0].type == UNSET_TYPE) {
+	FACT_t *t;
+	if ((t = FACT_find_in_table_nohash (args[0].home, args[0].ap)) == NULL)
+	  FACT_throw_error (CURR_THIS, "value is unset");
+	args[0] = *t;
+      }
+
       if (args[0].type == NUM_TYPE)
 	FACT_throw_error (CURR_THIS, "cannot set a scope to a number");
+
       if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
 	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
+
       hold_name = ((FACT_scope_t) args[1].ap)->name;
-      if (hold_name != NULL && !strcmp ("up", hold_name)) { /* We're setting the up scope. */
-	memcpy (temp, args[1].ap, sizeof (struct FACT_scope));
-	memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
-	((FACT_scope_t) args[1].ap)->name = hold_name;
-	if (FACT_is_circular (args[1].ap)) { /* Circular scope link. */
-	  memcpy (args[1].ap, temp, sizeof (struct FACT_scope));
-	  FACT_throw_error (CURR_THIS, "assignment makes circularly linked scopes");
-	}
-      } else {
-	memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
-	((FACT_scope_t) args[1].ap)->name = hold_name;
-      }
+      memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
+      ((FACT_scope_t) args[1].ap)->name = hold_name;
+
       if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
 	FACT_cast_to_scope (args[1])->lock_stat = SOFT_LOCK;
     }
@@ -1117,7 +1181,7 @@ void *Furlow_thread_mask (void *new_thread)
   return NULL;
 }
 
-void push_constant_str (char *cval) /* Push a constant number to the var stack. */
+inline void push_constant_str (char *cval) /* Push a constant number to the var stack. */
 {
   /* TODO: add caching, maybe */
   FACT_t push_val;
@@ -1134,7 +1198,7 @@ void push_constant_str (char *cval) /* Push a constant number to the var stack. 
   push_v (push_val);
 }
 
-void push_constant_ui (unsigned long int n)
+inline void push_constant_ui (unsigned long int n)
 {
   FACT_t push_val;
 
@@ -1147,7 +1211,7 @@ void push_constant_ui (unsigned long int n)
   push_v (push_val);
 }
 
-void push_constant_si (signed long int n)
+inline void push_constant_si (signed long int n)
 {
   FACT_t push_val;
 
@@ -1183,8 +1247,7 @@ void Furlow_init_vm (void) /* Create the main scope and thread. */
     threads->registers[i].type = UNSET_TYPE;
 }
 
-void
-Furlow_destroy_vm (void) /* Deallocate everything and destroy every thread. */
+void Furlow_destroy_vm (void) /* Deallocate everything and destroy every thread. */
 {
   /* This function has yet to be implemented, as I need to do
    * some thinking beforehand. Nothing major hopefully.
@@ -1192,7 +1255,6 @@ Furlow_destroy_vm (void) /* Deallocate everything and destroy every thread. */
   return;
 }
 
-#ifdef DEBUG
 void Furlow_disassemble (void) /* Print the byte code currently loaded into the VM. */
 {
   size_t i;
@@ -1230,4 +1292,67 @@ void Furlow_disassemble (void) /* Print the byte code currently loaded into the 
  end:
   printf ("%zu:\thalt\n", (progm != NULL) ? i : 0);
 }
-#endif /* DEBUG */
+
+
+static void print_num (FACT_num_t val)
+{
+  size_t i;
+
+  if (val->name != NULL)
+    printf ("%s", val->name);
+  if (val->array_up != NULL) {
+    printf (" [");
+    for (i = 0; i < val->array_size; i++) {
+      if (i)
+	printf (", ");
+      print_num (val->array_up[i]);
+    }
+    printf (" ]");
+  } else
+    printf (" %s", mpc_get_str (val->value));
+}
+
+static void print_scope (FACT_scope_t val)
+{
+  size_t i;
+
+  if (*val->marked) 
+    return;
+
+  if (val->name != NULL)
+    printf ("%s", val->name);
+  if (*val->array_up != NULL) {
+    printf (" [");
+    for (i = 0; i < *val->array_size; i++) {
+      if (i)
+	printf (", ");
+      print_scope ((*val->array_up)[i]);
+    }
+    printf (" ]");
+  } else {
+    printf ("{ %s%s ", val->name, ((val->vars->total_num_vars == 0) ? "\0" : ":"));
+    FACT_table_digest (val->vars);
+    printf ("}");
+  }
+}
+
+static void print_var_stack ()
+{
+  size_t i;
+  FACT_t *p = curr_thread->vstackp;
+  if (p <= curr_thread->vstack)
+    return;
+  printf ("-------\n");
+  for (i = 0; p >= curr_thread->vstack; p--, i++) {
+    printf ("%zu: ", i);
+    if (p->type == NUM_TYPE)
+      print_num (p->ap);
+    else if (p->type == SCOPE_TYPE)
+      print_scope (p->ap);
+    else
+      printf ("Undef");
+    printf ("\n");
+  }
+  printf ("-------\n");
+}
+

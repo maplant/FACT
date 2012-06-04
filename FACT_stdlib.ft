@@ -1,6 +1,5 @@
 const cat (num op1, num op2) # Concatinate two strings
 {
-  num arr_size;
   if (size (op1) == 0)
     arr_size = 1;
   else
@@ -34,9 +33,9 @@ const cat (num op1, num op2) # Concatinate two strings
 
 const linked_list (num size)
 {
-  scope curr = this;
-  for (num i = 0; i < size; i += 1) {
-    (curr: num n) = i;
+  scope curr;
+  for (i = 0; i < size; i += 1) {
+    (curr: n) = i;
     curr: scope get_end @ ()
     {
       scope curr = up;

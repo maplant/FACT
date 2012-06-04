@@ -1,4 +1,4 @@
-/* This file is part of Furlow VM.
+/* This file is part of FACT. 
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ FACT_t *FACT_get_global (FACT_scope_t, char *); /* Search for a global variable.
 
 static inline FACT_t *FACT_get_local (FACT_scope_t env, char *name)
 {
-  return FACT_find_in_table (env->vars, name);
+  return FACT_find_in_table_nohash (env->vars, name);
 }
 
 #define FACT_var_name(v)			\
@@ -35,6 +35,6 @@ static inline FACT_t *FACT_get_local (FACT_scope_t env, char *name)
     ? ((FACT_num_t) _v.ap)->name		\
     : _v.type == SCOPE_TYPE			\
     ? ((FACT_scope_t) _v.ap)->name		\
-    : NULL; })
+    : (char *) _v.ap; })
 
 #endif /* FACT_VAR_H_ */

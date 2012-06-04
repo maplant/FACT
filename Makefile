@@ -1,7 +1,7 @@
 CC = gcc
 LIBS = -lgmp -lgc -ledit -ltermcap -lpthread -lm -Wall
 PROG = FACT
-CFLAGS = -c -O2 -g3
+CFLAGS = -c -g3 -O2
 LDFLAGS = 
 INSTALL_DIR = /usr/bin
 SRCS =	FACT_alloc.c FACT_shell.c FACT_vm.c  FACT_mpc.c    \

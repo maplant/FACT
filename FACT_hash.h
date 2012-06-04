@@ -20,6 +20,8 @@
 #include "FACT.h"
 #include "FACT_types.h"
 
+#include <string.h>
+
 #define START_NUM_ENTRIES 256
 
 struct _var_table {
@@ -31,8 +33,11 @@ struct _var_table {
   size_t total_num_vars;
 };
 
-FACT_t *FACT_find_in_table (FACT_table_t *, char *);
+FACT_t *FACT_find_in_table_nohash (FACT_table_t *, char *);
+FACT_t *FACT_find_in_table (FACT_table_t *, char *, size_t);
 FACT_t *FACT_add_to_table (FACT_table_t *, FACT_t);
 void FACT_table_digest (FACT_table_t *);
+
+inline size_t FACT_get_hash (char *, size_t);
 
 #endif /* FACT_HASH_H_ */

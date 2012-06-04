@@ -594,24 +594,37 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
       res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 5);
       set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
       add_instruction (res, JIF, reg_arg (R_POP), addr_arg (3), ignore ());
-      set_child (res, compile_tree (curr->children[1], s_count, l_count, set_rx));
+      if (curr->children[1] != NULL && curr->children[1]->id.id == E_OP_CURL)
+	set_child (res, compile_tree (curr->children[1]->children[0], s_count, l_count, set_rx));
+      else 
+	set_child (res, compile_tree (curr->children[1], s_count, l_count, set_rx));
       add_instruction (res, JMP, addr_arg (4), ignore (), ignore ());
-      set_child (res, compile_tree (curr->children[2], s_count, l_count, set_rx));
+      if (curr->children[2]->id.id == E_OP_CURL)
+	set_child (res, compile_tree (curr->children[2]->children[0], s_count, l_count, set_rx));
+      else 
+	set_child (res, compile_tree (curr->children[2], s_count, l_count, set_rx));
     } else {
       res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 3);
       set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
       add_instruction (res, JIF, reg_arg (R_POP), addr_arg (2), ignore ());
-      set_child (res, compile_tree (curr->children[1], s_count, l_count, set_rx));
+      if (curr->children[1] != NULL && curr->children[1]->id.id == E_OP_CURL)
+	set_child (res, compile_tree (curr->children[1]->children[0], s_count, l_count, set_rx));
+      else 
+	set_child (res, compile_tree (curr->children[1], s_count, l_count, set_rx));
     }
+    /*
+      else if (curr->children[1]->id.id == E_OP_CURL) {
+      set_child (res, compile_tree (curr->children[1]->children[0],    */
     break;
 
   case E_WHILE:
     res->node_type = GROUPING;
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 10);
-
+    
     /* Set the break point. */
     add_instruction (res, JMP_PNT, addr_arg (6), ignore (), ignore ());     /* 0 */
-    set_child (res, begin_temp_scope ());                                   /* 1 */
+    // set_child (res, begin_temp_scope ());                                   /* 1 */
+    set_child (res, NULL); /* NO temp scope! */
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));        /* 2 */
 
     if (curr->children[0] == NULL)
@@ -624,21 +637,24 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
       set_child (res, NULL);                                                /* 4 */
       set_child (res, NULL);                                                /* 5 */
     } else if (curr->children[1]->id.id == E_OP_CURL) {
-      set_child (res, compile_tree (curr->children[1]->children[0],         /* 4 */
-				    s_count + 1, s_count + 1, set_rx)); 
+      set_child (res, compile_tree (curr->children[1]->children[0], s_count, s_count, set_rx));
+      //      set_child (res, compile_tree (curr->children[1]->children[0],         /* 4 */
+      //				    s_count + 1, s_count + 1, set_rx)); 
       set_child (res, NULL);                                                /* 5 */
       
     } else {
-      set_child (res, compile_tree (curr->children[1],                      /* 4 */
-				    s_count + 1, s_count + 1, set_rx));
+      set_child (res, compile_tree (curr->children[1], s_count, s_count, set_rx));
+      //      set_child (res, compile_tree (curr->children[1],                      /* 4 */
+      //				    s_count + 1, s_count + 1, set_rx));
       /* Drop the return value of every statement. */
       add_instruction (res, DROP, ignore (), ignore (), ignore ());         /* 5 */
     }
 
     add_instruction (res, JMP, addr_arg (2), ignore (), ignore ());         /* 6 */
     add_instruction (res, DROP, ignore (), ignore (), ignore ());           /* 7 */
-    set_child (res, end_temp_scope ());                                     /* 8 */
-    set_child (res, set_return_val ());                                     /* 9 */
+    //    set_child (res, end_temp_scope ());                                     /* 8 */
+    set_child (res, NULL);
+    set_child (res, NULL); // set_return_val ());                                     /* 9 */
     break;
       
   case E_FOR:
@@ -647,7 +663,7 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
 
     /* Set the break point. */
     add_instruction (res, JMP_PNT, addr_arg (8), ignore (), ignore ());
-    set_child (res, begin_temp_scope ());
+    set_child (res, NULL); // begin_temp_scope ());
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
     set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
 
@@ -660,10 +676,12 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
       set_child (res, NULL);
     /* Do not create a new scope for brackets. */
     else if (curr->children[3]->id.id == E_OP_CURL)
-      set_child (res, compile_tree (curr->children[3]->children[0], s_count + 1, s_count + 1, set_rx));
+      set_child (res, compile_tree (curr->children[3]->children[0], s_count, s_count, set_rx));
+      // set_child (res, compile_tree (curr->children[3]->children[0], s_count + 1, s_count + 1, set_rx));
 				      
     else
-      set_child (res, compile_tree (curr->children[3], s_count + 1, s_count + 1, set_rx));
+      set_child (res, compile_tree (curr->children[3], s_count, s_count, set_rx));
+    //      set_child (res, compile_tree (curr->children[3], s_count + 1, s_count + 1, set_rx));
 
     set_child (res, compile_tree (curr->children[2], 0, 0, set_rx));
 
@@ -675,19 +693,25 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     
     add_instruction (res, JMP, addr_arg (3), ignore (), ignore ());
     add_instruction (res, DROP, ignore (), ignore (), ignore ());
-    set_child (res, end_temp_scope ());
-    set_child (res, set_return_val ());
+    set_child (res, NULL); // end_temp_scope ());
+    set_child (res, NULL); // set_return_val ());
     break;
 
   case E_CATCH:
     res->node_type = GROUPING;
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 6);
     add_instruction (res, TRAP_B, addr_arg (3), ignore (), ignore ());
-    set_child (res, compile_tree (curr->children[0], s_count, l_count, set_rx));
+    if (curr->children[0]->id.id == E_OP_CURL)
+      set_child (res, compile_tree (curr->children[0]->children[0], s_count, l_count, set_rx));
+    else 
+      set_child (res, compile_tree (curr->children[0], s_count, l_count, set_rx));
     add_instruction (res, TRAP_E, ignore (), ignore (), ignore ());
     add_instruction (res, JMP, addr_arg (5), ignore (), ignore ());
     add_instruction (res, TRAP_E, ignore (), ignore (), ignore ());
-    set_child (res, compile_tree (curr->children[1], s_count, l_count, set_rx));
+    if (curr->children[1]->id.id == E_OP_CURL)
+      set_child (res, compile_tree (curr->children[1]->children[0], s_count, l_count, set_rx));
+    else 
+      set_child (res, compile_tree (curr->children[1], s_count, l_count, set_rx));
     break;
 
   case E_THREAD:
@@ -1039,6 +1063,10 @@ static struct inter_node *compile_args (FACT_tree_t curr)
     add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
     add_instruction (res, curr->id.id == E_NUM_DEF ? DEF_N : DEF_S,
 		     reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
+    set_child (res, NULL);
+    set_child (res, NULL);
+    set_child (res, NULL);
+    set_child (res, NULL);
   } else { /* Dynamically typed argument. */
     /* jis,%top,
      * const,$0

@@ -302,17 +302,25 @@ void FACT_shell (void)
     
     /* The X register contains the return value of the last expression. */
     ret_val = Furlow_register (R_X);
-    if (ret_val->type != UNSET_TYPE) {
-      printf ("%%");
-      if (ret_val->type == NUM_TYPE)
-	print_num ((FACT_num_t) ret_val->ap);
-      else if (FACT_is_BIF (((FACT_scope_t) ret_val->ap)->extrn_func))
-	printf (" Built-in function %s", ((FACT_scope_t) ret_val->ap)->name);
-      else
-	print_scope ((FACT_scope_t) ret_val->ap);
-      printf ("\n");
-      ret_val->type = UNSET_TYPE;
-    }
+    printf ("%%");
+    if (ret_val->type == UNSET_TYPE) {
+      FACT_t *t;
+      if (ret_val->home != NULL &&
+	  (t = FACT_find_in_table_nohash (ret_val->home, ret_val->ap)) != NULL)
+	ret_val = t;
+    } 
+
+    if (ret_val->type == UNSET_TYPE)
+      printf (" Undef");
+    else if (ret_val->type == NUM_TYPE)
+      print_num ((FACT_num_t) ret_val->ap);
+    else if (FACT_is_BIF (((FACT_scope_t) ret_val->ap)->extrn_func))
+      printf (" Built-in function %s", ((FACT_scope_t) ret_val->ap)->name);
+    else /* Scope. */
+      print_scope ((FACT_scope_t) ret_val->ap);
+    printf ("\n");
+    ret_val->type = UNSET_TYPE;
+    ret_val->home = NULL;
   }
 
   history_end (hist);

@@ -37,7 +37,7 @@ FACT_num_t FACT_add_num (FACT_scope_t curr, char *name) /* Add a number variable
     FACT_throw_error (curr, "variables may not be defined in a locked scope");
 
   /* Check if the variable already exists. */
-  check = FACT_find_in_table (curr->vars, name);
+  check = FACT_find_in_table_nohash (curr->vars, name);
   
   if (check != NULL) { /* The variable already exists. */
     if (check->type == NUM_TYPE) {

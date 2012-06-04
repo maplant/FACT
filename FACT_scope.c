@@ -38,7 +38,7 @@ FACT_scope_t FACT_add_scope (FACT_scope_t curr, char *name) /* Add a local scope
     FACT_throw_error (curr, "variables may not be defined in a locked scope");
   
   /* Check if the scope already exists. */
-  check = FACT_find_in_table (curr->vars, name);
+  check = FACT_find_in_table_nohash (curr->vars, name);
   
   if (check != NULL) { /* It already exists. */
     if (check->type == SCOPE_TYPE) {
