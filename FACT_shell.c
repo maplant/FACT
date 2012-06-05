@@ -319,8 +319,8 @@ void FACT_shell (void)
     else /* Scope. */
       print_scope ((FACT_scope_t) ret_val->ap);
     printf ("\n");
-    ret_val->type = UNSET_TYPE;
-    ret_val->home = NULL;
+    Furlow_register (R_X)->type = UNSET_TYPE;
+    Furlow_register (R_X)->home = NULL;
   }
 
   history_end (hist);

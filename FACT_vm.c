@@ -1005,13 +1005,10 @@ void Furlow_run () /* Run the program until a HALT is reached. */
 	  FACT_throw_error (CURR_THIS, "value is unset");
 	args[0] = *t;
       }
-
       if (args[0].type == SCOPE_TYPE)
 	FACT_throw_error (CURR_THIS, "cannot set a number to a scope");
-
       if (FACT_cast_to_num (args[1])->locked)
 	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
-
       FACT_set_num (args[1].ap, args[0].ap);
     } else {
       struct FACT_scope temp[1];
@@ -1022,10 +1019,8 @@ void Furlow_run () /* Run the program until a HALT is reached. */
 	  FACT_throw_error (CURR_THIS, "value is unset");
 	args[0] = *t;
       }
-
       if (args[0].type == NUM_TYPE)
 	FACT_throw_error (CURR_THIS, "cannot set a scope to a number");
-
       if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
 	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
 
