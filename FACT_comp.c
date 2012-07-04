@@ -415,20 +415,25 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
 
   case E_FUNC_CALL:
     res->node_type = GROUPING;
-    res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 12);
+    res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 17);
 
     /* Compile the arguments being passed. */
     set_child (res, compile_tree (curr->children[0], 0, 0, set_rx));
+    add_instruction (res, THIS, ignore (), ignore (), ignore ());
     add_instruction (res, LAMBDA, ignore (), ignore (), ignore ()); /* Create a lambda scope. */
-    /* Compile the function being called. */
+    /* Compile the function being called and its current up-scope. */
     set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
     /* Set the up variable of the lambda scope to it. */
     add_instruction (res, REF  , reg_arg (R_POP), reg_arg (R_A)  , ignore ());
     add_instruction (res, USE  , reg_arg (R_POP), ignore ()      , ignore ()); /* Briefly enter the scope to do so. */
     //    add_instruction (res, CONST, str_arg ("0")  , ignore ()      , ignore ());
     add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
-    add_instruction (res, DEF_S, reg_arg (R_POP), str_arg ("up") , ignore ());
+    add_instruction (res, DEF_S, reg_arg (R_POP), str_arg ("static") , ignore ());
     add_instruction (res, STO  , reg_arg (R_A)  , reg_arg (R_POP), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
+    add_instruction (res, DEF_S, reg_arg (R_POP), str_arg ("parent"), ignore ());
+    add_instruction (res, SWAP, ignore (), ignore (), ignore ());
+    add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_POP), ignore ());
     add_instruction (res, EXIT , ignore ()      , ignore ()      , ignore ());
     add_instruction (res, SET_F, reg_arg (R_A)  , reg_arg (R_TOP), ignore ()); /* Set the lambda scope's code address and call it. */
     add_instruction (res, NAME , reg_arg (R_A)  , reg_arg (R_TOP), ignore ()); /* Change the lambda scope's name to the function being called. */
@@ -1211,7 +1216,7 @@ static inline void push_const (struct inter_node *r, char *str)
     add_instruction (r, CONSTS, str_arg (str), ignore (), ignore ());
   else {
     mpz_init (temp);
-    mpz_set_str (temp, str, 10);
+    mpz_set_str (temp, str, 0);
     if (mpz_cmp_ui (temp, UINT32_MAX) <= 0)
       add_instruction (r, CONSTU, int_arg (mpz_get_ui (temp)), ignore (), ignore ());
     else

@@ -241,14 +241,14 @@ void FACT_shell (void)
     /* Print out the error and a stack trace. */
     fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
     while (curr_thread->cstackp - curr_thread->cstack >= 0) {
-      frame = pop_c ();
+      frame = pop_c (curr_thread);
       if (FACT_is_BIF (frame.this->extrn_func))
 	fprintf (stderr, "\tat built-in function %s\n", frame.this->name);
       else
 	fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
     }
     
-    push_c (last_ip + 2, frame.this);
+    push_c (curr_thread, last_ip + 2, frame.this);
     goto reset_error;
   }
    
@@ -301,7 +301,7 @@ void FACT_shell (void)
     Furlow_run ();
     
     /* The X register contains the return value of the last expression. */
-    ret_val = Furlow_register (R_X);
+    ret_val = Furlow_register (curr_thread, R_X);
     printf ("%%");
     if (ret_val->type == UNSET_TYPE) {
       FACT_t *t;
@@ -319,8 +319,8 @@ void FACT_shell (void)
     else /* Scope. */
       print_scope ((FACT_scope_t) ret_val->ap);
     printf ("\n");
-    Furlow_register (R_X)->type = UNSET_TYPE;
-    Furlow_register (R_X)->home = NULL;
+    Furlow_register (curr_thread, R_X)->type = UNSET_TYPE;
+    Furlow_register (curr_thread, R_X)->home = NULL;
   }
 
   history_end (hist);

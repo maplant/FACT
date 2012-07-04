@@ -113,7 +113,7 @@ static void FBIF_floor (void) /* Round a variable down. */
     push_val.ap = arg;
   
   push_val.type = NUM_TYPE;
-  push_v (push_val);
+  push_v (curr_thread, push_val);
 }
 
 static void FBIF_print (void) /* Print an ASCII string or numerical value. */
@@ -129,7 +129,7 @@ static void FBIF_print (void) /* Print an ASCII string or numerical value. */
     len = printf ("%s\n", mpc_get_str (arg->value)) - 1;
   else
     len = printf ("%s", FACT_natos (arg));
-  push_constant_ui (len);
+  push_constant_ui (curr_thread, len);
 }
 
 static void FBIF_str (void) /* Convert a number to a string. */
@@ -138,7 +138,7 @@ static void FBIF_str (void) /* Convert a number to a string. */
 
   push_val.type = NUM_TYPE;
   push_val.ap = FACT_stona (mpc_get_str (GET_ARG_NUM ()->value)); 
-  push_v (push_val);
+  push_v (curr_thread, push_val);
 }
 
 static void FBIF_size (void) /* Return the size of an array. */
@@ -152,7 +152,7 @@ static void FBIF_size (void) /* Return the size of an array. */
   push_val.type = NUM_TYPE;
   push_val.ap = res;
 
-  push_v (push_val);
+  push_v (curr_thread, push_val);
 }
 
 static void FBIF_error (void) /* Return the current error message. */
@@ -161,7 +161,7 @@ static void FBIF_error (void) /* Return the current error message. */
 
   push_val.type = NUM_TYPE;
   push_val.ap = FACT_stona ((char *) curr_thread->curr_err.what);
-  push_v (push_val);
+  push_v (curr_thread, push_val);
 }
 
 static void FBIF_throw (void) /* Throw an error. */
@@ -180,7 +180,7 @@ static void FBIF_send (void) /* Send a message to a thread. */
   dest = GET_ARG_NUM ();
 
   FACT_send_message (msg, mpc_get_ui (dest->value));
-  push_constant_ui (0);
+  push_constant_ui (curr_thread, 0);
 }
 
 static void FBIF_receive (void) /* Pop the current thread's message queue. */
@@ -190,7 +190,7 @@ static void FBIF_receive (void) /* Pop the current thread's message queue. */
   res.type = SCOPE_TYPE;
   res.ap = FACT_get_next_message ();
 
-  push_v (res);
+  push_v (curr_thread, res);
 }
 
 static void FBIF_exit (void) /* Exit. */
@@ -201,14 +201,14 @@ static void FBIF_exit (void) /* Exit. */
 static void FBIF_load (void) /* Run a file in the current scope. */
 {
   FACT_load_file (FACT_natos (GET_ARG_NUM ()));
-  push_constant_ui (0);
+  push_constant_ui (curr_thread, 0);
 }
 
 static void *get_arg (FACT_type type_of_arg) /* Get an argument. */
 {
   FACT_t pop_res;
 
-  pop_res = pop_v ();
+  pop_res = pop_v (curr_thread);
   /* Throw an error if argument types do not match. */
   if (type_of_arg != pop_res.type)
     FACT_throw_error (CURR_THIS, "argument types do not match");

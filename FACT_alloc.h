@@ -30,7 +30,7 @@ static void *FACT_malloc (size_t s)
 # define FACT_malloc_atomic malloc
 # define FACT_realloc realloc
 # define FACT_free free
-# define FACT_GC ((void) 0)
+# define FACT_GC() ((void) 0)
 #else
 # define GC_THREADS
 # include <gc/gc.h>
