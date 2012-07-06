@@ -978,33 +978,10 @@ void Furlow_run () /* Run the program until a HALT is reached. */
     args[0] = *Furlow_register (progm[CURR_IP][1]);
     args[1] = *Furlow_register (progm[CURR_IP][2]);
 
-    if (args[1].type == UNSET_TYPE) {
-      FACT_t v;
-      if (args[0].type == UNSET_TYPE) {
-	FACT_t *t;
-	if ((t = FACT_find_in_table_nohash (args[0].home, args[0].ap)) == NULL)
-	  FACT_throw_error (CURR_THIS, "value is unset");
-	args[0] = *t;
-      }
-      args[1].type = args[0].type;
-      if (args[0].type == NUM_TYPE) {
-	FACT_num_t t = FACT_alloc_num ();
-	t->name = args[1].ap;
-	args[1].ap = t;
-      } else {
-	FACT_scope_t t = FACT_alloc_scope ();
-	t->name = args[1].ap;
-	args[1].ap = t;
-      }
-      FACT_add_to_table (args[1].home, args[1]);
-    }
+    if (args[0].type == UNSET_TYPE || args[1].type == UNSET_TYPE) 
+      FACT_throw_error (CURR_THIS, "unset value encountered");
+
     if (args[1].type == NUM_TYPE) {
-      if (args[0].type == UNSET_TYPE) {
-	FACT_t *t;
-	if ((t = FACT_find_in_table_nohash (args[0].home, args[0].ap)) == NULL)
-	  FACT_throw_error (CURR_THIS, "value is unset");
-	args[0] = *t;
-      }
       if (args[0].type == SCOPE_TYPE)
 	FACT_throw_error (CURR_THIS, "cannot set a number to a scope");
       if (FACT_cast_to_num (args[1])->locked)
@@ -1012,21 +989,25 @@ void Furlow_run () /* Run the program until a HALT is reached. */
       FACT_set_num (args[1].ap, args[0].ap);
     } else {
       struct FACT_scope temp[1];
-    
-      if (args[0].type == UNSET_TYPE) {
-	FACT_t *t;
-	if ((t = FACT_find_in_table_nohash (args[0].home, args[0].ap)) == NULL)
-	  FACT_throw_error (CURR_THIS, "value is unset");
-	args[0] = *t;
-      }
+      
       if (args[0].type == NUM_TYPE)
 	FACT_throw_error (CURR_THIS, "cannot set a scope to a number");
       if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
 	FACT_throw_error (CURR_THIS, "cannot set immutable variable");
 
       hold_name = ((FACT_scope_t) args[1].ap)->name;
-      memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
-      ((FACT_scope_t) args[1].ap)->name = hold_name;
+      if (hold_name != NULL && !strcmp ("up", hold_name)) { /* We're setting the up scope. */
+	memcpy (temp, args[1].ap, sizeof (struct FACT_scope));
+	memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
+	((FACT_scope_t) args[1].ap)->name = hold_name;
+	if (FACT_is_circular (args[1].ap)) { /* Circular scope link. */
+	  memcpy (args[1].ap, temp, sizeof (struct FACT_scope));
+	  FACT_throw_error (CURR_THIS, "assignment makes circularly linked scopes");
+	}
+      } else {
+	memcpy (args[1].ap, args[0].ap, sizeof (struct FACT_scope));
+	((FACT_scope_t) args[1].ap)->name = hold_name;
+      }
 
       if (FACT_cast_to_scope (args[1])->lock_stat == HARD_LOCK)
 	FACT_cast_to_scope (args[1])->lock_stat = SOFT_LOCK;

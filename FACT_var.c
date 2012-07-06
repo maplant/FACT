@@ -45,12 +45,12 @@ void FACT_get_var (char *name) /* Search all relevent scopes for a variable and 
   FACT_t *res;
   size_t h;
 
-#if 0
   /* Get the variable. If it doesn't exist, throw an error. */
   res = FACT_get_global (CURR_THIS, name);
   if (res == NULL)
     FACT_throw_error (CURR_THIS, "undefined variable: %s", name);
-#endif
+
+#if 0
   h = FACT_get_hash (name, strlen (name));
   if ((res = FACT_find_in_table (CURR_THIS->vars, name, h)) == NULL)
     if ((res = FACT_find_in_table (&Furlow_globals, name, h)) == NULL) {
@@ -60,6 +60,7 @@ void FACT_get_var (char *name) /* Search all relevent scopes for a variable and 
       new.home = CURR_THIS->vars;
       res = &new;
     }
+#endif
 
   /* Push the variable to the var stack. */
   push_v (*res);

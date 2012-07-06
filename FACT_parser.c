@@ -39,6 +39,13 @@ static inline bool check (FACT_lexed_t *set, FACT_nterm_t id) /* Check the curre
 	  : false);
 }
 
+static inline bool check_forward(FACT_lexed_t *set, FACT_nterm_t id, size_t i)
+{
+  return ((set->tokens[set->curr + i].id == id)
+	  ? true
+	  : false);
+}
+
 static inline void error (FACT_lexed_t *set, char *fmt, ...)
 {
   va_list args;
@@ -176,6 +183,12 @@ static FACT_tree_t stmt (FACT_lexed_t *set)
     pn->next = FACT_malloc (sizeof (struct FACT_tree));
     memset (pn->next, 0, sizeof (struct FACT_tree));
     pn->next->id.id = E_SEMI;
+  } else if (check (set, E_VAR) && check_forward (set, E_IMP_DEF, 1)) {
+    en = accept (set, E_VAR);
+    pn = accept (set, E_IMP_DEF);
+    pn->children[0] = en;
+    pn->children[1] = assignment (set);
+    pn->next = expect (set, E_SEMI);
   } else {
     /* Just a basic expression. */
     pn = assignment (set);

@@ -134,7 +134,8 @@ stmt ->   "{" stmt_list "}"
 	| sprout_stmt
 	| func_dec
 	| "return" assignment ";"
-	| del VAR ";" 
+	| del VAR ";"
+	| VAR ":=" assignment ";"
 	;
 	
 stmt_list ->   stmt opt_stmt_list

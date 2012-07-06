@@ -1,9 +1,9 @@
 const cat (num op1, num op2) # Concatinate two strings
 {
   if (size (op1) == 0)
-    arr_size = 1;
+    arr_size := 1;
   else
-    arr_size = size (op1);
+    arr_size := size (op1);
 
   if (size (op2) == 0)
     arr_size += 1;

@@ -127,6 +127,7 @@ FACT_lexed_t FACT_lex_string (char *start) /* The main lexer routine. */
       
     case '-':
       follow2 = '>';
+    case ':':
     case '=':
     case '+':
     case '*':
@@ -205,6 +206,7 @@ static const char *tags[] = {
   "/",
   "/=",
   ":",
+  ":=",
   ";",
   "<",
   "<=",

@@ -413,6 +413,28 @@ static struct inter_node *compile_tree (FACT_tree_t curr,
     add_instruction (res, DROP, ignore (), ignore (), ignore ());
     break;
 
+  case E_IMP_DEF:
+    /* jis,%top,
+     * const,$0
+     * def_n,%pop,var_name
+     * jmp,@2
+     * const,$0
+     * def_s,%pop,var_name
+     */
+    res->node_type = GROUPING;
+    res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 10);
+    set_child (res, compile_tree (curr->children[1], 0, 0, set_rx));
+    add_instruction (res, DUP, ignore (), ignore (), ignore ());
+    add_instruction (res, JIS, reg_arg (R_TOP), addr_arg (5), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
+    add_instruction (res, DEF_N, reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());
+    add_instruction (res, JMP, addr_arg (7), ignore (), ignore ());
+    add_instruction (res, CONSTU, int_arg (0), ignore (), ignore ());
+    add_instruction (res, DEF_S, reg_arg (R_POP), str_arg (curr->children[0]->id.lexem), ignore ());    
+    add_instruction (res, SWAP, ignore (), ignore (), ignore ());
+    add_instruction (res, STO, reg_arg (R_POP), reg_arg (R_POP), ignore ());
+    break;
+
   case E_FUNC_CALL:
     res->node_type = GROUPING;
     res->node_val.grouping.children = FACT_malloc (sizeof (struct inter_node *) * 12);

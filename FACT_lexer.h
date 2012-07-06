@@ -45,6 +45,7 @@ typedef enum {
   E_DIV,
   E_DIV_AS,
   E_IN,
+  E_IMP_DEF,
   E_SEMI,
   E_LT,
   E_LE,
