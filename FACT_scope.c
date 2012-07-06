@@ -97,7 +97,7 @@ void FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous 
   size_t *dim_sizes;
   size_t dimensions;
 
-  dimensions = mpc_get_ui (((FACT_num_t) Furlow_reg_val (curr_thread, args[0], NUM_TYPE))->value);
+  dimensions = mpc_get_ui (((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value);
 
   /* Add the local scope or anonymous. */
   push_val.ap = (anonymous
@@ -111,7 +111,7 @@ void FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous 
   dim_sizes = NULL;
   for (i = 0; i < dimensions; i++) {
     dim_sizes = FACT_realloc (dim_sizes, sizeof (size_t *) * (i + 1));
-    elem_value[0] = ((FACT_num_t) Furlow_reg_val (curr_thread, R_POP, NUM_TYPE))->value[0];
+    elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
     if (mpc_is_float (elem_value))
       FACT_throw_error (CURR_THIS, "dimension size must be a positive integer");
     /* Check to make sure we aren't grossly out of range. */
@@ -131,7 +131,7 @@ void FACT_def_scope (char *args, bool anonymous) /* Define a local or anonymous 
   FACT_free (dim_sizes);
   
  end:
-  push_v (curr_thread, push_val);
+  push_v (push_val);
 }
 
 void FACT_get_scope_elem (FACT_scope_t base, char *args) 
@@ -143,7 +143,7 @@ void FACT_get_scope_elem (FACT_scope_t base, char *args)
   size_t dimensions; /* Number of dimensions.                */
 
   /* Get the element index. */
-  elem_value[0] = *((FACT_num_t) Furlow_reg_val (curr_thread, args[0], NUM_TYPE))->value;
+  elem_value[0] = *((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value;
 
   if (mpc_is_float (elem_value))
     FACT_throw_error (CURR_THIS, "index value must be a positive integer");
@@ -158,7 +158,7 @@ void FACT_get_scope_elem (FACT_scope_t base, char *args)
   push_val.ap = (*base->array_up)[mpc_get_ui (elem_value)];
   push_val.type = SCOPE_TYPE;
 
-  push_v (curr_thread, push_val);
+  push_v (push_val);
 }
 
 

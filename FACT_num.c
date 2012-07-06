@@ -77,7 +77,7 @@ void FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous nu
   size_t dimensions; /* Number of dimensions.   */
 
   /* Get the number of dimensions. TODO: add checking here. */
-  dimensions = mpc_get_ui (((FACT_num_t) Furlow_reg_val (curr_thread, args[0], NUM_TYPE))->value);
+  dimensions = mpc_get_ui (((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value);
 
   /* Add or allocate the variable. */
   push_val.ap = (anonymous
@@ -96,7 +96,7 @@ void FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous nu
   for (i = 0; i < dimensions; i++) {
     dim_sizes = FACT_realloc (dim_sizes, sizeof (size_t *) * (i + 1));
     /* Pop the stack and get the value. */
-    elem_value[0] = ((FACT_num_t) Furlow_reg_val (curr_thread, R_POP, NUM_TYPE))->value[0];
+    elem_value[0] = ((FACT_num_t) Furlow_reg_val (R_POP, NUM_TYPE))->value[0];
     if (mpc_is_float (elem_value))
       FACT_throw_error (CURR_THIS, "dimension size must be a positive integer");
     /* Check to make sure we aren't grossly out of range. */
@@ -117,7 +117,7 @@ void FACT_def_num (char *args, bool anonymous) /* Define a local or anonymous nu
 
   /* Push the variable and return. */
  end:
-  push_v (curr_thread, push_val);
+  push_v (push_val);
 }
 
 void FACT_get_num_elem (FACT_num_t base, char *args)
@@ -126,7 +126,7 @@ void FACT_get_num_elem (FACT_num_t base, char *args)
   FACT_t push_val;
 
   /* Get the element index. */
-  elem_value[0] = *((FACT_num_t) Furlow_reg_val (curr_thread, args[0], NUM_TYPE))->value;
+  elem_value[0] = *((FACT_num_t) Furlow_reg_val (args[0], NUM_TYPE))->value;
 
   if (mpc_is_float (elem_value))
     FACT_throw_error (CURR_THIS, "index value must be a positive integer");
@@ -141,7 +141,7 @@ void FACT_get_num_elem (FACT_num_t base, char *args)
   push_val.ap = base->array_up[mpc_get_ui (elem_value)];
   push_val.type = NUM_TYPE;
 
-  push_v (curr_thread, push_val);
+  push_v (push_val);
 }
 
 void FACT_set_num (FACT_num_t rop, FACT_num_t op)

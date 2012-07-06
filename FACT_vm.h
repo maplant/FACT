@@ -112,20 +112,19 @@ extern FACT_table_t Furlow_globals;
 #define CURR_THIS  curr_thread->cstackp->this
 #define CURR_IP    curr_thread->cstackp->ip
 
-/* Stack functions: */
-FACT_t pop_v (FACT_thread_t); /* Pop the var stack. */
-struct cstack_t pop_c (FACT_thread_t); /* Pop the call stack. */
-void push_v (FACT_thread_t, FACT_t); /* Push to the var stack. */
-void push_c (FACT_thread_t, size_t, FACT_scope_t); /* Push to the call stack. */
-
+/* Stack functions:                                                            */
+FACT_t pop_v (void);                /* Pop the var stack.                      */
+struct cstack_t pop_c (void);       /* Pop the call stack.                     */
+void push_v (FACT_t);               /* Push to the var stack.                  */
+void push_c (size_t, FACT_scope_t); /* Push to the call stack.                 */
 /* Push a constant value to the var stack: */
-inline void push_constant_str (FACT_thread_t, char *);
-inline void push_constant_ui  (FACT_thread_t, unsigned long int);
-inline void push_constant_si  (FACT_thread_t,   signed long int);
+inline void push_constant_str (char *);
+inline void push_constant_ui  (unsigned long int);
+inline void push_constant_si  (  signed long int);
 
 /* Register functions:                                              */
-FACT_t *Furlow_register (FACT_thread_t, int);         /* Access a register.        */
-void *Furlow_reg_val (FACT_thread_t, int, FACT_type); /* Safely access a register. */
+FACT_t *Furlow_register (int);         /* Access a register.        */
+void *Furlow_reg_val (int, FACT_type); /* Safely access a register. */
 
 /* Execution functions:                                      */
 void Furlow_run (); /* Run one cycle of the current program. */ 

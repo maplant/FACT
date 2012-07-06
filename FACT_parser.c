@@ -422,11 +422,27 @@ static FACT_tree_t unary (FACT_lexed_t *set)
   return pn;
 }
 
-static FACT_tree_t opt_pb (FACT_lexed_t *set)
+static FACT_tree_t in_scope (FACT_lexed_t *set)
 {
   FACT_tree_t ln, pn;
 
   ln = unary (set);
+
+  if ((pn = accept (set, E_IN)) != NULL) {
+    do {
+      pn->children[0] = ln;
+      pn->children[1] = unary (set);
+      ln = pn;
+    } while ((pn = accept (set, E_IN)) != NULL);
+  }
+  return ln;
+}
+
+static FACT_tree_t opt_pb (FACT_lexed_t *set)
+{
+  FACT_tree_t ln, pn;
+
+  ln = in_scope (set);
 
   /* Non-terminal opt_array is built in here. */
   if ((pn = accept (set, E_OP_PAREN)) != NULL
@@ -449,34 +465,18 @@ static FACT_tree_t opt_pb (FACT_lexed_t *set)
   return ln;
 }
 
-static FACT_tree_t in_scope (FACT_lexed_t *set)
-{
-  FACT_tree_t ln, pn;
-
-  ln = opt_pb (set);
-
-  if ((pn = accept (set, E_IN)) != NULL) {
-    do {
-      pn->children[0] = ln;
-      pn->children[1] = opt_pb (set);
-      ln = pn;
-    } while ((pn = accept (set, E_IN)) != NULL);
-  }
-  return ln;
-}
-
 static FACT_tree_t term (FACT_lexed_t *set)
 {
   FACT_tree_t ln, pn;
 
-  ln = in_scope (set);
+  ln = opt_pb (set);
   
   if ((pn = accept (set, E_MUL)) != NULL
       || (pn = accept (set, E_DIV)) != NULL
       || (pn = accept (set, E_MOD)) != NULL) {
     do {
       pn->children[0] = ln;
-      pn->children[1] = in_scope (set);
+      pn->children[1] = opt_pb (set);
       ln = pn;
     } while ((pn = accept (set, E_MUL)) != NULL
 	     || (pn = accept (set, E_DIV)) != NULL

@@ -15,7 +15,6 @@
  */
 
 #include "FACT.h"
-#include "FACT_alloc.h"
 #include "FACT_mpc.h"
 
 #include <string.h>
@@ -387,55 +386,10 @@ signed long int mpc_get_si (mpc_t op)
 
 char *mpc_get_str (mpc_t op)
 {
-  int v;
-  int dig, sign, exp_sign;
-  char *t;
   mp_exp_t ign;
   
-  if (op->fp) {
-    t = mpf_get_str (NULL, &ign, 10, 0, op->fltv);
-    if (ign == 0)
-      return t;
-    if (ign < 0) {
-      sign = 1;
-      ign = -ign;
-    } else
-      sign = 0;  
-
-    /* This is a really bad hack. In the case of a sign, we move the
-     * entire string one back, write the exponent, reallocate again,
-     * move the string one forward, and re-write the sign. Nice.
-     */
-    dig = strlen (t);
-    if (t[0] == '-') {
-      memmove (t, t + 1, --dig);
-      sign = 1;
-    } else
-      sign = 0;
-
-    v = ign / 10 + 1;
-    if (dig > 1) {
-      t = FACT_realloc (t, dig + exp_sign + v + 3); 
-      memmove (t + 2, t + 1, dig - 1);
-      t[1] = '.';
-    } else
-      t = FACT_realloc (t, dig + exp_sign + v + 2);
-    t[dig + 1] = 'e';
-    t[v + exp_sign + dig + 2] = '\0';
-    do {
-      t[v-- + exp_sign + dig + 1] = ign % 10 + '0';
-      ign /= 10;
-    } while (v > 0);
-    if (exp_sign)
-      t[dig + 2] = '-';
-
-    if (sign) {
-      t = FACT_realloc (t, strlen (t) + 2);
-      memmove (t + 1, t, strlen (t) + 1);
-      t[0] = '-';
-    }
-    return t;
-  }
-  
+  if (op->fp)
+    /* For now... */
+    return mpf_get_str (NULL, &ign, 10, 0, op->fltv);
   return mpz_get_str (NULL, 10, op->intv);
 }

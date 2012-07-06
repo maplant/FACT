@@ -62,7 +62,7 @@ void FACT_get_var (char *name) /* Search all relevent scopes for a variable and 
     }
 
   /* Push the variable to the var stack. */
-  push_v (curr_thread, *res);
+  push_v (*res);
 }
 
 bool FACT_is_circular (FACT_scope_t env)

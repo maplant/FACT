@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gc/gc.h>
 
 void *gmp_realloc_wrapper (void *op1, size_t uop, size_t op2)
 {
@@ -39,7 +40,7 @@ void gmp_free_wrapper (void *op1, size_t op2)
 
 void cleanup (void)
 {
-  FACT_GC ();
+  GC_gcollect ();
 }
 
 int main (int argc, char **argv)
@@ -245,7 +246,7 @@ int main (int argc, char **argv)
     /* Print out the error and a stack trace. */
     fprintf (stderr, "Caught unhandled error: %s\n", curr_thread->curr_err.what);
     while (curr_thread->cstackp - curr_thread->cstack >= 0) {
-      frame = pop_c (curr_thread);
+      frame = pop_c ();
       if (FACT_is_BIF (frame.this->extrn_func))
 	fprintf (stderr, "\tat built-in function %s\n", frame.this->name);
       else
