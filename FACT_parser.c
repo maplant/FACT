@@ -435,45 +435,39 @@ static FACT_tree_t unary (FACT_lexed_t *set)
   return pn;
 }
 
-static FACT_tree_t in_scope (FACT_lexed_t *set)
+static FACT_tree_t opt_pb (FACT_lexed_t *set)
 {
   FACT_tree_t ln, pn;
 
   ln = unary (set);
 
-  if ((pn = accept (set, E_IN)) != NULL) {
-    do {
-      pn->children[0] = ln;
-      pn->children[1] = unary (set);
-      ln = pn;
-    } while ((pn = accept (set, E_IN)) != NULL);
-  }
-  return ln;
-}
-
-static FACT_tree_t opt_pb (FACT_lexed_t *set)
-{
-  FACT_tree_t ln, pn;
-
-  ln = in_scope (set);
-
   /* Non-terminal opt_array is built in here. */
   if ((pn = accept (set, E_OP_PAREN)) != NULL
-      || (pn = accept (set, E_OP_BRACK)) != NULL) {
+      || (pn = accept (set, E_OP_BRACK)) != NULL
+      || (pn = accept (set, E_IN)) != NULL) {
     do {
-      if (pn->id.id == E_OP_PAREN) {
+      switch (pn->id.id) {
+      case E_OP_PAREN:
 	pn->id.id = E_FUNC_CALL;
 	pn->children[1] = ln;
 	pn->children[0] = arg_list (set);
-      } else {
+	break;
+
+      case E_OP_BRACK:
 	pn->id.id = E_ARRAY_ELEM;
 	pn->children[1] = ln;
 	pn->children[0] = assignment (set);
 	expect (set, E_CL_BRACK);
+	break;
+
+      default: /* E_IN */
+	pn->children[0] = ln;
+	pn->children[1] = unary (set);
       }
       ln = pn;
     } while ((pn = accept (set, E_OP_PAREN)) != NULL
-	     || (pn = accept (set, E_OP_BRACK)) != NULL);
+	     || (pn = accept (set, E_OP_BRACK)) != NULL
+	     || (pn = accept (set, E_IN)) != NULL);
   }
   return ln;
 }

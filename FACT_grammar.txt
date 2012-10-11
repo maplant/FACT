@@ -48,11 +48,8 @@ T ->   T "*" A
      
 A ->   A "(" opt_arg_list ")"
      | A "[" assignment "]"
+     | A ":" unary
      | A e
-     | I
-     ;
-
-I ->   I ":" unary
      | unary
      ;
 
