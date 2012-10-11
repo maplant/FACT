@@ -210,7 +210,7 @@ void FACT_shell (void)
   char *input;
   const char *line;
   size_t i;
-  static size_t last_ip;
+  volatile size_t last_ip;
   FACT_t *ret_val;
   FACT_tree_t parsed;
   FACT_lexed_t tokenized;
@@ -248,7 +248,7 @@ void FACT_shell (void)
 	fprintf (stderr, "\tat scope %s (%s:%zu)\n", frame.this->name, FACT_get_file (frame.ip), FACT_get_line (frame.ip));
     }
     
-    push_c (last_ip + 2, frame.this);
+    push_c (Furlow_offset(), frame.this);
     goto reset_error;
   }
    
@@ -295,8 +295,7 @@ void FACT_shell (void)
     parsed = FACT_parse (&tokenized);
     /* There was no error, continue to compilation. */
     FACT_compile (parsed, "<stdin>", true);
-    last_ip = CURR_IP;
-    
+     
     /* Run the code. */
     Furlow_run ();
     

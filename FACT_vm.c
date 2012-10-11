@@ -327,6 +327,7 @@ void Furlow_run () /* Run the program until a HALT is reached. */
     ENTRY (DEC),
     ENTRY (DEF_N),
     ENTRY (DEF_S),
+    ENTRY (DIE),
     ENTRY (DIV),
     ENTRY (DROP),
     ENTRY (DUP),
@@ -598,6 +599,13 @@ void Furlow_run () /* Run the program until a HALT is reached. */
     FACT_def_scope (progm[CURR_IP] + 1, false);
   }
   END_SEG ();
+  
+  SEG (DIE);
+  {
+    curr_thread->run_flag = T_DEAD; /* The thread is dead. */
+    return; /* Exit. */
+  }
+  END_SEG ();
 
   SEG (DIV);
   {
@@ -689,7 +697,7 @@ void Furlow_run () /* Run the program until a HALT is reached. */
 
   SEG (HALT);
   {
-    curr_thread->run_flag = T_DEAD; /* The thread is dead, for now. */
+    curr_thread->run_flag = T_HALTED; /* The thread is dead, for now. */
     return; /* Exit. */
   }
   END_SEG ();

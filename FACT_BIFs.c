@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 /* Macros for declaring FACT BIFs. */
 #define FBIF(name) { #name, &FBIF_##name }
@@ -44,6 +45,7 @@ FBIF_DEC (receive);
 FBIF_DEC (parcels);
 FBIF_DEC (exit);
 FBIF_DEC (load);
+FBIF_DEC (ID);
 
 static const struct {
   char *name;
@@ -57,6 +59,7 @@ static const struct {
   FBIF (throw),
   FBIF (send),
   FBIF (receive),
+  FBIF (ID),
   FBIF (exit),
   FBIF (load),
 };
@@ -120,16 +123,20 @@ static void FBIF_print (void) /* Print an ASCII string or numerical value. */
 {
   int len;
   FACT_num_t arg;
+  //  static pthread_mutex_t print_lock = PTHREAD_MUTEX_INITIALIZER;
 
-  arg = GET_ARG_NUM ();
+  arg = GET_ARG_NUM();
+  // pthread_mutex_lock(&print_lock);
   /* If the argument is an array, print it as a string. Otherwise, print the
    * numerical value.
    */
   if (arg->array_size == 0) /* Print a newline, as it is a number */
-    len = printf ("%s\n", mpc_get_str (arg->value)) - 1;
+    len = printf("%s\n", mpc_get_str(arg->value)) - 1;
   else
-    len = printf ("%s", FACT_natos (arg));
-  push_constant_ui (len);
+    len = printf("%s", FACT_natos(arg));
+  fflush(stdout);
+  // pthread_mutex_unlock(&print_lock);
+  push_constant_ui(len);
 }
 
 static void FBIF_str (void) /* Convert a number to a string. */
@@ -176,6 +183,7 @@ static void FBIF_send (void) /* Send a message to a thread. */
 {
   FACT_num_t dest, msg;
 
+  //  printf("entered\n");
   msg = GET_ARG_NUM ();
   dest = GET_ARG_NUM ();
 
@@ -191,6 +199,11 @@ static void FBIF_receive (void) /* Pop the current thread's message queue. */
   res.ap = FACT_get_next_message ();
 
   push_v (res);
+}
+
+static void FBIF_ID(void)
+{
+  push_constant_ui(curr_thread->thread_num);
 }
 
 static void FBIF_exit (void) /* Exit. */

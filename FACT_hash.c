@@ -55,6 +55,7 @@ FACT_t *FACT_find_in_table (FACT_table_t *table, char *key, size_t hash)
       return p->data;
   }
 
+  /* Item wasn't found. */
   return NULL;
 }
 
@@ -82,7 +83,7 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
       for (p = table->buckets + i; p != NULL && p->data->type != UNSET_TYPE;) {
 	d = FACT_get_hash (FACT_var_name (*p->data), strlen (FACT_var_name (*p->data)))
 	  % (table->num_buckets << 1);
-	if (d != i) {
+	if (d != i) { /* Move the entry if it no longer belongs in the current bucket. */
 	  for (e = table->buckets + d; e->data->type != UNSET_TYPE; e = e->next)
 	    ;
 	  *e->data = *p->data;
@@ -113,12 +114,10 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   return p->data;
 }
 
-
 static void sqsort (char **, size_t, size_t);
 
 void FACT_table_digest (FACT_table_t *table)
 {
-  //  size_t n;
   size_t i, k;
   char **items;
   struct _entry *p;
@@ -129,10 +128,8 @@ void FACT_table_digest (FACT_table_t *table)
   items = FACT_malloc (sizeof (char *) * table->total_num_vars);
 
   for (i = k = 0; i < table->num_buckets; i++) {
-    // n = 0;
-    for (p = table->buckets + i; p->data->type != UNSET_TYPE; p = p->next)//, n++)
+    for (p = table->buckets + i; p->data->type != UNSET_TYPE; p = p->next)
       items[k++] = FACT_var_name (*p->data);
-    // printf ("(%zu) ", n);
   }
 
   /* Sort the entries. */
@@ -171,18 +168,34 @@ static void sqsort (char **v, size_t left, size_t right) /* Thanks K&R! */
   sqsort (v, last + 1, right);
 }
 
-inline size_t FACT_get_hash (char *k, size_t l) /* Jenkin's hash function. */
+/* FNV hash function, slightly modified from the reference implementation. */
+inline size_t FACT_get_hash (char *k, size_t l) 
 {
-  size_t h;
-  for (h = 0; l > 0; l--, k++) {
-    h += *k;
-    h += h << 10;
-    h ^= h >> 6;
+  size_t i;
+  size_t hval;
+
+#ifdef __amd64__
+  hval = 0xcbf29ce484222325ULL;
+#else
+  hval = 0x811c9dc5;
+#endif
+
+  for (i = 0; i < l; i++) {
+    /* xor the bottom with the current octet */
+    hval ^= (size_t) k[i];
+
+#ifdef __amd64__
+    /* 64 bit version. */
+    hval += ((hval << 1) + (hval << 4) + (hval << 5) +
+	     (hval << 7) + (hval << 8) + (hval << 40));
+#else
+    /* 32 bit version. */
+    hval += (hval<<1) + (hval<<4) + (hval<<7) + (hval<<8) + (hval<<24);
+#endif
   }
-  h += h << 3;
-  h ^= h >> 11;
-  h += h << 15;
-  return h;
+
+  /* return our new hash value */
+  return hval;
 }
 
 #if 0

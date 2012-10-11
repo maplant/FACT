@@ -21,11 +21,8 @@ send (thread_1, "now lets complicate things even further...");
 
 num thread_2 = ${
   # Wait for a message of a thread id, and then send a message to that thread.
-  while (1) {
-    scope m = receive ();
-    send (m:message, "exit");
-    break;
-  }
+  scope m = receive ();
+  send (m:message, "exit");
   print ("Thread 2 exiting now.\n");
 };
 
@@ -33,6 +30,5 @@ send (thread_1, "are you ready thread 1? Actually I dont care!");
 send (thread_2, thread_1);
 send (thread_1, "and we're done!");
 
-receive ();
-
-print ("and that's the show folks!\n");
+receive();
+print (" and that's the show folks!\n");

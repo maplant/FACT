@@ -76,7 +76,8 @@ typedef struct FACT_thread {
   /* Threading data: */
   enum T_FLAG {
     T_LIVE = 0, /* Thread is running. */
-    T_DEAD,     /* Thread has halted. */
+    T_HALTED,   /* Thread has halted. */
+    T_DEAD,     /* Thread has died. */
   } run_flag;
   
   /* Internal thread information:                        */

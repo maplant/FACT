@@ -2,7 +2,7 @@
  *
  * FACT is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
+n * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * FACT is distributed in the hope that it will be useful,
@@ -35,9 +35,10 @@ typedef enum Furlow_opcode {
   DEC,     /* Decrement a register by 1.                     */
   DEF_N,   /* Define a new number in the this scope.         */
   DEF_S,   /* Define a new scope in the this scope.          */
+  DIE,     /* Kills a thread.                                */
   DIV,     /* Division.                                      */
   DROP,    /* Drop the first item on the var stack.          */
-  DUP,     /* Duplicate the first element on the var stack.  */ 
+  DUP,     /* Duplicate the first element on the var stack.  */
   ELEM,    /* Get the element of an array.                   */
   EXIT,    /* Like ret, except the ip is left unchanged.     */
   GLOBAL,  /* Make a variable global.                        */
@@ -106,6 +107,7 @@ static struct {
   { "dec"     , DEC     , "r"   },
   { "def_n"   , DEF_N   , "rs"  },
   { "def_s"   , DEF_S   , "rs"  },
+  { "die"     , DIE     , ""    },
   { "div"     , DIV     , "rrr" },
   { "drop"    , DROP    , ""    },
   { "dup"     , DUP     , ""    },

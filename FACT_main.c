@@ -46,6 +46,7 @@ void cleanup (void)
 int main (int argc, char **argv)
 {
   int i, j;
+  bool disasm;
   bool shell_on, load_stdlib;
   FACT_t res;
   unsigned long q_size;
@@ -63,6 +64,7 @@ int main (int argc, char **argv)
     { 'f', "file"            }, /* 4 */
     { 'h', "help"            }, /* 5 */
     { 'v', "version"         }, /* 6 */
+    { 'd', "disasm"          }, /* 7 */
   };
 
   /* Set exit routines. */
@@ -94,6 +96,7 @@ int main (int argc, char **argv)
   argc--;
 
   /* Set the default values to shell_on, load_stdlib, and disasm. */
+  disasm = false;
   load_stdlib = true;
   shell_on = ((argc == 0)
 	      ? true
@@ -226,6 +229,10 @@ int main (int argc, char **argv)
 	goto exit;
       break;
 
+    case 7:
+      disasm = true;
+      break;
+
     default: /* DOESNOTREACH   */
       abort ();
       break;
@@ -276,6 +283,9 @@ int main (int argc, char **argv)
     FACT_shell ();
   } else      
     Furlow_run ();
+
+  if (disasm)
+    Furlow_disassemble();
   
  exit:
   /* Clean up and exit. */

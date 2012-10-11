@@ -34,7 +34,7 @@ const cat (num op1, num op2) # Concatinate two strings
 const linked_list (num size)
 {
   scope curr;
-  for (i = 0; i < size; i += 1) {
+  for (num i = 0; i < size; i += 1) {
     (curr: n) = i;
     curr: scope get_end @ ()
     {
