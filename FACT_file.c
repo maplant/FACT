@@ -23,7 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int FACT_load_file (const char *file_name) /* Load a file into the VM. */
+int
+FACT_load_file(const char *file_name) /* Load a file into the VM. */
 {
   int c;
   FILE *fp;

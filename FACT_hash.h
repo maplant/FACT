@@ -28,7 +28,7 @@ struct _var_table {
   struct _entry {
     FACT_t data[1];
     struct _entry *next;
-  } *buckets;
+  } **buckets;
   size_t num_buckets;
   size_t total_num_vars;
 };

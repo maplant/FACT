@@ -21,6 +21,7 @@
 #include "FACT_vm.h"
 #include "FACT_file.h"
 #include "FACT_error.h"
+#include "FACT_opcodes.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +54,7 @@ int main (int argc, char **argv)
   char *stdlib_path;
   char **file_queue; /* List of files to be run. */
   struct cstack_t frame;
+  static char nop_inst[] = { NOP };
 
   struct {
     char short_opt, *long_opt;
@@ -84,9 +86,10 @@ int main (int argc, char **argv)
 			   &gmp_free_wrapper);
 
   /* Initialize the virtual machine. */
-  Furlow_init_vm ();
-  FACT_init_interrupt ();
-  FACT_add_BIFs ();
+  Furlow_init_vm();
+  Furlow_add_instruction(nop_inst); /* In case there is no STDLIB. */
+  FACT_init_interrupt();
+  FACT_add_BIFs();
 
   q_size = 0;
   file_queue = NULL;

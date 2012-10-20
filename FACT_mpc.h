@@ -27,8 +27,8 @@
 
 typedef struct {
   struct {
-    _Bool fp : 1; /* Floating point. */
-    unsigned int pad : 7;
+    unsigned char fp : 1; /* Floating point. */
+    unsigned char pad : 7;
   };
   union {
     mpz_t intv; /* Integer value. */

@@ -6,10 +6,11 @@ num thread_1 = ${
       print (m:sender);
       break;
     }
-    print ('Message "');
-    print (m:message);
-    print ('" received from thread ');
-    print (m:sender);
+    pstr := 'Message "';
+    pstr = cat(pstr, m:message);
+    pstr = cat(pstr, '" received from thread ');
+    pstr = cat(pstr, str(m:sender));
+    print(cat(pstr,"\n"));
   }
   print ("Thread 1 exiting now.\n");
   send (0, "done");

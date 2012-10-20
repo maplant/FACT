@@ -830,6 +830,9 @@ void Furlow_run () /* Run the program until a HALT is reached. */
       FACT_throw_error (CURR_THIS, "cannot set immutable variable");
     if (!mpc_cmp_ui (((FACT_num_t) args[0].ap)->value, 0))
       FACT_throw_error (CURR_THIS, "mod by zero error");
+    if (((FACT_num_t) args[0].ap)->value->fp ||
+	((FACT_num_t) args[1].ap)->value->fp)
+      FACT_throw_error(CURR_THIS, "cannot mod floating point values");
     mpc_mod (((FACT_num_t) args[2].ap)->value,
 	     ((FACT_num_t) args[1].ap)->value,
 	     ((FACT_num_t) args[0].ap)->value);

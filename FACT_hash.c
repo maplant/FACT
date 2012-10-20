@@ -31,7 +31,7 @@ FACT_t *FACT_find_in_table_nohash (FACT_table_t *table, char *key)
   if (table->num_buckets == 0)
     return NULL;
 
-  for (p = table->buckets + FACT_get_hash (key, strlen (key)) % table->num_buckets;
+  for (p = *(table->buckets + FACT_get_hash (key, strlen (key)) % table->num_buckets);
        p != NULL && p->data->type != UNSET_TYPE;
        p = p->next) {
     if (!strcmp (key, FACT_var_name (*p->data)))
@@ -43,15 +43,17 @@ FACT_t *FACT_find_in_table_nohash (FACT_table_t *table, char *key)
 
 FACT_t *FACT_find_in_table (FACT_table_t *table, char *key, size_t hash)
 {
-  register struct _entry *p;
+  register struct _entry *p, **fp;
 
-  if (table->num_buckets == 0)
+  /* TODO: add moving the found element to the front of the list. */
+  if (table->num_buckets == 0 ||
+      *(fp = table->buckets + hash % table->num_buckets) == NULL)
     return NULL;
 
-  for (p = table->buckets + hash % table->num_buckets;
-       p != NULL && p->data->type != UNSET_TYPE;
+  for (p = *fp;
+       p->data->type != UNSET_TYPE;
        p = p->next) {
-    if (!strcmp (key, FACT_var_name (*p->data)))
+    if (!strcmp (key, FACT_var_name (*p->data))) 
       return p->data;
   }
 
@@ -67,25 +69,27 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   struct _entry *p, *e;
 
   if (table->buckets == NULL) {
-    table->buckets = FACT_malloc (sizeof (struct _entry) * START_NUM_ENTRIES);
+    table->buckets = FACT_malloc (sizeof (struct _entry *) * START_NUM_ENTRIES);
     table->num_buckets = START_NUM_ENTRIES;
     table->total_num_vars = 1;
     for (i = 0; i < START_NUM_ENTRIES; i++)
-      table->buckets[i].data->type = UNSET_TYPE;
+      table->buckets[i] = NULL; 
   } else if (++table->total_num_vars % table->num_buckets == 0 &&
 	     table->total_num_vars / table->num_buckets == 2) {
     /* If the load factor is 2, then double the number of buckets and rehash. */
-    table->buckets = FACT_realloc (table->buckets, sizeof (struct _entry) * (table->num_buckets << 1));
+    table->buckets = FACT_realloc (table->buckets, sizeof (struct _entry *) * (table->num_buckets << 1));
     /* Set all the new buckets' starting entries. */
     for (i = table->num_buckets; i < table->num_buckets << 1; i++)
-      table->buckets[i].data->type = UNSET_TYPE;
+      table->buckets[i] = NULL;
     for (i = 0; i < table->num_buckets; i++) {
-      for (p = table->buckets + i; p != NULL && p->data->type != UNSET_TYPE;) {
+      for (p = *(table->buckets + i); p != NULL && p->data->type != UNSET_TYPE; ) {
 	d = FACT_get_hash (FACT_var_name (*p->data), strlen (FACT_var_name (*p->data)))
 	  % (table->num_buckets << 1);
 	if (d != i) { /* Move the entry if it no longer belongs in the current bucket. */
-	  for (e = table->buckets + d; e->data->type != UNSET_TYPE; e = e->next)
+	  for (e = *(table->buckets + d); e != NULL && e->data->type != UNSET_TYPE; e = e->next)
 	    ;
+	  if (e == NULL)
+	    e = *(table->buckets + d) = FACT_malloc(sizeof (struct _entry));
 	  *e->data = *p->data;
 	  e->next = FACT_malloc (sizeof (struct _entry));
 	  e->next->data->type = UNSET_TYPE;
@@ -103,10 +107,13 @@ FACT_t *FACT_add_to_table (FACT_table_t *table, FACT_t key)
   }
 
   var_name = FACT_var_name (key);
-  for (p = table->buckets + FACT_get_hash (var_name, strlen (var_name)) % table->num_buckets;
-       p->data->type != UNSET_TYPE;
+  for (p = *(table->buckets + FACT_get_hash (var_name, strlen (var_name)) % table->num_buckets);
+       p != NULL && p->data->type != UNSET_TYPE;
        p = p->next)
     ;
+  if (p == NULL)
+    p = *(table->buckets + FACT_get_hash(var_name, strlen(var_name)) % table->num_buckets) =
+      FACT_malloc(sizeof(struct _entry));
   *p->data = key;
   p->next = FACT_malloc (sizeof (struct _entry));
   p->next->data->type = UNSET_TYPE;
@@ -128,7 +135,7 @@ void FACT_table_digest (FACT_table_t *table)
   items = FACT_malloc (sizeof (char *) * table->total_num_vars);
 
   for (i = k = 0; i < table->num_buckets; i++) {
-    for (p = table->buckets + i; p->data->type != UNSET_TYPE; p = p->next)
+    for (p = *(table->buckets + i); p != NULL && p->data->type != UNSET_TYPE; p = p->next)
       items[k++] = FACT_var_name (*p->data);
   }
 
@@ -139,6 +146,8 @@ void FACT_table_digest (FACT_table_t *table)
   for (i = 0; i < table->total_num_vars - 1; i++)
     printf ("%s, ", items[i]);
   printf ("%s ", items[i]);
+
+  FACT_free(items);
 }
 
 static void sqsort (char **v, size_t left, size_t right) /* Thanks K&R! */

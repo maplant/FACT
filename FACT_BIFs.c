@@ -123,10 +123,10 @@ static void FBIF_print (void) /* Print an ASCII string or numerical value. */
 {
   int len;
   FACT_num_t arg;
-  //  static pthread_mutex_t print_lock = PTHREAD_MUTEX_INITIALIZER;
+  static pthread_mutex_t print_lock = PTHREAD_MUTEX_INITIALIZER;
 
   arg = GET_ARG_NUM();
-  // pthread_mutex_lock(&print_lock);
+  pthread_mutex_lock(&print_lock);
   /* If the argument is an array, print it as a string. Otherwise, print the
    * numerical value.
    */
@@ -135,7 +135,7 @@ static void FBIF_print (void) /* Print an ASCII string or numerical value. */
   else
     len = printf("%s", FACT_natos(arg));
   fflush(stdout);
-  // pthread_mutex_unlock(&print_lock);
+  pthread_mutex_unlock(&print_lock);
   push_constant_ui(len);
 }
 

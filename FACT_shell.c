@@ -338,7 +338,9 @@ static void print_num (FACT_num_t val)
       print_num (val->array_up[i]);
     }
     printf (" ]");
-  } else
+  } else if (val->value->fp)
+    gmp_printf(" %.10Ff", val->value->fltv);
+  else 
     printf (" %s", mpc_get_str (val->value));
 }
 
