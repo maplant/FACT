@@ -18,6 +18,7 @@
 #include "FACT_lexer.h"
 #include "FACT_alloc.h"
 
+#include <ctype.h>
 #include <string.h>
 
 static FACT_nterm_t get_type (char *);
@@ -76,7 +77,8 @@ FACT_lexed_t FACT_lex_string (char *start) /* The main lexer routine. */
 	;
       goto alloc_token;
     }
-    /*
+
+#if 0
     if (isalpha (*end) || *end == '_') {
       for (end++; isalnum (*end) || *end == '_'; end++)
 	;
@@ -88,12 +90,11 @@ FACT_lexed_t FACT_lex_string (char *start) /* The main lexer routine. */
 	;
       goto alloc_token;
     }
-    /*
     if (isalnum (*end) || *end == '_' || *end == '.') {
       for (end++; isalnum (*end) || *end == '_' || *end == '.'; end++);
       goto alloc_token;
     }
-    */
+#endif
       
     /* Operators and other things. */
     switch (*end) {

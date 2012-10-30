@@ -16,57 +16,63 @@
 
 #include "FACT.h"
 #include "FACT_mpc.h"
+#include "FACT_alloc.h"
 
 #include <string.h>
 #include <gmp.h>
 
-static inline mpf_init_set_z (mpf_t rop, mpz_t op)
+static inline void
+mpf_init_set_z(mpf_t rop, mpz_t op)
 {
-  mpf_init (rop);
-  mpf_set_z (rop, op);
+  mpf_init(rop);
+  mpf_set_z(rop, op);
 }
 
-void mpc_init (mpc_t new)
+void
+mpc_init(mpc_t new)
 {
   new->fp = false;
-  mpz_init (new->intv);
+  mpz_init(new->intv);
 }
 
-void mpc_clear (mpc_t dead)
+void
+mpc_clear(mpc_t dead)
 {
   if (dead->fp)
-    mpf_clear (dead->fltv);
+    mpf_clear(dead->fltv);
   else
-    mpz_clear (dead->intv);
+    mpz_clear(dead->intv);
 }
 
-void mpc_set (mpc_t rop, mpc_t op)
+void
+mpc_set(mpc_t rop, mpc_t op)
 {
   if (op->fp) {
     if (!rop->fp) {
       rop->fp = true;
-      mpz_clear (rop->intv);
-      mpf_init (rop->fltv);
+      mpz_clear(rop->intv);
+      mpf_init(rop->fltv);
     }
-    mpf_set (rop->fltv, op->fltv);
+    mpf_set(rop->fltv, op->fltv);
   } else {
     if (rop->fp) {
       rop->fp = false;
-      mpf_clear (rop->fltv);
-      mpz_init (rop->intv);
+      mpf_clear(rop->fltv);
+      mpz_init(rop->intv);
     }
-    mpz_set (rop->intv, op->intv);
+    mpz_set(rop->intv, op->intv);
   }
 }
 
-void mpc_set_ui (mpc_t rop, unsigned long op)
+void
+mpc_set_ui(mpc_t rop, unsigned long op)
 {
   if (rop->fp) {
     rop->fp = false;
-    mpf_clear (rop->fltv);
-    mpz_init (rop->intv);
+    mpf_clear(rop->fltv);
+    mpz_init(rop->intv);
   }
-  mpz_set_ui (rop->intv, op);
+  mpz_set_ui(rop->intv, op);
 }
 
 void mpc_set_si (mpc_t rop, signed long op)
@@ -384,12 +390,56 @@ signed long int mpc_get_si (mpc_t op)
   return mpz_get_si (op->intv);
 }
 
-char *mpc_get_str (mpc_t op)
+char *
+mpc_get_str (mpc_t op)
 {
-  mp_exp_t ign;
+  if (op->fp) { 
+    int neg;
+    char *str;
+    char *ls, *rs;
+    size_t len;
+    mp_exp_t exp;
   
-  if (op->fp)
-    /* For now... */
-    return mpf_get_str (NULL, &ign, 10, 0, op->fltv);
+    str = mpf_get_str(NULL, &exp, 10, 0, op->fltv);
+    
+    if (exp == 0) /* no need to do anything further */
+      return str;
+    
+    neg = mpf_sgn(op->fltv) < 0 ? 1 : 0;
+    len = strlen(str) - neg;
+    str += neg;
+
+    if (exp > 0) { /* op is greater than one */
+      if (exp > len) { /* no decimal, but trailing zeroes */
+	ls = str;
+	rs = FACT_malloc(exp - len);
+	memset(rs, '0', exp - len);
+	rs[exp - len] = '\0';
+      } else if (exp < len) { /* decimal */
+	ls = FACT_malloc(exp + 2 + neg);
+	if (neg)
+	  ls[0] = '-', ls++;
+	memcpy(ls, str, exp);
+	ls[exp] = '.';
+	ls[exp + 1] = '\0';
+	rs = FACT_malloc(len - exp + 1);
+	memcpy(rs, str + exp, len - exp);
+	rs[len - exp] = '\0';
+      } else /* leave string as-is */
+	return str - neg;
+    } else { /* op is less than one, greater than zero */
+      ls = FACT_malloc(neg + len + -exp + 2);
+      if (neg)
+	ls[0] = '-', ls++;
+      ls[0] = '0';
+      ls[1] = '.';
+      memset(ls + 2, '0', -exp);
+      rs = str;
+    }
+    ls = FACT_realloc(ls - neg, strlen(ls - neg) + strlen(rs) + 1);
+    strcat(ls, rs);
+    return ls;
+
+  } 
   return mpz_get_str (NULL, 10, op->intv);
 }

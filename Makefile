@@ -20,17 +20,20 @@ $(PROG):	$(OBJS)
 	$(CC) $(CFLAGS) $< -o $@
 
 install:
-	rm -f $(INSTALL_DIR)/$(PROG)
-	cp $(PROG) $(INSTALL_DIR)
-	rm -rf /usr/share/FACT
-	mkdir /usr/share/FACT
+	rm -f $(INSTALL_DIR)/$(PROG)      ; \
+	cp $(PROG) $(INSTALL_DIR)         ; \
+	rm -rf /usr/share/FACT            ; \
+	mkdir /usr/share/FACT             ; \
 	cp FACT_stdlib.ft /usr/share/FACT
 
-install-devel:
-	rm -rf /usr/include/FACT
-	mkdir /usr/include/FACT
-	cp -r API_includes/. /usr/include/FACT 
+check-syntax:
+	clang $(CFLAGS) -S ${CHK_SOURCES}
+
+#install-devel:
+#	rm -rf /usr/include/FACT
+#	mkdir /usr/include/FACT
+#	cp -r API_includes/. /usr/include/FACT 
 
 clean:
-	rm *.o
+	rm *.o     ; \
 	rm $(PROG)

@@ -26,6 +26,7 @@
 #include "FACT_alloc.h"
 #include "FACT_hash.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -338,9 +339,7 @@ static void print_num (FACT_num_t val)
       print_num (val->array_up[i]);
     }
     printf (" ]");
-  } else if (val->value->fp)
-    gmp_printf(" %.10Ff", val->value->fltv);
-  else 
+  } else 
     printf (" %s", mpc_get_str (val->value));
 }
 

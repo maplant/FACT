@@ -28,8 +28,8 @@
 #include <pthread.h>
 #include <gmp.h>
 
-static void *Furlow_thread_mask (void *);
-static inline size_t get_seg_addr (char *);
+static void *Furlow_thread_mask(void *);
+static inline size_t get_seg_addr(char *);
 
 /* Threading and stacks:                                        */
 size_t num_threads;                 /* Number of threads.       */
@@ -75,27 +75,32 @@ void Furlow_add_instruction (char *new) /* Add an instruction to the progm. */
   }
 }
 
-inline void Furlow_lock_program (void) /* Lock progm. */
+inline void
+Furlow_lock_program(void) /* Lock progm. */
 {
-  pthread_mutex_lock (&progm_lock);
+  pthread_mutex_lock(&progm_lock);
 }
 
-inline void Furlow_lock_threads (void) /* Lock threads, not the individual threads. */
+inline void
+Furlow_lock_threads(void) /* Lock threads, not the individual threads. */
 {
-  pthread_mutex_lock (&threads_lock);
+  pthread_mutex_lock(&threads_lock);
 }
 
-inline void Furlow_unlock_program (void) /* Unlock progm. */
+inline void
+Furlow_unlock_program(void) /* Unlock progm. */
 {
-  pthread_mutex_unlock (&progm_lock);
+  pthread_mutex_unlock(&progm_lock);
 }
 
-inline void Furlow_unlock_threads (void) /* Unlock threads. */
+inline void
+Furlow_unlock_threads(void) /* Unlock threads. */
 {
-  pthread_mutex_unlock (&threads_lock);
+  pthread_mutex_unlock(&threads_lock);
 }
 
-inline size_t Furlow_offset (void) /* Get the instruction offset. */
+inline size_t
+Furlow_offset(void) /* Get the instruction offset. */
 {
   /* Return the number of instructions there are, minus the terminating HALT. */
   return (((next_inst - progm) == 0)
@@ -103,14 +108,15 @@ inline size_t Furlow_offset (void) /* Get the instruction offset. */
 	  : (next_inst - progm));
 }
   
-FACT_t pop_v () /* Pop the variable stack. */
+FACT_t
+pop_v() /* Pop the variable stack. */
 {
   FACT_t res;
   size_t diff;
 
 #ifdef SAFE
   if (curr_thread->vstackp < curr_thread->vstack)
-    FACT_throw_error (CURR_THIS, "illegal POP on empty var stack");
+    FACT_throw_error(CURR_THIS, "illegal POP on empty var stack");
 #endif /* SAFE */
 
   diff = curr_thread->vstackp - curr_thread->vstack;
@@ -118,7 +124,7 @@ FACT_t pop_v () /* Pop the variable stack. */
       curr_thread->vstack_size % diff == 0 &&
       curr_thread->vstack_size / diff == 4) {
     curr_thread->vstack_size >>= 1; /* Divide by two. */
-    curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * curr_thread->vstack_size);
+    curr_thread->vstack = FACT_realloc(curr_thread->vstack, sizeof(FACT_t) * curr_thread->vstack_size);
     curr_thread->vstackp = curr_thread->vstack + diff;
   }
 
@@ -129,14 +135,15 @@ FACT_t pop_v () /* Pop the variable stack. */
   return res;
 }
 
-struct cstack_t pop_c () /* Pop the current call stack. */
+struct cstack_t
+pop_c() /* Pop the current call stack. */
 {
   size_t diff;
   struct cstack_t res;
 
 #ifdef SAFE
   if (curr_thread->cstackp < curr_thread->cstack)
-    FACT_throw_error (CURR_THIS, "illegal POP on empty call stack");
+    FACT_throw_error(CURR_THIS, "illegal POP on empty call stack");
 #endif /* SAFE */
 
   diff = curr_thread->cstackp - curr_thread->cstack;
@@ -144,7 +151,7 @@ struct cstack_t pop_c () /* Pop the current call stack. */
       curr_thread->cstack_size % diff == 0 &&
       curr_thread->cstack_size / diff == 4) {
     curr_thread->cstack_size >>= 1;
-    curr_thread->cstack = FACT_realloc (curr_thread->cstack, sizeof (struct cstack_t) * curr_thread->cstack_size);
+    curr_thread->cstack = FACT_realloc(curr_thread->cstack, sizeof(struct cstack_t) * curr_thread->cstack_size);
     curr_thread->cstackp = curr_thread->cstack + diff;
   }
 
@@ -155,30 +162,32 @@ struct cstack_t pop_c () /* Pop the current call stack. */
   return res;
 }
 
-size_t *pop_t () /* Pop the trap stack. */
+size_t *
+pop_t() /* Pop the trap stack. */
 {
   size_t *res;
   
 #ifdef SAFE
   if (curr_thread->traps == NULL)
-    FACT_throw_error (CURR_THIS, "no traps currently set.");
+    FACT_throw_error(CURR_THIS, "no traps currently set.");
 #endif /* SAFE */
 
-  res = FACT_malloc (sizeof (size_t) * 2);
+  res = FACT_malloc(sizeof(size_t) * 2);
   curr_thread->num_traps--;
-  memcpy (res, curr_thread->traps[curr_thread->num_traps], sizeof (size_t [2]));
+  memcpy (res, curr_thread->traps[curr_thread->num_traps], sizeof(size_t [2]));
   
   if (curr_thread->num_traps)
-    curr_thread->traps = FACT_realloc (curr_thread->traps, sizeof (size_t [2]) * curr_thread->num_traps);
+    curr_thread->traps = FACT_realloc(curr_thread->traps, sizeof(size_t [2]) * curr_thread->num_traps);
   else {
-    FACT_free (curr_thread->traps);
+    FACT_free(curr_thread->traps);
     curr_thread->traps = NULL;
   }
 
   return res;
 }
 
-void push_v (FACT_t n) /* Push to the variable stack. */
+void
+push_v(FACT_t n) /* Push to the variable stack. */
 {
   size_t diff;
 
@@ -190,7 +199,7 @@ void push_v (FACT_t n) /* Push to the variable stack. */
       diff = 0;
     } else
       curr_thread->vstack_size <<= 1; /* Square the size of the var stack. */
-    curr_thread->vstack = FACT_realloc (curr_thread->vstack, sizeof (FACT_t) * (curr_thread->vstack_size));
+    curr_thread->vstack = FACT_realloc(curr_thread->vstack, sizeof(FACT_t) * (curr_thread->vstack_size));
     curr_thread->vstackp = curr_thread->vstack + diff;
   }
   
