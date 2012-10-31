@@ -4,27 +4,40 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <title>FACT by rookieMP</title>
-    
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
     <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
   </head>
   <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/rookieMP/FACT">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/rookieMP/FACT/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/rookieMP/FACT/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
     <div class="wrapper">
-      <header>
-        <h1>FACT</h1>
-        <p>The FACT (Functions Are Classes Too) Programming Language</p>
-        <p class="view"><a href="https://github.com/rookieMP/FACT">View the Project on GitHub <small>rookieMP/FACT</small></a></p>
-        <ul>
-          <li><a href="https://github.com/rookieMP/FACT/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/rookieMP/FACT/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/rookieMP/FACT">Fork On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
+
       <section>
+        <div id="title">
+          <h1>FACT</h1>
+          <p>The FACT (Functions Are Classes Too) Programming Language</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/rookieMP">rookieMP</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></span>
+        </div>
+
         <h3>What is FACT?</h3>
 
 <p>FACT is a new programming language that is designed to exploit the usefulness of mutable scopes (a.k.a. first class environments) to create a language that is both very simple and yet supports many complex paradigms (such as classes, inheritance, etc). FACT does not have any keywords such as "class" or "method," nor does it have special data types for objects (in the OOP sense that is). Indeed, classes and methods are easy to implement without such keywords, and there are only two data types: scopes and numbers (real numbers of arbitrary precision). </p>
@@ -35,7 +48,7 @@
 
 <h3>What is FACT good for?</h3>
 
-<p>While it is a Turing complete programming language and theoretically could be used for a whole lot, especially in places where JavaScript is used (the languages are slightly similar). However, as the language is only in its infant stages, it really only excels as an arbitrary precision calculator. In the purely utilitarian sense right now it is essentially BC but nicer. </p>
+<p>While it is a Turing complete programming language and therefore theoretically could be used for a whole lot, the language is only in its infant stages, and so it really only excels as an arbitrary precision calculator. In the purely utilitarian sense right now it is essentially BC but nicer. </p>
 
 <h3>Can you give me some sample code?</h3>
 
@@ -111,12 +124,9 @@ print ("and that's the show folks!\n");
 
 <p>FACT is written by Matthew Plant (<a href="https://github.com/rookieMP" class="user-mention">@rookieMP</a>). You can contact me via my email, rookie dot mp at gmail dot com. If you have any questions about FACT <strong>at all</strong>, feel free to contact me.</p>
       </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/rookieMP">rookieMP</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
+
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
     
   </body>
 </html>
