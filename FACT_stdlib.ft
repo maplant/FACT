@@ -33,20 +33,21 @@ const cat (num op1, num op2) # Concatinate two strings
 
 const linked_list (num size)
 {
-  scope curr;
-  for (num i = 0; i < size; i += 1) {
-    (curr: n) = i;
-    curr: scope get_end @ ()
-    {
-      scope curr = up;
-      while (curr:next?)
-        curr = curr:next;
-      return curr;
-    }
-    curr: scope next;
-    curr = curr:next;
-  }
-  return this;
+      	scope main;
+	scope curr = main;
+	for (num i = 0; i < size; i += 1) {
+		(curr:num n) = i;
+		curr: scope get_end @ ()
+    		{
+			scope curr = up;
+      			while (curr:next?)
+        			curr = curr:next;
+      			return curr;
+		}
+    		curr: scope next;
+    		curr = curr:next;
+  	}
+	return main;
 }
 
 # These two are sort of clever.
