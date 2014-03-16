@@ -22,7 +22,7 @@
 
 #include <string.h>
 
-#define START_NUM_ENTRIES 256
+#define INIT_NUM_BUCKETS 256
 
 struct _var_table {
   struct _entry {
@@ -30,7 +30,7 @@ struct _var_table {
     struct _entry *next;
   } **buckets;
   size_t num_buckets;
-  size_t total_num_vars;
+  size_t num_entries;
 };
 
 FACT_t *FACT_find_in_table_nohash (FACT_table_t *, char *);

@@ -52,9 +52,9 @@ static void print_var_stack ();
 
 /* Global variables: */
 FACT_table_t Furlow_globals = {
-  .buckets = NULL,
-  .num_buckets = 0,
-  .total_num_vars = 0,
+	.buckets = NULL,
+	.num_buckets = 0,
+	.num_entries = 0,
 };
 
 void Furlow_add_instruction (char *new) /* Add an instruction to the progm. */
@@ -1326,7 +1326,7 @@ static void print_scope (FACT_scope_t val)
     }
     printf (" ]");
   } else {
-    printf ("{ %s%s ", val->name, ((val->vars->total_num_vars == 0) ? "\0" : ":"));
+    printf ("{ %s%s ", val->name, ((val->vars->num_entries == 0) ? "\0" : ":"));
     FACT_table_digest (val->vars);
     printf ("}");
   }

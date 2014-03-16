@@ -24,10 +24,11 @@ install:
 	cp $(PROG) $(INSTALL_DIR)         ; \
 	rm -rf /usr/share/FACT            ; \
 	mkdir /usr/share/FACT             ; \
-	cp FACT_stdlib.ft /usr/share/FACT
+	cp FACT_stdlib.ft /usr/share/FACT ; \
+	chmod 644 /usr/share/FACT/FACT_stdlib.ft
 
 check-syntax:
-	clang $(CFLAGS) -S ${CHK_SOURCES}
+	 cc $(CFLAGS) -S ${CHK_SOURCES}
 
 #install-devel:
 #	rm -rf /usr/include/FACT

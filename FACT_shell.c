@@ -359,7 +359,7 @@ static void print_scope (FACT_scope_t val)
     }
     printf (" ]");
   } else {
-    printf ("{ %s%s ", val->name, ((val->vars->total_num_vars == 0) ? "\0" : ":"));
+    printf ("{ %s%s ", val->name, ((val->vars->num_entries == 0) ? "\0" : ":"));
     FACT_table_digest (val->vars);
     printf ("}");
   }
